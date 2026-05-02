@@ -1,0 +1,221 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>NV Admin — Foods</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../shared/styles.css">
+<link rel="stylesheet" href="_shell.css">
+</head>
+<body>
+
+<div class="admin">
+
+  <aside class="sidebar">
+    <a class="brand" href="index.html"><span class="brand-mark">NV</span><span>NV Admin</span></a>
+    <a class="nav-item" href="index.html"><span class="nav-icon">◆</span><span>Overview</span></a>
+    <div class="nav-group-title">Catalog</div>
+    <a class="nav-item active" href="foods.html"><span class="nav-icon">▤</span><span>Foods</span><span class="badge">412</span></a>
+    <a class="nav-item" href="nutrients.html"><span class="nav-icon">◐</span><span>Nutrients</span></a>
+    <div class="nav-group-title">Activity</div>
+    <a class="nav-item" href="meal-logs.html"><span class="nav-icon">▣</span><span>Meal logs</span></a>
+    <a class="nav-item" href="users.html"><span class="nav-icon">◯</span><span>Users</span></a>
+    <a class="nav-item" href="reminders.html"><span class="nav-icon">⏱</span><span>Reminders</span></a>
+    <div class="spacer"></div>
+    <a class="nav-item" href="settings.html"><span class="nav-icon">⚙</span><span>Settings</span></a>
+    <div class="sidebar-foot">
+      <div class="avatar">JM</div>
+      <div><div style="font-weight:600">Jane Miller</div><div style="color:var(--text-muted); font-size:11px">admin@nv.app</div></div>
+    </div>
+  </aside>
+
+  <main>
+    <div class="topbar">
+      <div class="crumb"><a href="index.html">Admin</a> / <span>Foods</span></div>
+      <div class="search"><input placeholder="Search foods, users, logs…"></div>
+    </div>
+
+    <div class="page">
+      <div class="page-head">
+        <div>
+          <h1>Foods</h1>
+          <p class="sub">412 foods · 17 pending verification · last updated 3 min ago</p>
+        </div>
+        <div class="page-actions">
+          <button class="btn btn-ghost btn-sm">⤓ Export CSV</button>
+          <button class="btn btn-ghost btn-sm">⤒ Import</button>
+          <a class="btn btn-primary btn-sm" href="food-edit.html">+ New food</a>
+        </div>
+      </div>
+
+      <!-- Filter chips -->
+      <div class="row" style="margin-bottom:16px; gap:8px; flex-wrap:wrap">
+        <span class="chip chip-accent">All <span style="opacity:0.7">412</span></span>
+        <span class="chip">Verified <span class="muted">389</span></span>
+        <span class="chip">Pending <span class="muted">17</span></span>
+        <span class="chip">User-submitted <span class="muted">62</span></span>
+        <span class="chip">Missing data <span class="muted">4</span></span>
+      </div>
+
+      <!-- Toolbar -->
+      <div class="toolbar">
+        <input class="input" placeholder="Filter by name or barcode…">
+        <select class="select"><option>All categories</option><option>Vegetables</option><option>Fruits</option><option>Seafood</option><option>Dairy</option><option>Nuts</option><option>Legumes</option></select>
+        <select class="select"><option>All sources</option><option>USDA seed</option><option>Manual</option><option>User submitted</option></select>
+        <div class="spacer"></div>
+        <button class="btn btn-ghost btn-sm">⏷ More filters</button>
+      </div>
+
+      <!-- Table -->
+      <div class="table-wrap">
+        <table class="table">
+          <thead>
+            <tr>
+              <th style="width:32px"><input type="checkbox"></th>
+              <th>Name</th>
+              <th>Category</th>
+              <th>Serving</th>
+              <th>Nutrients</th>
+              <th>Source</th>
+              <th>Status</th>
+              <th>Updated</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><input type="checkbox"></td>
+              <td><a href="food-edit.html" style="color:var(--text); font-weight:600">Salmon, Atlantic</a><div class="caption">id: 018f…0001</div></td>
+              <td>Seafood</td>
+              <td>100 g</td>
+              <td><span class="row" style="gap:4px"><span class="nutrient-pill" data-code="D">D</span><span class="nutrient-pill" data-code="B12">B12</span><span class="muted">+1</span></span></td>
+              <td>USDA seed</td>
+              <td><span class="chip chip-accent"><span class="chip-dot"></span>Verified</span></td>
+              <td class="muted">Apr 24</td>
+              <td><a href="food-edit.html" class="muted">Edit</a></td>
+            </tr>
+            <tr>
+              <td><input type="checkbox"></td>
+              <td><a href="food-edit.html" style="color:var(--text); font-weight:600">Spinach, raw</a><div class="caption">id: 018f…0002</div></td>
+              <td>Vegetables</td>
+              <td>100 g</td>
+              <td><span class="row" style="gap:4px"><span class="nutrient-pill" data-code="K">K</span><span class="nutrient-pill" data-code="B9">B9</span><span class="nutrient-pill" data-code="A">A</span></span></td>
+              <td>USDA seed</td>
+              <td><span class="chip chip-accent"><span class="chip-dot"></span>Verified</span></td>
+              <td class="muted">Apr 23</td>
+              <td><a href="food-edit.html" class="muted">Edit</a></td>
+            </tr>
+            <tr>
+              <td><input type="checkbox"></td>
+              <td><a href="food-edit.html" style="color:var(--text); font-weight:600">Greek yogurt</a><div class="caption">id: 018f…0003</div></td>
+              <td>Dairy</td>
+              <td>170 g</td>
+              <td><span class="row" style="gap:4px"><span class="nutrient-pill" data-code="Ca">Ca</span><span class="nutrient-pill" data-code="B12">B12</span></span></td>
+              <td>USDA seed</td>
+              <td><span class="chip chip-accent"><span class="chip-dot"></span>Verified</span></td>
+              <td class="muted">Apr 22</td>
+              <td><a href="food-edit.html" class="muted">Edit</a></td>
+            </tr>
+            <tr>
+              <td><input type="checkbox"></td>
+              <td><a href="food-edit.html" style="color:var(--text); font-weight:600">Almonds, dry roast</a><div class="caption">id: 018f…0004</div></td>
+              <td>Nuts</td>
+              <td>28 g</td>
+              <td><span class="row" style="gap:4px"><span class="nutrient-pill" data-code="Mg">Mg</span><span class="nutrient-pill" data-code="Ca">Ca</span></span></td>
+              <td>USDA seed</td>
+              <td><span class="chip chip-accent"><span class="chip-dot"></span>Verified</span></td>
+              <td class="muted">Apr 22</td>
+              <td><a href="food-edit.html" class="muted">Edit</a></td>
+            </tr>
+            <tr>
+              <td><input type="checkbox"></td>
+              <td><a href="food-edit.html" style="color:var(--text); font-weight:600">Sweet potato, baked</a><div class="caption">id: 018f…0005</div></td>
+              <td>Vegetables</td>
+              <td>130 g</td>
+              <td><span class="row" style="gap:4px"><span class="nutrient-pill" data-code="A">A</span><span class="nutrient-pill" data-code="C">C</span></span></td>
+              <td>USDA seed</td>
+              <td><span class="chip chip-accent"><span class="chip-dot"></span>Verified</span></td>
+              <td class="muted">Apr 21</td>
+              <td><a href="food-edit.html" class="muted">Edit</a></td>
+            </tr>
+            <tr>
+              <td><input type="checkbox"></td>
+              <td><a href="food-edit.html" style="color:var(--text); font-weight:600">Lentils, cooked</a><div class="caption">id: 018f…0006</div></td>
+              <td>Legumes</td>
+              <td>100 g</td>
+              <td><span class="row" style="gap:4px"><span class="nutrient-pill" data-code="B9">B9</span><span class="nutrient-pill" data-code="Fe">Fe</span></span></td>
+              <td>USDA seed</td>
+              <td><span class="chip chip-accent"><span class="chip-dot"></span>Verified</span></td>
+              <td class="muted">Apr 20</td>
+              <td><a href="food-edit.html" class="muted">Edit</a></td>
+            </tr>
+            <tr>
+              <td><input type="checkbox"></td>
+              <td><a href="food-edit.html" style="color:var(--text); font-weight:600">Tempeh, organic</a><div class="caption">id: 018f…0042 · brand: Lightlife</div></td>
+              <td>Legumes</td>
+              <td>85 g</td>
+              <td><span class="row" style="gap:4px"><span class="nutrient-pill" data-code="B12">B12</span><span class="nutrient-pill" data-code="Fe">Fe</span></span></td>
+              <td>Manual</td>
+              <td><span class="chip chip-warn"><span class="chip-dot"></span>Pending</span></td>
+              <td class="muted">1 h ago</td>
+              <td><a href="food-edit.html" class="muted">Edit</a></td>
+            </tr>
+            <tr>
+              <td><input type="checkbox"></td>
+              <td><a href="food-edit.html" style="color:var(--text); font-weight:600">Quinoa, cooked</a><div class="caption">id: 018f…0049</div></td>
+              <td>Grains</td>
+              <td>185 g</td>
+              <td><span class="row" style="gap:4px"><span class="nutrient-pill" data-code="Fe">Fe</span><span class="nutrient-pill" data-code="Mg">Mg</span></span></td>
+              <td>User submitted</td>
+              <td><span class="chip chip-warn"><span class="chip-dot"></span>Pending</span></td>
+              <td class="muted">3 h ago</td>
+              <td><a href="food-edit.html" class="muted">Edit</a></td>
+            </tr>
+            <tr>
+              <td><input type="checkbox"></td>
+              <td><a href="food-edit.html" style="color:var(--text); font-weight:600">Avocado, raw</a><div class="caption">id: 018f…0011</div></td>
+              <td>Fruits</td>
+              <td>150 g</td>
+              <td><span class="row" style="gap:4px"><span class="nutrient-pill" data-code="K">K</span><span class="nutrient-pill" data-code="B9">B9</span></span></td>
+              <td>USDA seed</td>
+              <td><span class="chip chip-accent"><span class="chip-dot"></span>Verified</span></td>
+              <td class="muted">Apr 19</td>
+              <td><a href="food-edit.html" class="muted">Edit</a></td>
+            </tr>
+            <tr>
+              <td><input type="checkbox"></td>
+              <td><a href="food-edit.html" style="color:var(--text); font-weight:600">Egg, large</a><div class="caption">id: 018f…0014</div></td>
+              <td>Dairy</td>
+              <td>50 g</td>
+              <td><span class="row" style="gap:4px"><span class="nutrient-pill" data-code="D">D</span><span class="nutrient-pill" data-code="B12">B12</span></span></td>
+              <td>USDA seed</td>
+              <td><span class="chip chip-accent"><span class="chip-dot"></span>Verified</span></td>
+              <td class="muted">Apr 18</td>
+              <td><a href="food-edit.html" class="muted">Edit</a></td>
+            </tr>
+          </tbody>
+        </table>
+
+        <div class="pagination">
+          <span>Showing 1–10 of 412</span>
+          <div class="pages">
+            <a class="page-btn" href="#">‹</a>
+            <a class="page-btn active" href="#">1</a>
+            <a class="page-btn" href="#">2</a>
+            <a class="page-btn" href="#">3</a>
+            <span style="padding:0 6px; color:var(--text-muted)">…</span>
+            <a class="page-btn" href="#">42</a>
+            <a class="page-btn" href="#">›</a>
+          </div>
+          <select class="select" style="width:auto; height:32px"><option>10 / page</option><option>25</option><option>50</option></select>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+
+</body>
+</html>

@@ -1,0 +1,33 @@
+<!--
+  Reusable sidebar markup. Each page copies this and sets `class="active"`
+  on the matching nav-item. (Static mockups — no JS templating.)
+-->
+<aside class="sidebar">
+  <a class="brand" href="index.html">
+    <span class="brand-mark">NV</span>
+    <span>NV Admin</span>
+  </a>
+
+  <a class="nav-item" href="index.html"><span class="nav-icon">◆</span><span>Overview</span></a>
+
+  <div class="nav-group-title">Catalog</div>
+  <a class="nav-item" href="foods.html"><span class="nav-icon">▤</span><span>Foods</span><span class="badge">412</span></a>
+  <a class="nav-item" href="nutrients.html"><span class="nav-icon">◐</span><span>Nutrients</span></a>
+
+  <div class="nav-group-title">Activity</div>
+  <a class="nav-item" href="meal-logs.html"><span class="nav-icon">▣</span><span>Meal logs</span></a>
+  <a class="nav-item" href="users.html"><span class="nav-icon">◯</span><span>Users</span></a>
+  <a class="nav-item" href="reminders.html"><span class="nav-icon">⏱</span><span>Reminders</span></a>
+
+  <div class="spacer"></div>
+
+  <a class="nav-item" href="settings.html"><span class="nav-icon">⚙</span><span>Settings</span></a>
+
+  <div class="sidebar-foot">
+    <div class="avatar">JM</div>
+    <div>
+      <div style="font-weight:600">Jane Miller</div>
+      <div style="color:var(--text-muted); font-size:11px">admin@nv.app</div>
+    </div>
+  </div>
+</aside>

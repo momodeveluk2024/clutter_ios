@@ -1,0 +1,123 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>NV Admin — Sign in</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../shared/styles.css">
+<style>
+  body { min-height: 100vh; display: grid; grid-template-columns: 1fr 1fr; }
+  .login-side {
+    padding: 64px;
+    display: flex; flex-direction: column;
+    background: var(--surface);
+  }
+  .login-form { margin: auto 0; max-width: 400px; width: 100%; }
+  .login-form h1 { margin: 12px 0 8px; }
+  .login-form p.lead { color: var(--text-muted); margin-bottom: 32px; }
+  .login-form .btn-primary { width: 100%; margin-top: 8px; }
+  .login-form .row-between { display: flex; align-items: center; justify-content: space-between; font-size: 12px; margin: 16px 0 8px; }
+  .checkbox { display: inline-flex; align-items: center; gap: 8px; color: var(--text-muted); cursor: pointer; }
+  .checkbox input { width: 14px; height: 14px; accent-color: var(--accent); }
+  .login-foot { margin-top: auto; padding-top: 32px; font-size: 12px; color: var(--text-muted); }
+  .login-foot a { color: var(--text-muted); margin-right: 18px; }
+  .login-foot a:hover { color: var(--text); }
+
+  .hero-side {
+    background: linear-gradient(160deg, #1E5A34 0%, #2F7D4A 60%, #3B9159 100%);
+    color: #F1F3EE;
+    padding: 64px;
+    display: flex; flex-direction: column; justify-content: space-between;
+    position: relative; overflow: hidden;
+  }
+  .hero-side::before {
+    content: ''; position: absolute; right: -120px; top: -120px;
+    width: 480px; height: 480px; border-radius: 50%;
+    background: radial-gradient(circle, rgba(255,255,255,0.10) 0%, transparent 70%);
+  }
+  .hero-side .quote { font-size: 28px; font-weight: 700; letter-spacing: -0.02em; line-height: 1.2; max-width: 480px; }
+  .hero-side .quote em { color: #B6E0C2; font-style: normal; }
+  .hero-side .attrib { color: #C8DBCD; font-size: 13px; margin-top: 16px; }
+  .hero-side .stat-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px; padding-top: 32px; border-top: 1px solid rgba(255,255,255,0.15); }
+  .hero-side .stat strong { display: block; font-size: 28px; font-weight: 700; letter-spacing: -0.02em; }
+  .hero-side .stat span { font-size: 11px; color: #C8DBCD; letter-spacing: 0.06em; text-transform: uppercase; }
+
+  .alert {
+    padding: 12px 14px; border-radius: 10px;
+    background: var(--accent-soft); color: var(--accent-deep);
+    border: 1px solid #CFE3D5; font-size: 12px; margin-bottom: 20px;
+  }
+  .alert-warn { background: #FBEADB; color: #8A4B20; border-color: #F0D2B0; }
+
+  @media (max-width: 880px) {
+    body { grid-template-columns: 1fr; }
+    .hero-side { display: none; }
+    .login-side { padding: 32px 24px; }
+  }
+</style>
+</head>
+<body>
+
+<section class="login-side">
+  <a class="brand" href="../marketing-site/index.html"><span class="brand-mark">NV</span><span>NV Admin</span></a>
+
+  <div class="login-form">
+    <span class="eyebrow">Welcome back</span>
+    <h1 class="h1">Sign in to your admin console</h1>
+    <p class="lead">Manage the food database, monitor user activity and tune notification policies.</p>
+
+    <div class="alert alert-warn">⚠ This console is for admin accounts only. User logins happen in the mobile app.</div>
+
+    <form>
+      <div class="field">
+        <label class="label" for="email">Email</label>
+        <input class="input" type="email" id="email" placeholder="you@nv.app" value="jane@nv.app">
+      </div>
+      <div class="field">
+        <label class="label" for="password">Password</label>
+        <input class="input" type="password" id="password" placeholder="••••••••" value="********">
+      </div>
+
+      <div class="row-between">
+        <label class="checkbox"><input type="checkbox" checked> Remember this device</label>
+        <a href="#" class="muted">Forgot password?</a>
+      </div>
+
+      <button type="button" class="btn btn-primary" onclick="location.href='index.html'">Sign in</button>
+
+      <p style="text-align:center; font-size:12px; color: var(--text-muted); margin-top:16px;">
+        or <a href="#">sign in with SSO</a>
+      </p>
+    </form>
+  </div>
+
+  <div class="login-foot">
+    <a href="../marketing-site/index.html">← Back to nv.app</a>
+    <a href="#">Privacy</a>
+    <a href="#">Terms</a>
+    <a href="#">Status</a>
+  </div>
+</section>
+
+<aside class="hero-side">
+  <div>
+    <span class="eyebrow" style="color:#B6E0C2">NV Admin · v1.4</span>
+  </div>
+
+  <div>
+    <p class="quote">"The database is the product. <em>This is where it lives.</em>"</p>
+    <p class="attrib">— internal product principle</p>
+  </div>
+
+  <div class="stat-grid">
+    <div class="stat"><strong>4,182</strong><span>Active users</span></div>
+    <div class="stat"><strong>412</strong><span>Foods</span></div>
+    <div class="stat"><strong>22</strong><span>Nutrients</span></div>
+  </div>
+</aside>
+
+</body>
+</html>

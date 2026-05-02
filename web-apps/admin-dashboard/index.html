@@ -1,0 +1,170 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>NV Admin — Overview</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../shared/styles.css">
+<link rel="stylesheet" href="_shell.css">
+</head>
+<body>
+
+<div class="admin">
+
+  <!-- ===== Sidebar (active = Overview) ===== -->
+  <aside class="sidebar">
+    <a class="brand" href="index.html"><span class="brand-mark">NV</span><span>NV Admin</span></a>
+    <a class="nav-item active" href="index.html"><span class="nav-icon">◆</span><span>Overview</span></a>
+    <div class="nav-group-title">Catalog</div>
+    <a class="nav-item" href="foods.html"><span class="nav-icon">▤</span><span>Foods</span><span class="badge">412</span></a>
+    <a class="nav-item" href="nutrients.html"><span class="nav-icon">◐</span><span>Nutrients</span></a>
+    <div class="nav-group-title">Activity</div>
+    <a class="nav-item" href="meal-logs.html"><span class="nav-icon">▣</span><span>Meal logs</span></a>
+    <a class="nav-item" href="users.html"><span class="nav-icon">◯</span><span>Users</span></a>
+    <a class="nav-item" href="reminders.html"><span class="nav-icon">⏱</span><span>Reminders</span></a>
+    <div class="spacer"></div>
+    <a class="nav-item" href="settings.html"><span class="nav-icon">⚙</span><span>Settings</span></a>
+    <div class="sidebar-foot">
+      <div class="avatar">JM</div>
+      <div><div style="font-weight:600">Jane Miller</div><div style="color:var(--text-muted); font-size:11px">admin@nv.app</div></div>
+    </div>
+  </aside>
+
+  <!-- ===== Main ===== -->
+  <main>
+    <div class="topbar">
+      <div class="crumb"><span>Overview</span></div>
+      <div class="search"><input placeholder="Search foods, users, logs…"><span class="kbd" style="position:absolute; right:12px; top:50%; transform:translateY(-50%);">⌘K</span></div>
+      <button class="btn btn-ghost btn-sm">⊕ New</button>
+    </div>
+
+    <div class="page">
+      <div class="page-head">
+        <div>
+          <h1>Good morning, Jane.</h1>
+          <p class="sub">Here's what changed in the last 24 hours.</p>
+        </div>
+        <div class="page-actions">
+          <button class="btn btn-ghost btn-sm">Last 7 days ▾</button>
+          <button class="btn btn-ghost btn-sm">⤓ Export</button>
+        </div>
+      </div>
+
+      <!-- KPIs -->
+      <div class="kpi-grid">
+        <div class="kpi">
+          <span class="eyebrow">Active users (7d)</span>
+          <div class="val">3,284</div>
+          <div class="delta up">↑ 12.4% vs last week</div>
+        </div>
+        <div class="kpi">
+          <span class="eyebrow">Meals logged today</span>
+          <div class="val">8,941</div>
+          <div class="delta up">↑ 6.1%</div>
+        </div>
+        <div class="kpi">
+          <span class="eyebrow">Foods in catalog</span>
+          <div class="val">412</div>
+          <div class="delta">+9 this week</div>
+        </div>
+        <div class="kpi">
+          <span class="eyebrow">Pending verification</span>
+          <div class="val" style="color: var(--warn)">17</div>
+          <div class="delta down">3 over 7 days old</div>
+        </div>
+      </div>
+
+      <!-- Two-column -->
+      <div class="split">
+        <div class="card">
+          <div class="between" style="margin-bottom:16px">
+            <div>
+              <h3 class="h3">Meal log volume</h3>
+              <p class="caption">Last 14 days · all users</p>
+            </div>
+            <div class="row" style="gap:6px">
+              <span class="chip chip-accent"><span class="chip-dot"></span>Logs</span>
+              <span class="chip"><span class="chip-dot" style="background:var(--text-muted)"></span>Users</span>
+            </div>
+          </div>
+
+          <!-- Inline SVG bar chart -->
+          <svg viewBox="0 0 560 220" width="100%" height="220" preserveAspectRatio="none" aria-label="Bar chart">
+            <g fill="var(--accent)" opacity="0.85">
+              <rect x="10"  y="120" width="28" height="92" rx="4"/>
+              <rect x="50"  y="100" width="28" height="112" rx="4"/>
+              <rect x="90"  y="80"  width="28" height="132" rx="4"/>
+              <rect x="130" y="110" width="28" height="102" rx="4"/>
+              <rect x="170" y="60"  width="28" height="152" rx="4"/>
+              <rect x="210" y="70"  width="28" height="142" rx="4"/>
+              <rect x="250" y="50"  width="28" height="162" rx="4"/>
+              <rect x="290" y="90"  width="28" height="122" rx="4"/>
+              <rect x="330" y="40"  width="28" height="172" rx="4"/>
+              <rect x="370" y="30"  width="28" height="182" rx="4"/>
+              <rect x="410" y="20"  width="28" height="192" rx="4"/>
+              <rect x="450" y="40"  width="28" height="172" rx="4"/>
+              <rect x="490" y="30"  width="28" height="182" rx="4"/>
+              <rect x="530" y="20"  width="28" height="192" rx="4"/>
+            </g>
+            <line x1="0" y1="212" x2="560" y2="212" stroke="var(--border)" />
+          </svg>
+          <div class="row" style="justify-content:space-between; margin-top:8px; font-size:11px; color:var(--text-muted)">
+            <span>Apr 12</span><span>Apr 16</span><span>Apr 20</span><span>Apr 24</span>
+          </div>
+        </div>
+
+        <div class="card">
+          <h3 class="h3">Recent activity</h3>
+          <div class="activity">
+            <div class="activity-item"><span class="activity-dot"></span>
+              <div class="activity-text"><strong>You</strong> verified <a href="food-edit.html">Quinoa, cooked</a><small>3 min ago</small></div>
+            </div>
+            <div class="activity-item"><span class="activity-dot warn"></span>
+              <div class="activity-text"><strong>System</strong> flagged 4 foods missing nutrient data<small>22 min ago</small></div>
+            </div>
+            <div class="activity-item"><span class="activity-dot"></span>
+              <div class="activity-text"><strong>Marco</strong> added <a href="food-edit.html">Tempeh, organic</a><small>1 h ago</small></div>
+            </div>
+            <div class="activity-item"><span class="activity-dot muted"></span>
+              <div class="activity-text">42 new users signed up<small>Today</small></div>
+            </div>
+            <div class="activity-item"><span class="activity-dot"></span>
+              <div class="activity-text"><strong>You</strong> updated DRI for <a href="nutrients.html">Vitamin D</a><small>Yesterday</small></div>
+            </div>
+            <div class="activity-item"><span class="activity-dot warn"></span>
+              <div class="activity-text"><strong>System</strong> 3 reminders failed to deliver (FCM)<small>Yesterday</small></div>
+            </div>
+          </div>
+          <a href="#" class="caption" style="margin-top:16px; display:inline-block">View all →</a>
+        </div>
+      </div>
+
+      <!-- Most-tracked nutrients -->
+      <div style="margin-top: 24px;" class="card">
+        <div class="between" style="margin-bottom:20px">
+          <div>
+            <h3 class="h3">Most-tracked nutrients</h3>
+            <p class="caption">By number of logs · last 30 days</p>
+          </div>
+          <a href="nutrients.html" class="caption">Manage nutrients →</a>
+        </div>
+        <div class="row" style="gap:24px; flex-wrap:wrap">
+          <div class="row" style="gap:8px"><span class="nutrient-pill" data-code="C">C</span><span style="font-size:13px">12,402 logs</span></div>
+          <div class="row" style="gap:8px"><span class="nutrient-pill" data-code="D">D</span><span style="font-size:13px">9,184 logs</span></div>
+          <div class="row" style="gap:8px"><span class="nutrient-pill" data-code="Fe">Fe</span><span style="font-size:13px">8,772 logs</span></div>
+          <div class="row" style="gap:8px"><span class="nutrient-pill" data-code="B12">B12</span><span style="font-size:13px">7,310 logs</span></div>
+          <div class="row" style="gap:8px"><span class="nutrient-pill" data-code="Ca">Ca</span><span style="font-size:13px">6,841 logs</span></div>
+          <div class="row" style="gap:8px"><span class="nutrient-pill" data-code="Mg">Mg</span><span style="font-size:13px">5,902 logs</span></div>
+          <div class="row" style="gap:8px"><span class="nutrient-pill" data-code="A">A</span><span style="font-size:13px">5,488 logs</span></div>
+          <div class="row" style="gap:8px"><span class="nutrient-pill" data-code="B9">B9</span><span style="font-size:13px">4,221 logs</span></div>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+
+</body>
+</html>

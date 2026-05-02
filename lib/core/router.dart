@@ -5,6 +5,7 @@ import '../screens/app_shell.dart';
 import '../screens/ai_chat.dart';
 import '../screens/ai_meal_photo.dart';
 import '../screens/food_detail.dart';
+import '../screens/notification_settings.dart';
 import '../screens/onboarding.dart';
 import '../screens/password_reset.dart';
 import '../screens/profile_settings.dart';
@@ -33,16 +34,27 @@ String? redirectForAuthState({
   required bool initialized,
   required bool isAuthenticated,
   required bool needsOnboarding,
+  required bool needsEmailVerification,
 }) {
   if (!initialized) {
     return path == '/' ? null : '/';
   }
   if (!isAuthenticated &&
-      (path.startsWith('/app') || path == '/profile-setup')) {
+      (path.startsWith('/app') || path == '/profile-setup' || path == '/verify-email')) {
     return '/sign-in';
   }
   if (!isAuthenticated) {
     return null;
+  }
+  // Redirect unverified email/password users to verification screen
+  if (needsEmailVerification && path != '/verify-email') {
+    if (path.startsWith('/app') || _authPages.contains(path) || path == '/profile-setup') {
+      return '/verify-email';
+    }
+  }
+  // If on verify-email but already verified, proceed normally
+  if (!needsEmailVerification && path == '/verify-email') {
+    return needsOnboarding ? '/profile-setup' : '/app';
   }
   if (needsOnboarding && path != '/profile-setup') {
     if (path.startsWith('/app') || _authPages.contains(path)) {
@@ -69,6 +81,7 @@ GoRouter buildRouter(AuthProvider auth) {
         initialized: auth.initialized,
         isAuthenticated: auth.isAuthenticated,
         needsOnboarding: auth.user?.needsOnboarding ?? false,
+        needsEmailVerification: auth.needsEmailVerification,
       );
     },
     routes: [
@@ -105,8 +118,7 @@ GoRouter buildRouter(AuthProvider auth) {
       ),
       GoRoute(
         path: '/verify-email',
-        builder: (context, state) =>
-            VerifyEmailScreen(initialToken: state.uri.queryParameters['token']),
+        builder: (context, state) => const VerifyEmailScreen(),
       ),
       GoRoute(
         path: '/app',
@@ -191,6 +203,10 @@ GoRouter buildRouter(AuthProvider auth) {
       GoRoute(
         path: '/app/profile/reminders',
         builder: (context, state) => const ProfileRemindersScreen(),
+      ),
+      GoRoute(
+        path: '/app/profile/notifications',
+        builder: (context, state) => const NotificationSettingsScreen(),
       ),
       GoRoute(
         path: '/app/profile/units',

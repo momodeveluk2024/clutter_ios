@@ -16,7 +16,7 @@ class ApiEndpoints {
 
     const isEmulator = bool.fromEnvironment(
       'ANDROID_EMULATOR',
-      defaultValue: true,
+      defaultValue: false, // Default to false so it uses production by default
     );
     if (!kIsWeb &&
         defaultTargetPlatform == TargetPlatform.android &&
@@ -24,7 +24,8 @@ class ApiEndpoints {
       return 'http://10.0.2.2:8080/v1';
     }
 
-    return 'http://localhost:8080/v1';
+    // Default to the secure production VPS backend
+    return 'https://api.nutrimateapp.com/v1';
   }
 
   static const signup = '/auth/signup';
@@ -47,6 +48,8 @@ class ApiEndpoints {
   static const favorites = '/favorites';
   static const reminders = '/reminders';
   static const recommendations = '/recommendations';
+  static const notificationDevices = '/notifications/devices';
+  static const notificationPreferences = '/notifications/preferences';
   static const aiMealPhotoAnalyze = '/ai/meal-photo/analyze';
   static const aiChat = '/ai/chat';
 
@@ -54,6 +57,7 @@ class ApiEndpoints {
   static String log(String id) => '/logs/$id';
   static String favorite(String id) => '/favorites/$id';
   static String reminder(String id) => '/reminders/$id';
+  static String notificationDevice(String id) => '/notifications/devices/$id';
   static String aiEstimate(String id) => '/ai/estimates/$id';
   static String acceptAiEstimate(String id) => '/ai/estimates/$id/accept';
 

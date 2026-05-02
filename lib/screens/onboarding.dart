@@ -94,7 +94,7 @@ class _OnboardingScreenState extends State<OnboardingScreen>
     final c = NVColors.of(context);
     final media = MediaQuery.of(context);
     final screenH = media.size.height;
-    final bottomHeight = screenH * 0.45; // Height for the bottom text card
+    final bottomHeight = screenH * 0.58; // Height for the bottom text card
 
     return AnnotatedRegion<SystemUiOverlayStyle>(
       value: const SystemUiOverlayStyle(
@@ -122,7 +122,7 @@ class _OnboardingScreenState extends State<OnboardingScreen>
                           fit: BoxFit.cover,
                           cacheWidth: 600,
                           filterQuality: FilterQuality.low,
-                          errorBuilder: (_, __, ___) => const SizedBox(),
+                          errorBuilder: (_, _, _) => const SizedBox(),
                         ),
                         // Soft dark gradient at top and bottom for readability
                         DecoratedBox(
@@ -208,7 +208,9 @@ class _OnboardingScreenState extends State<OnboardingScreen>
                 height: bottomHeight,
                 child: Container(
                   decoration: BoxDecoration(
-                    color: c.bg.withValues(alpha: 0.90), // Semi-transparent glass without BackdropFilter
+                    color: c.bg.withValues(
+                      alpha: 0.90,
+                    ), // Semi-transparent glass without BackdropFilter
                     borderRadius: const BorderRadius.vertical(
                       top: Radius.circular(36),
                     ),
@@ -362,7 +364,6 @@ class _StepTitle extends StatelessWidget {
     );
   }
 }
-
 
 // ═══════════════════════════════════════════════════════════════
 //  FEATURE ICON BADGE

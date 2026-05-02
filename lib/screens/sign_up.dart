@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 
 import '../core/providers/auth_provider.dart';
 import '../theme.dart';
@@ -27,6 +28,7 @@ class _SignUpScreenState extends State<SignUpScreen>
   final _password = TextEditingController();
 
   bool _hidePassword = true;
+  bool _showEmailForm = false;
 
   late final AnimationController _anim;
   late final Animation<double> _entryAnim;
@@ -39,10 +41,7 @@ class _SignUpScreenState extends State<SignUpScreen>
       vsync: this,
       duration: const Duration(milliseconds: 600),
     );
-    _entryAnim = CurvedAnimation(
-      parent: _anim,
-      curve: Curves.easeOutCubic,
-    );
+    _entryAnim = CurvedAnimation(parent: _anim, curve: Curves.easeOutCubic);
     _anim.forward();
   }
 
@@ -64,11 +63,20 @@ class _SignUpScreenState extends State<SignUpScreen>
         email: _email.text.trim(),
         password: _password.text,
       );
+      if (mounted) context.go('/verify-email');
+    } catch (error) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Welcome. Let us tailor things to you.')),
-      );
-      context.go('/profile-setup');
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(error.toString())));
+    }
+  }
+
+  Future<void> _handleGoogleSignIn() async {
+    HapticFeedback.lightImpact();
+    try {
+      await context.read<AuthProvider>().signInWithGoogle();
+      if (mounted) context.go('/app');
     } catch (error) {
       if (!mounted) return;
       ScaffoldMessenger.of(
@@ -105,7 +113,7 @@ class _SignUpScreenState extends State<SignUpScreen>
                   fit: BoxFit.cover,
                   cacheWidth: 600,
                   filterQuality: FilterQuality.low,
-                  errorBuilder: (_, __, ___) => const SizedBox(),
+                  errorBuilder: (_, _, _) => const SizedBox(),
                 ),
                 // Soft gradient overlay
                 DecoratedBox(
@@ -136,204 +144,222 @@ class _SignUpScreenState extends State<SignUpScreen>
                           filter: ImageFilter.blur(sigmaX: 16, sigmaY: 16),
                           child: Container(
                             decoration: BoxDecoration(
-                              color: c.bg.withValues(alpha: 0.70), // Transparent glass effect
+                              color: c.bg.withValues(
+                                alpha: 0.70,
+                              ), // Transparent glass effect
                             ),
                             padding: const EdgeInsets.fromLTRB(24, 32, 24, 24),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            // ── Headline ──
-                            Text(
-                              'Create your',
-                              style: GoogleFonts.inter(
-                                fontSize: 30,
-                                fontWeight: FontWeight.w800,
-                                letterSpacing: -0.9,
-                                height: 1.1,
-                                color: c.text,
-                              ),
-                            ),
-                            const SizedBox(height: 2),
-                            RichText(
-                              text: TextSpan(
-                                style: GoogleFonts.inter(
-                                  fontSize: 30,
-                                  fontWeight: FontWeight.w800,
-                                  letterSpacing: -0.9,
-                                  height: 1.1,
-                                  color: c.text,
-                                ),
-                                children: [
-                                  TextSpan(
-                                    text: 'account',
-                                    style: GoogleFonts.instrumentSerif(
-                                      fontStyle: FontStyle.italic,
-                                      fontWeight: FontWeight.w400,
-                                      fontSize: 34,
-                                      letterSpacing: -0.5,
-                                      height: 1.1,
-                                      color: NV.accent,
-                                    ),
-                                  ),
-                                  const TextSpan(text: '.'),
-                                ],
-                              ),
-                            ),
-                            const SizedBox(height: 8),
-                            Text(
-                              'Join Nutrimate and get personalized daily targets based on your body and goals.',
-                              style: GoogleFonts.inter(
-                                fontSize: 14,
-                                color: c.textMuted,
-                                height: 1.55,
-                              ),
-                            ),
-                            const SizedBox(height: 28),
-
-                            // ── Fields ──
-                            _AuthField(
-                              controller: _name,
-                              label: 'Full name',
-                              hint: 'Jane Doe',
-                              icon: Icons.person_outline_rounded,
-                              textCapitalization: TextCapitalization.words,
-                              validator: (v) {
-                                if ((v?.trim() ?? '').isEmpty) {
-                                  return 'Name is required';
-                                }
-                                return null;
-                              },
-                            ),
-                            const SizedBox(height: 14),
-                            _AuthField(
-                              controller: _email,
-                              label: 'Email address',
-                              hint: 'you@example.com',
-                              icon: Icons.mail_outline_rounded,
-                              keyboardType: TextInputType.emailAddress,
-                              validator: (v) {
-                                final t = v?.trim() ?? '';
-                                if (t.isEmpty) return 'Email is required';
-                                if (!t.contains('@')) return 'Enter a valid email';
-                                return null;
-                              },
-                            ),
-                            const SizedBox(height: 14),
-                            _AuthField(
-                              controller: _password,
-                              label: 'Password',
-                              hint: 'Create a password',
-                              icon: Icons.lock_outline_rounded,
-                              obscure: _hidePassword,
-                              suffix: _FieldToggle(
-                                hidden: _hidePassword,
-                                onTap: () => setState(
-                                    () => _hidePassword = !_hidePassword),
-                              ),
-                              validator: (v) {
-                                final t = v ?? '';
-                                if (t.isEmpty) return 'Password is required';
-                                if (t.length < 8) {
-                                  return 'Must be at least 8 characters';
-                                }
-                                return null;
-                              },
-                            ),
-
-                            // Password strength
-                            AnimatedSize(
-                              duration: const Duration(milliseconds: 200),
-                              curve: Curves.easeOutCubic,
-                              child: hasPassword
-                                  ? Padding(
-                                      padding: const EdgeInsets.only(
-                                          top: 12, left: 4, right: 4),
-                                      child: _PasswordStrength(
-                                          password: _password.text),
-                                    )
-                                  : const SizedBox(width: double.infinity),
-                            ),
-                            const SizedBox(height: 28),
-
-                            // ── CTA ──
-                            _PrimaryGradientButton(
-                              label: auth.isLoading
-                                  ? 'Creating account…'
-                                  : 'Sign up',
-                              loading: auth.isLoading,
-                              onPressed: auth.isLoading ? null : _submit,
-                            ),
-                            const SizedBox(height: 24),
-
-                            // ── Divider ──
-                            _OrDivider(),
-                            const SizedBox(height: 20),
-
-                            // ── Social login ──
-                            Row(
-                              children: const [
-                                Expanded(
-                                  child: _SocialButton(
-                                    provider: 'apple',
-                                    label: 'Apple',
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                // ── Headline ──
+                                Text(
+                                  'Create your',
+                                  style: GoogleFonts.inter(
+                                    fontSize: 30,
+                                    fontWeight: FontWeight.w800,
+                                    letterSpacing: -0.9,
+                                    height: 1.1,
+                                    color: c.text,
                                   ),
                                 ),
-                                SizedBox(width: 12),
-                                Expanded(
-                                  child: _SocialButton(
-                                    provider: 'google',
-                                    label: 'Google',
-                                  ),
-                                ),
-                              ],
-                            ),
-                            const SizedBox(height: 28),
-
-                            // ── Sign in link ──
-                            Center(
-                              child: GestureDetector(
-                                onTap: () => context.go('/sign-in'),
-                                behavior: HitTestBehavior.opaque,
-                                child: Text.rich(
-                                  TextSpan(
-                                    text: 'Already have an account?  ',
+                                const SizedBox(height: 2),
+                                RichText(
+                                  text: TextSpan(
                                     style: GoogleFonts.inter(
-                                      fontSize: 14,
-                                      color: c.textMuted,
+                                      fontSize: 30,
+                                      fontWeight: FontWeight.w800,
+                                      letterSpacing: -0.9,
+                                      height: 1.1,
+                                      color: c.text,
                                     ),
                                     children: [
                                       TextSpan(
-                                        text: 'Sign in',
-                                        style: GoogleFonts.inter(
+                                        text: 'account',
+                                        style: GoogleFonts.instrumentSerif(
+                                          fontStyle: FontStyle.italic,
+                                          fontWeight: FontWeight.w400,
+                                          fontSize: 34,
+                                          letterSpacing: -0.5,
+                                          height: 1.1,
                                           color: NV.accent,
-                                          fontWeight: FontWeight.w700,
-                                          fontSize: 14,
                                         ),
                                       ),
+                                      const TextSpan(text: '.'),
                                     ],
                                   ),
                                 ),
-                              ),
-                            ),
-                            const SizedBox(height: 16),
-                            Center(
-                              child: Text(
-                                'By signing up, you agree to our\nTerms of Service and Privacy Policy.',
-                                textAlign: TextAlign.center,
-                                style: GoogleFonts.inter(
-                                  fontSize: 12,
-                                  color: c.textMuted,
-                                  height: 1.55,
+                                const SizedBox(height: 8),
+                                Text(
+                                  'Join Nutrimate and get personalized daily targets based on your body and goals.',
+                                  style: GoogleFonts.inter(
+                                    fontSize: 14,
+                                    color: c.textMuted,
+                                    height: 1.55,
+                                  ),
                                 ),
-                              ),
+                                const SizedBox(height: 28),
+
+                                // ── Options ──
+                                AnimatedSize(
+                                  duration: const Duration(milliseconds: 300),
+                                  curve: Curves.easeOutCubic,
+                                  alignment: Alignment.topCenter,
+                                  child: _showEmailForm
+                                      ? Column(
+                                          crossAxisAlignment: CrossAxisAlignment.start,
+                                          children: [
+                                            _AuthField(
+                                              controller: _name,
+                                              label: 'Full name',
+                                              hint: 'Jane Doe',
+                                              icon: Icons.person_outline_rounded,
+                                              textCapitalization: TextCapitalization.words,
+                                              validator: (v) {
+                                                if ((v?.trim() ?? '').isEmpty) {
+                                                  return 'Name is required';
+                                                }
+                                                return null;
+                                              },
+                                            ),
+                                            const SizedBox(height: 14),
+                                            _AuthField(
+                                              controller: _email,
+                                              label: 'Email address',
+                                              hint: 'you@example.com',
+                                              icon: Icons.mail_outline_rounded,
+                                              keyboardType: TextInputType.emailAddress,
+                                              validator: (v) {
+                                                final t = v?.trim() ?? '';
+                                                if (t.isEmpty) return 'Email is required';
+                                                if (!t.contains('@'))
+                                                  return 'Enter a valid email';
+                                                return null;
+                                              },
+                                            ),
+                                            const SizedBox(height: 14),
+                                            _AuthField(
+                                              controller: _password,
+                                              label: 'Password',
+                                              hint: 'Create a password',
+                                              icon: Icons.lock_outline_rounded,
+                                              obscure: _hidePassword,
+                                              suffix: _FieldToggle(
+                                                hidden: _hidePassword,
+                                                onTap: () => setState(
+                                                  () => _hidePassword = !_hidePassword,
+                                                ),
+                                              ),
+                                              validator: (v) {
+                                                final t = v ?? '';
+                                                if (t.isEmpty)
+                                                  return 'Password is required';
+                                                if (t.length < 8) {
+                                                  return 'Must be at least 8 characters';
+                                                }
+                                                return null;
+                                              },
+                                            ),
+                                            // Password strength
+                                            AnimatedSize(
+                                              duration: const Duration(milliseconds: 200),
+                                              curve: Curves.easeOutCubic,
+                                              child: hasPassword
+                                                  ? Padding(
+                                                      padding: const EdgeInsets.only(
+                                                        top: 12,
+                                                        left: 4,
+                                                        right: 4,
+                                                      ),
+                                                      child: _PasswordStrength(
+                                                        password: _password.text,
+                                                      ),
+                                                    )
+                                                  : const SizedBox(width: double.infinity),
+                                            ),
+                                            const SizedBox(height: 28),
+
+                                            // ── CTA ──
+                                            _PrimaryGradientButton(
+                                              label: auth.isLoading
+                                                  ? 'Creating account…'
+                                                  : 'Sign up',
+                                              loading: auth.isLoading,
+                                              onPressed: auth.isLoading ? null : _submit,
+                                            ),
+                                          ],
+                                        )
+                                      : _SocialButton(
+                                          icon: Icons.mail_outline_rounded,
+                                          label: 'Continue with Email',
+                                          onPressed: () => setState(() => _showEmailForm = true),
+                                        ),
+                                ),
+                                
+                                if (_showEmailForm) ...[
+                                  const SizedBox(height: 24),
+                                  _OrDivider(),
+                                ],
+                                const SizedBox(height: 16),
+
+                                // ── Social login ──
+                                _SocialButton(
+                                  icon: Icons.apple,
+                                  label: 'Continue with Apple',
+                                ),
+                                const SizedBox(height: 12),
+                                _SocialButton(
+                                  svgPath: 'assets/branding/google_logo.svg',
+                                  label: 'Continue with Google',
+                                  onPressed: auth.isLoading ? null : _handleGoogleSignIn,
+                                ),
+                                const SizedBox(height: 28),
+
+                                // ── Sign in link ──
+                                Center(
+                                  child: GestureDetector(
+                                    onTap: () => context.go('/sign-in'),
+                                    behavior: HitTestBehavior.opaque,
+                                    child: Text.rich(
+                                      TextSpan(
+                                        text: 'Already have an account?  ',
+                                        style: GoogleFonts.inter(
+                                          fontSize: 14,
+                                          color: c.textMuted,
+                                        ),
+                                        children: [
+                                          TextSpan(
+                                            text: 'Sign in',
+                                            style: GoogleFonts.inter(
+                                              color: NV.accent,
+                                              fontWeight: FontWeight.w700,
+                                              fontSize: 14,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                                const SizedBox(height: 16),
+                                Center(
+                                  child: Text(
+                                    'By signing up, you agree to our\nTerms of Service and Privacy Policy.',
+                                    textAlign: TextAlign.center,
+                                    style: GoogleFonts.inter(
+                                      fontSize: 12,
+                                      color: c.textMuted,
+                                      height: 1.55,
+                                    ),
+                                  ),
+                                ),
+                                SizedBox(height: media.padding.bottom + 8),
+                              ],
                             ),
-                            SizedBox(height: media.padding.bottom + 8),
-                          ],
+                          ),
                         ),
                       ),
-                    ),
-                  ),
-                ],
+                    ],
                   ),
                 ),
 
@@ -346,7 +372,7 @@ class _SignUpScreenState extends State<SignUpScreen>
                     children: [
                       _GlassCircleButton(
                         icon: Icons.chevron_left_rounded,
-                        onTap: () => context.go('/'),
+                        onTap: () => context.go('/welcome'),
                       ),
                       const Spacer(),
                       Row(
@@ -470,7 +496,9 @@ class _AuthField extends StatelessWidget {
           ),
           decoration: InputDecoration(
             hintText: hint,
-            hintStyle: GoogleFonts.inter(color: c.textMuted.withValues(alpha: 0.6)),
+            hintStyle: GoogleFonts.inter(
+              color: c.textMuted.withValues(alpha: 0.6),
+            ),
             filled: true,
             fillColor: c.surface,
             prefixIcon: Icon(icon, size: 20, color: c.textMuted),
@@ -652,45 +680,59 @@ class _OrDivider extends StatelessWidget {
 }
 
 class _SocialButton extends StatelessWidget {
-  const _SocialButton({required this.provider, required this.label});
-  final String provider;
+  const _SocialButton({
+    required this.label,
+    this.icon,
+    this.svgPath,
+    this.iconSize = 22,
+    this.onPressed,
+  }) : assert(icon != null || svgPath != null);
+
   final String label;
+  final IconData? icon;
+  final String? svgPath;
+  final double iconSize;
+  final VoidCallback? onPressed;
 
   @override
   Widget build(BuildContext context) {
     final c = NVColors.of(context);
-    final isApple = provider == 'apple';
-    return Material(
-      color: c.surface,
-      borderRadius: BorderRadius.circular(16),
-      child: InkWell(
-        onTap: () {},
-        borderRadius: BorderRadius.circular(16),
-        child: Container(
-          height: 52,
-          decoration: BoxDecoration(
-            border: Border.all(color: c.border),
+    return SizedBox(
+      height: 54,
+      width: double.infinity,
+      child: OutlinedButton(
+        onPressed: onPressed ?? () {},
+        style: OutlinedButton.styleFrom(
+          side: BorderSide(color: c.border),
+          shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(16),
           ),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            if (svgPath != null)
+              SvgPicture.asset(
+                svgPath!,
+                width: iconSize,
+                height: iconSize,
+              )
+            else if (icon != null)
               Icon(
-                isApple ? Icons.apple : Icons.g_mobiledata,
-                size: isApple ? 22 : 32,
+                icon,
+                size: iconSize,
                 color: c.text,
               ),
-              if (isApple) const SizedBox(width: 8) else const SizedBox(width: 4),
-              Text(
-                label,
-                style: GoogleFonts.inter(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w600,
-                  color: c.text,
-                ),
+            const SizedBox(width: 8),
+            Text(
+              label,
+              style: GoogleFonts.inter(
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
+                color: c.text,
               ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );

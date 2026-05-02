@@ -11,6 +11,7 @@ void main() {
           initialized: true,
           isAuthenticated: true,
           needsOnboarding: true,
+          needsEmailVerification: false,
         ),
         '/profile-setup',
       );
@@ -24,6 +25,7 @@ void main() {
         initialized: true,
         isAuthenticated: true,
         needsOnboarding: false,
+        needsEmailVerification: false,
       ),
       '/app',
     );
@@ -33,6 +35,7 @@ void main() {
         initialized: true,
         isAuthenticated: true,
         needsOnboarding: false,
+        needsEmailVerification: false,
       ),
       isNull,
     );
@@ -47,6 +50,7 @@ void main() {
           initialized: true,
           isAuthenticated: true,
           needsOnboarding: false,
+          needsEmailVerification: false,
         ),
         isNull,
       );
@@ -60,8 +64,35 @@ void main() {
         initialized: true,
         isAuthenticated: false,
         needsOnboarding: false,
+        needsEmailVerification: false,
       ),
       '/sign-in',
+    );
+  });
+
+  test('unverified email users are redirected to verify-email', () {
+    expect(
+      redirectForAuthState(
+        path: '/app',
+        initialized: true,
+        isAuthenticated: true,
+        needsOnboarding: false,
+        needsEmailVerification: true,
+      ),
+      '/verify-email',
+    );
+  });
+
+  test('verified email users skip verify-email screen', () {
+    expect(
+      redirectForAuthState(
+        path: '/verify-email',
+        initialized: true,
+        isAuthenticated: true,
+        needsOnboarding: false,
+        needsEmailVerification: false,
+      ),
+      '/app',
     );
   });
 }

@@ -1,0 +1,144 @@
+@import "tailwindcss";
+
+/* ========== NV design tokens (mirror web/DESIGN.md) ========== */
+@theme {
+  --color-bg: #F6F7F3;
+  --color-surface: #FFFFFF;
+  --color-surface-muted: #EEF1EA;
+  --color-border: #E5E8DF;
+  --color-text: #131A16;
+  --color-text-muted: #5E6A63;
+  --color-accent: #2F7D4A;
+  --color-accent-soft: #E6F1E9;
+  --color-accent-deep: #1E5A34;
+  --color-warn: #C57420;
+  --color-err: #B23A3A;
+
+  --color-ink: #131A16;
+  --color-ink-muted: #5E6A63;
+
+  /* Nutrient hue map */
+  --color-nut-a: #E88A3D;
+  --color-nut-a-bg: #FBEADB;
+  --color-nut-c: #2F7D4A;
+  --color-nut-c-bg: #E6F1E9;
+  --color-nut-d: #C79B1A;
+  --color-nut-d-bg: #F7EFD3;
+  --color-nut-e: #7A5CC0;
+  --color-nut-e-bg: #EBE6F6;
+  --color-nut-k: #3A6B88;
+  --color-nut-k-bg: #E1ECF2;
+  --color-nut-b6: #B23A5C;
+  --color-nut-b6-bg: #F4E0E6;
+  --color-nut-b9: #6B8E3A;
+  --color-nut-b9-bg: #E9EFDA;
+  --color-nut-b12: #1E7A82;
+  --color-nut-b12-bg: #DCECEE;
+  --color-nut-fe: #8A4B3D;
+  --color-nut-fe-bg: #F1DFDB;
+  --color-nut-zn: #4A5B70;
+  --color-nut-zn-bg: #DEE3EA;
+  --color-nut-mg: #2B8079;
+  --color-nut-mg-bg: #DAEDEA;
+  --color-nut-ca: #A07DBB;
+  --color-nut-ca-bg: #ECE3F2;
+
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 18px;
+
+  --font-sans: var(--font-inter), system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-display: var(--font-fraunces), Georgia, serif;
+}
+
+/* ========== Base ========== */
+html {
+  background: var(--color-bg);
+  color: var(--color-text);
+  font-family: var(--font-sans);
+  font-feature-settings: "ss01", "cv11";
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+}
+
+body {
+  background: var(--color-bg);
+  color: var(--color-text);
+  /* `clip` (not `hidden`) avoids creating a scroll container, so `position: sticky`
+     descendants still pin to the viewport. */
+  overflow-x: clip;
+}
+
+/* Selection */
+::selection { background: var(--color-accent); color: #fff; }
+
+/* Tabular numerals everywhere numbers matter */
+.tabular { font-variant-numeric: tabular-nums; font-feature-settings: "tnum"; }
+
+/* Display type — always tight tracking */
+.display {
+  font-family: var(--font-display);
+  font-weight: 600;
+  letter-spacing: -0.04em;
+  line-height: 0.95;
+}
+
+.display-sans {
+  font-family: var(--font-sans);
+  font-weight: 700;
+  letter-spacing: -0.04em;
+  line-height: 1.0;
+}
+
+.eyebrow {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--color-text-muted);
+}
+
+/* Lenis smooth-scroll reset (required so wheel events route through Lenis,
+   and so the native CSS smooth-scroll doesn't fight the JS one) */
+html.lenis, html.lenis body { height: auto; }
+.lenis.lenis-smooth { scroll-behavior: auto !important; }
+.lenis.lenis-smooth [data-lenis-prevent] { overscroll-behavior: contain; }
+.lenis.lenis-stopped { overflow: clip; }
+.lenis.lenis-smooth iframe { pointer-events: none; }
+
+/* Grain overlay (referenced by GrainOverlay component) */
+.grain {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 100;
+  opacity: 0.04;
+  mix-blend-mode: multiply;
+  background-image: url("/grain.svg");
+}
+
+/* Hairline borders */
+.hairline { border: 1px solid var(--color-border); }
+
+/* Subtle hover lift */
+.lift { transition: transform 200ms cubic-bezier(0.2, 0.8, 0.2, 1), box-shadow 200ms; }
+.lift:hover { transform: translateY(-2px); box-shadow: 0 24px 48px -32px rgba(19, 26, 22, 0.18); }
+
+/* Marquee */
+@keyframes marquee {
+  from { transform: translateX(0); }
+  to { transform: translateX(-50%); }
+}
+.animate-marquee { animation: marquee 40s linear infinite; }
+.animate-marquee-reverse { animation: marquee 40s linear infinite reverse; }
+.animate-marquee:hover, .animate-marquee-reverse:hover { animation-play-state: paused; }
+
+/* Reduced motion: silence non-essential animations */
+@media (prefers-reduced-motion: reduce) {
+  .animate-marquee, .animate-marquee-reverse { animation: none; }
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}

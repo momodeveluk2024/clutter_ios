@@ -103,7 +103,10 @@ class FoodPhoto extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final url = imageUrl?.trim();
-    final slug = label.toLowerCase().replaceAll(RegExp(r'[^a-z0-9]+'), '_').replaceAll(RegExp(r'^_|_$'), '');
+    final slug = label
+        .toLowerCase()
+        .replaceAll(RegExp(r'[^a-z0-9]+'), '_')
+        .replaceAll(RegExp(r'^_|_$'), '');
     final fallbackAsset = 'assets/foods/$slug.jpg';
 
     if (url == null || url.isEmpty) {
@@ -122,7 +125,8 @@ class FoodPhoto extends StatelessWidget {
           if (progress == null) return child;
           return _ShimmerBox(width: width, height: height, radius: 0);
         },
-        errorBuilder: (context, error, stackTrace) => _buildAssetFallback(fallbackAsset),
+        errorBuilder: (context, error, stackTrace) =>
+            _buildAssetFallback(fallbackAsset),
       ),
     );
   }
@@ -140,12 +144,12 @@ class FoodPhoto extends StatelessWidget {
         height: height,
         fit: fit,
         filterQuality: FilterQuality.medium,
-        errorBuilder: (_, __, ___) => Image.network(
+        errorBuilder: (_, _, _) => Image.network(
           catUrl,
           width: width ?? double.infinity,
           height: height,
           fit: fit,
-          errorBuilder: (_, __, ___) => PhotoPlaceholder(
+          errorBuilder: (_, _, _) => PhotoPlaceholder(
             label: label,
             height: height,
             width: width,
@@ -328,7 +332,9 @@ class NutrientPill extends StatelessWidget {
                 width: compact ? 20 : 22,
                 height: compact ? 20 : 22,
                 decoration: BoxDecoration(
-                  color: dark ? visual.accent.withValues(alpha: 0.22) : visual.accent.withValues(alpha: 0.12),
+                  color: dark
+                      ? visual.accent.withValues(alpha: 0.22)
+                      : visual.accent.withValues(alpha: 0.12),
                   shape: BoxShape.circle,
                 ),
                 child: Icon(
@@ -520,10 +526,21 @@ class NutrientArtwork extends StatelessWidget {
 
   String _artLabel(String code) {
     if (code.startsWith('B')) return 'B-COMPLEX';
-    if (['Fe','Ca','Zn','Mg','Kp','Na','P','Se','Mn','S'].contains(code)) {
+    if ([
+      'Fe',
+      'Ca',
+      'Zn',
+      'Mg',
+      'Kp',
+      'Na',
+      'P',
+      'Se',
+      'Mn',
+      'S',
+    ].contains(code)) {
       return 'MINERAL';
     }
-    if (['Protein','Fiber','Carbs','Fat'].contains(code)) {
+    if (['Protein', 'Fiber', 'Carbs', 'Fat'].contains(code)) {
       return 'MACRO';
     }
     return 'VITAMIN';
@@ -588,7 +605,11 @@ class RingProgress extends StatelessWidget {
                 children: [
                   Text(
                     animatedLabel,
-                    style: nvNumber(size * 0.24, color: c.text, weight: FontWeight.w700),
+                    style: nvNumber(
+                      size * 0.24,
+                      color: c.text,
+                      weight: FontWeight.w700,
+                    ),
                   ),
                   if (sub != null)
                     Padding(
@@ -704,6 +725,7 @@ class NVCard extends StatelessWidget {
   final Color? background;
   final bool noBorder;
   final VoidCallback? onTap;
+
   /// If true, applies a subtle long-distance ambient shadow (used for hero cards).
   final bool elevated;
 
@@ -751,11 +773,7 @@ class NVCard extends StatelessWidget {
       color: Colors.transparent,
       borderRadius: shape,
       clipBehavior: Clip.antiAlias,
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: shape,
-        child: box,
-      ),
+      child: InkWell(onTap: onTap, borderRadius: shape, child: box),
     );
   }
 }
@@ -830,7 +848,11 @@ class NVPrimaryButton extends StatelessWidget {
                     const SizedBox(width: 8),
                   ],
                   Flexible(
-                    child: Text(label, maxLines: 1, overflow: TextOverflow.ellipsis),
+                    child: Text(
+                      label,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
                   ),
                   if (trailingIcon != null) ...[
                     const SizedBox(width: 8),
@@ -1007,7 +1029,11 @@ class NVMetric extends StatelessWidget {
           children: [
             Text(
               value,
-              style: nvNumber(valueSize, color: valueColor ?? c.text, weight: FontWeight.w700),
+              style: nvNumber(
+                valueSize,
+                color: valueColor ?? c.text,
+                weight: FontWeight.w700,
+              ),
             ),
             if (unit != null) ...[
               const SizedBox(width: 4),
@@ -1247,7 +1273,9 @@ class NVSelectField extends StatelessWidget {
                   final selected = option == value;
                   return Material(
                     color: selected
-                        ? (dark ? NV.accent.withValues(alpha: 0.16) : NV.accentSoft)
+                        ? (dark
+                              ? NV.accent.withValues(alpha: 0.16)
+                              : NV.accentSoft)
                         : Colors.transparent,
                     borderRadius: BorderRadius.circular(NVRadius.field),
                     child: InkWell(
@@ -1301,7 +1329,11 @@ class _ShimmerBox extends StatelessWidget {
   final double? width;
   final double height;
   final double radius;
-  const _ShimmerBox({this.width, required this.height, this.radius = NVRadius.cardSm});
+  const _ShimmerBox({
+    this.width,
+    required this.height,
+    this.radius = NVRadius.cardSm,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -1349,9 +1381,11 @@ class NVFrosted extends StatelessWidget {
       child: BackdropFilter(
         filter: ImageFilter.blur(sigmaX: sigma, sigmaY: sigma),
         child: Container(
-          color: tint ?? (dark
-              ? Colors.black.withValues(alpha: 0.32)
-              : Colors.white.withValues(alpha: 0.62)),
+          color:
+              tint ??
+              (dark
+                  ? Colors.black.withValues(alpha: 0.32)
+                  : Colors.white.withValues(alpha: 0.62)),
           child: child,
         ),
       ),

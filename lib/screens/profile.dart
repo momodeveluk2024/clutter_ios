@@ -224,6 +224,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 detail: user?.remindersSummary ?? 'Manage',
                 onTap: () => context.push('/app/profile/reminders'),
               ),
+              _SettingRow(
+                icon: Icons.notifications_active_outlined,
+                title: 'Notifications',
+                detail: 'Manage',
+                onTap: () => context.push('/app/profile/notifications'),
+              ),
             ],
           ),
 

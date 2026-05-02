@@ -1,4 +1,6 @@
 import 'package:dio/dio.dart';
+import 'package:firebase_auth/firebase_auth.dart' as firebase_auth;
+import 'package:flutter/foundation.dart';
 
 import '../storage/secure_storage.dart';
 import 'api_endpoints.dart';
@@ -18,33 +20,43 @@ class ApiClient {
     dio.interceptors.add(
       InterceptorsWrapper(
         onRequest: (options, handler) async {
-          final token = await _tokenStorage.getAccessToken();
-          if (token != null && token.isNotEmpty) {
-            options.headers['Authorization'] = 'Bearer $token';
+          final currentUser = firebase_auth.FirebaseAuth.instance.currentUser;
+          if (currentUser != null) {
+            try {
+              // Force refresh is not strictly needed, but getting the token might throw
+              // if the user was deleted from the Firebase Console.
+              final token = await currentUser.getIdToken();
+              if (token != null) {
+                options.headers['Authorization'] = 'Bearer $token';
+              }
+            } catch (e) {
+              debugPrint('Failed to get ID token (user might be deleted): $e');
+              // Optionally sign out locally if it's a specific auth error, 
+              // but letting the API request fail with 401 is usually sufficient.
+            }
           }
           handler.next(options);
         },
         onError: (error, handler) async {
           final response = error.response;
           final alreadyRetried = error.requestOptions.extra['retried'] == true;
-          final isRefreshCall =
-              error.requestOptions.path == ApiEndpoints.refresh;
-          if (response?.statusCode == 401 &&
-              !alreadyRetried &&
-              !isRefreshCall) {
-            final refreshed = await _refreshTokens();
-            if (refreshed) {
-              final retryOptions = error.requestOptions;
-              retryOptions.extra['retried'] = true;
-              final token = await _tokenStorage.getAccessToken();
-              retryOptions.headers['Authorization'] = 'Bearer $token';
+          
+          if (response?.statusCode == 401 && !alreadyRetried) {
+            final currentUser = firebase_auth.FirebaseAuth.instance.currentUser;
+            if (currentUser != null) {
               try {
-                final retryResponse = await dio.fetch<dynamic>(retryOptions);
-                handler.resolve(retryResponse);
-                return;
-              } on DioException catch (retryError) {
-                handler.next(retryError);
-                return;
+                // Force refresh token
+                final token = await currentUser.getIdToken(true);
+                if (token != null) {
+                  final retryOptions = error.requestOptions;
+                  retryOptions.extra['retried'] = true;
+                  retryOptions.headers['Authorization'] = 'Bearer $token';
+                  final retryResponse = await dio.fetch<dynamic>(retryOptions);
+                  handler.resolve(retryResponse);
+                  return;
+                }
+              } catch (_) {
+                // If refresh fails, let the error pass through
               }
             }
           }
@@ -96,35 +108,7 @@ class ApiClient {
     }
   }
 
-  Future<bool> _refreshTokens() {
-    _refreshInFlight ??= _doRefresh().whenComplete(
-      () => _refreshInFlight = null,
-    );
-    return _refreshInFlight!;
-  }
 
-  Future<bool> _doRefresh() async {
-    final refresh = await _tokenStorage.getRefreshToken();
-    if (refresh == null || refresh.isEmpty) {
-      return false;
-    }
-    try {
-      final response = await dio.post<dynamic>(
-        ApiEndpoints.refresh,
-        data: {'refresh': refresh},
-        options: Options(extra: {'skipAuthRefresh': true}),
-      );
-      final data = Map<String, dynamic>.from(response.data as Map);
-      await _tokenStorage.saveTokens(
-        access: data['access'] as String,
-        refresh: data['refresh'] as String,
-      );
-      return true;
-    } catch (_) {
-      await _tokenStorage.clear();
-      return false;
-    }
-  }
 
   ApiException _mapDioException(DioException error) {
     final status = error.response?.statusCode;
