@@ -21,12 +21,15 @@ import 'core/providers/reminder_provider.dart';
 import 'core/router.dart';
 import 'core/storage/secure_storage.dart';
 import 'theme.dart';
+import 'firebase_options.dart';
 
 const _enableDevicePreview = bool.fromEnvironment('ENABLE_DEVICE_PREVIEW');
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await Firebase.initializeApp();
+  await Firebase.initializeApp(
+    options: DefaultFirebaseOptions.currentPlatform,
+  );
 
   // Initialize timezone data early so notification scheduling can use tz.local
   tz.initializeTimeZones();
