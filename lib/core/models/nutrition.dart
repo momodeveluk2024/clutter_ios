@@ -80,3 +80,71 @@ class Recommendation {
     );
   }
 }
+
+class DailyMealPlan {
+  const DailyMealPlan({required this.date, required this.meals});
+
+  final String date;
+  final List<MealPlanSlot> meals;
+
+  bool get hasItems => meals.any((slot) => slot.items.isNotEmpty);
+
+  factory DailyMealPlan.fromJson(Map<String, dynamic> json) {
+    return DailyMealPlan(
+      date: json['date'] as String? ?? '',
+      meals: (json['meals'] as List? ?? const [])
+          .map((v) => MealPlanSlot.fromJson(Map<String, dynamic>.from(v as Map)))
+          .toList(),
+    );
+  }
+}
+
+class MealPlanSlot {
+  const MealPlanSlot({
+    required this.mealType,
+    required this.title,
+    required this.focusNutrients,
+    required this.items,
+  });
+
+  final String mealType;
+  final String title;
+  final List<String> focusNutrients;
+  final List<MealPlanItem> items;
+
+  factory MealPlanSlot.fromJson(Map<String, dynamic> json) {
+    return MealPlanSlot(
+      mealType: json['meal_type'] as String? ?? '',
+      title: json['title'] as String? ?? '',
+      focusNutrients: (json['focus_nutrients'] as List? ?? const [])
+          .map((v) => v.toString())
+          .toList(),
+      items: (json['items'] as List? ?? const [])
+          .map((v) => MealPlanItem.fromJson(Map<String, dynamic>.from(v as Map)))
+          .toList(),
+    );
+  }
+}
+
+class MealPlanItem {
+  const MealPlanItem({
+    required this.foodId,
+    required this.foodName,
+    this.foodImageUrl,
+    required this.reason,
+  });
+
+  final String foodId;
+  final String foodName;
+  final String? foodImageUrl;
+  final String reason;
+
+  factory MealPlanItem.fromJson(Map<String, dynamic> json) {
+    return MealPlanItem(
+      foodId: json['food_id'] as String,
+      foodName: json['food_name'] as String,
+      foodImageUrl: json['food_image_url'] as String?,
+      reason: json['reason'] as String? ?? '',
+    );
+  }
+}

@@ -22,7 +22,7 @@
           }
         },
         {
-          "client_id": "1005767331412-o3rgulp2rikba2n70psamln8j3etpb9i.apps.googleusercontent.com",
+          "client_id": "1005767331412-ufmuj4u0ri5ku1bqrb921gleu9m4b4ij.apps.googleusercontent.com",
           "client_type": 3
         }
       ],
@@ -37,6 +37,13 @@
             {
               "client_id": "1005767331412-o3rgulp2rikba2n70psamln8j3etpb9i.apps.googleusercontent.com",
               "client_type": 3
+            },
+            {
+              "client_id": "1005767331412-slmnqs9mommbnjuhj56kstm9st4acrlf.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.nutrimate.app"
+              }
             }
           ]
         }

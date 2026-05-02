@@ -14,6 +14,7 @@ class NutritionProvider extends ChangeNotifier {
   List<DayNutrientTotals> weekTotals = [];
   List<MealLog> logs = [];
   List<Recommendation> recommendations = [];
+  DailyMealPlan? dailyMealPlan;
   int streak = 0;
   DateTime selectedDate = DateTime.now();
   bool isLoading = false;
@@ -55,14 +56,45 @@ class NutritionProvider extends ChangeNotifier {
               )
               .toList();
 
-      final streakResponse = await _api.get(ApiEndpoints.streak);
-      streak = streakResponse.data['streak'] as int? ?? 0;
+      try {
+        dailyMealPlan = await loadDailyMealPlan(
+          date: selectedDate,
+          notify: false,
+        );
+      } catch (_) {
+        dailyMealPlan = null;
+      }
+
+      await loadStreak(notify: false);
     } catch (e) {
       error = e.toString();
     } finally {
       isLoading = false;
       notifyListeners();
     }
+  }
+
+  Future<DailyMealPlan?> loadDailyMealPlan({
+    DateTime? date,
+    bool notify = true,
+  }) async {
+    final day = _dateString(date ?? selectedDate);
+    final response = await _api.get(
+      ApiEndpoints.dailyMealPlan,
+      query: {'date': day},
+    );
+    dailyMealPlan = DailyMealPlan.fromJson(
+      Map<String, dynamic>.from(response.data as Map),
+    );
+    if (notify) notifyListeners();
+    return dailyMealPlan;
+  }
+
+  Future<int> loadStreak({bool notify = true}) async {
+    final streakResponse = await _api.get(ApiEndpoints.streak);
+    streak = streakResponse.data['streak'] as int? ?? 0;
+    if (notify) notifyListeners();
+    return streak;
   }
 
   Future<void> loadWeek({DateTime? endDate}) async {

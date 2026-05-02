@@ -33,6 +33,8 @@ class _NutritionApiClient extends ApiClient {
       data = {'logs': []};
     } else if (path == ApiEndpoints.recommendations) {
       data = {'recommendations': []};
+    } else if (path == ApiEndpoints.dailyMealPlan) {
+      data = {'date': query?['date'], 'meals': []};
     } else if (path == ApiEndpoints.streak) {
       data = {'streak': 3};
     } else if (path == ApiEndpoints.weekIntake) {

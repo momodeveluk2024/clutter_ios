@@ -16,7 +16,7 @@ class AuthProvider extends ChangeNotifier {
 
   final ApiClient _api;
   final SecureTokenStorage _storage;
-  final firebase_auth.FirebaseAuth _firebaseAuth =
+  firebase_auth.FirebaseAuth get _firebaseAuth =>
       firebase_auth.FirebaseAuth.instance;
   final GoogleSignIn _googleSignIn = GoogleSignIn(
     // Web Client ID from Google Cloud Console
@@ -38,20 +38,28 @@ class AuthProvider extends ChangeNotifier {
   bool get isLoading => _isLoading;
   String? get error => _error;
   bool get initialized => _initialized;
-  bool get isAuthenticated =>
-      _user != null || _firebaseAuth.currentUser != null;
+  bool get isAuthenticated => _user != null || _firebaseCurrentUser != null;
 
   /// Returns true if the current Firebase user signed up with email/password
   /// and has not yet clicked the verification link in their inbox.
   /// Google sign-in users are auto-verified, so this returns false for them.
   bool get needsEmailVerification {
-    final fbUser = _firebaseAuth.currentUser;
+    final fbUser = _firebaseCurrentUser;
     if (fbUser == null) return false;
     // Google sign-in users are always verified
     for (final info in fbUser.providerData) {
       if (info.providerId == 'google.com') return false;
     }
     return !fbUser.emailVerified;
+  }
+
+  firebase_auth.User? get _firebaseCurrentUser {
+    try {
+      return _firebaseAuth.currentUser;
+    } on firebase_auth.FirebaseException catch (error) {
+      if (error.code == 'no-app') return null;
+      rethrow;
+    }
   }
 
   Future<void> initialize() async {
@@ -318,7 +326,7 @@ class AuthProvider extends ChangeNotifier {
   }
 
   Future<void> loadMe() async {
-    if (_firebaseAuth.currentUser == null) return;
+    if (_firebaseCurrentUser == null) return;
     try {
       final response = await _api.get(ApiEndpoints.me);
       _user = AppUser.fromJson(Map<String, dynamic>.from(response.data as Map));

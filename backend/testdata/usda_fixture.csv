@@ -1,0 +1,4 @@
+barcode,name,brand,category,serving_size_g,nutrient_code,amount_per_100g
+000000000101,Oats dry sample,NutriVita Test,grains,40,Mg,138
+000000000101,Oats dry sample,NutriVita Test,grains,40,Fe,4.7
+000000000102,Orange sample,NutriVita Test,fruit,131,C,53.2

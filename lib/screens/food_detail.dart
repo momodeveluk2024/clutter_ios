@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 
 import '../core/models/food.dart';
+import '../core/nutrition/overage_warning.dart';
 import '../core/providers/food_provider.dart';
 import '../core/providers/nutrition_provider.dart';
 import '../theme.dart';
@@ -179,7 +180,12 @@ class _FoodDetailBody extends StatelessWidget {
           ),
         ),
         SliverPadding(
-          padding: const EdgeInsets.fromLTRB(NVSpace.x5, NVSpace.x5, NVSpace.x5, NVSpace.x5),
+          padding: const EdgeInsets.fromLTRB(
+            NVSpace.x5,
+            NVSpace.x5,
+            NVSpace.x5,
+            NVSpace.x5,
+          ),
           sliver: SliverList.list(
             children: [
               NVEyebrow(food.category, color: c.textMuted),
@@ -199,11 +205,18 @@ class _FoodDetailBody extends StatelessWidget {
                 isReferenceProfile
                     ? food.source
                     : '${food.source} · ${food.servingSizeG.toStringAsFixed(0)}g serving',
-                style: TextStyle(fontSize: 13, color: c.textMuted, height: 1.45),
+                style: TextStyle(
+                  fontSize: 13,
+                  color: c.textMuted,
+                  height: 1.45,
+                ),
               ),
               const SizedBox(height: NVSpace.x4),
               NVCard(
-                padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 4),
+                padding: const EdgeInsets.symmetric(
+                  vertical: 14,
+                  horizontal: 4,
+                ),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceAround,
                   children: [
@@ -236,7 +249,10 @@ class _FoodDetailBody extends StatelessWidget {
                 ),
               ),
               NVCard(
-                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 14,
+                  vertical: 8,
+                ),
                 child: Column(
                   children: food.breakdown.map((nutrient) {
                     return _NutrientRow(nutrient: nutrient);
@@ -271,7 +287,9 @@ class _FoodDetailBody extends StatelessWidget {
               const SizedBox(height: NVSpace.x4),
               NVPrimaryButton(
                 label: canLog ? 'Log this food' : 'Reference profile only',
-                leadingIcon: canLog ? Icons.add_rounded : Icons.info_outline_rounded,
+                leadingIcon: canLog
+                    ? Icons.add_rounded
+                    : Icons.info_outline_rounded,
                 accent: canLog,
                 onPressed: canLog
                     ? () {
@@ -398,9 +416,20 @@ class _LogFoodSheetState extends State<_LogFoodSheet> {
   bool _saving = false;
 
   Future<void> _save() async {
+    final nutrition = context.read<NutritionProvider>();
+    final warnings = projectedOverages(
+      currentTotals: nutrition.todayTotals,
+      food: widget.food,
+      servingG: _servingG,
+    );
+    if (warnings.isNotEmpty) {
+      final shouldContinue = await _confirmOverages(warnings);
+      if (!mounted || !shouldContinue) return;
+    }
+
     setState(() => _saving = true);
     try {
-      await context.read<NutritionProvider>().createLog(
+      await nutrition.createLog(
         foodId: widget.food.id,
         servingG: _servingG,
         mealType: _mealType,
@@ -408,9 +437,9 @@ class _LogFoodSheetState extends State<_LogFoodSheet> {
       );
       if (!mounted) return;
       Navigator.of(context).pop();
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Logged ${widget.food.name}')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Logged ${widget.food.name}')));
     } catch (error) {
       if (!mounted) return;
       ScaffoldMessenger.of(
@@ -419,6 +448,50 @@ class _LogFoodSheetState extends State<_LogFoodSheet> {
     } finally {
       if (mounted) setState(() => _saving = false);
     }
+  }
+
+  Future<bool> _confirmOverages(List<NutrientOverage> warnings) async {
+    final c = NVColors.of(context);
+    final topWarnings = warnings.take(4).toList();
+    return await showDialog<bool>(
+          context: context,
+          builder: (ctx) => AlertDialog(
+            backgroundColor: c.surface,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(20),
+            ),
+            title: Text(
+              'This may pass 100%',
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.w800,
+                color: c.text,
+                letterSpacing: -0.2,
+              ),
+            ),
+            content: Text(
+              topWarnings
+                  .map((w) => '${w.name}: ${w.projectedPercent.round()}%')
+                  .join('\n'),
+              style: TextStyle(fontSize: 14, color: c.textMuted, height: 1.45),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(ctx).pop(false),
+                child: const Text('Cancel'),
+              ),
+              FilledButton(
+                onPressed: () => Navigator.of(ctx).pop(true),
+                style: FilledButton.styleFrom(
+                  backgroundColor: NV.accent,
+                  foregroundColor: Colors.white,
+                ),
+                child: const Text('Log anyway'),
+              ),
+            ],
+          ),
+        ) ??
+        false;
   }
 
   @override
@@ -490,7 +563,11 @@ class _LogFoodSheetState extends State<_LogFoodSheet> {
                           ],
                         ),
                       ),
-                      Icon(Icons.calendar_today_outlined, color: c.textMuted, size: 18),
+                      Icon(
+                        Icons.calendar_today_outlined,
+                        color: c.textMuted,
+                        size: 18,
+                      ),
                     ],
                   ),
                 ),

@@ -4,8 +4,16 @@ import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
 
 import '../core/providers/auth_provider.dart';
+import '../core/providers/nutrition_provider.dart';
 import '../theme.dart';
 import '../widgets.dart';
+
+const int _maxAvatarBytes = 6 * 1024 * 1024;
+const Set<String> _allowedAvatarTypes = {
+  'image/jpeg',
+  'image/png',
+  'image/webp',
+};
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -16,6 +24,14 @@ class ProfileScreen extends StatefulWidget {
 
 class _ProfileScreenState extends State<ProfileScreen> {
   bool _avatarUploading = false;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) context.read<NutritionProvider>().loadStreak();
+    });
+  }
 
   Future<void> _pickAvatar() async {
     if (_avatarUploading) return;
@@ -28,12 +44,21 @@ class _ProfileScreenState extends State<ProfileScreen> {
     if (picked == null || !mounted) return;
     setState(() => _avatarUploading = true);
     try {
+      final size = await picked.length();
+      final contentType = picked.mimeType ?? _guessContentType(picked.name);
+      if (size > _maxAvatarBytes) {
+        throw const FormatException('Choose an image smaller than 6 MB.');
+      }
+      if (!_allowedAvatarTypes.contains(contentType)) {
+        throw const FormatException('Choose a JPG, PNG, or WebP image.');
+      }
       final bytes = await picked.readAsBytes();
       await auth.uploadAvatarBytes(
         bytes: bytes,
         filename: picked.name,
-        contentType: picked.mimeType ?? _guessContentType(picked.name),
+        contentType: contentType,
       );
+      if (mounted) _showMessage('Profile photo updated');
     } catch (e) {
       if (mounted) _showErr(e);
     } finally {
@@ -118,10 +143,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
         ],
       ),
     );
-    if (!mounted ||
-        newName == null ||
-        newName.isEmpty ||
-        newName == current) {
+    if (!mounted || newName == null || newName.isEmpty || newName == current) {
       return;
     }
     try {
@@ -132,16 +154,21 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   void _showErr(Object e) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(e.toString())),
-    );
+    final message = e is FormatException ? e.message : e.toString();
+    _showMessage(message);
+  }
+
+  void _showMessage(String message) {
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(message)));
   }
 
   String _guessContentType(String filename) {
     final n = filename.toLowerCase();
     if (n.endsWith('.png')) return 'image/png';
     if (n.endsWith('.webp')) return 'image/webp';
-    if (n.endsWith('.gif')) return 'image/gif';
+    if (n.endsWith('.jpg') || n.endsWith('.jpeg')) return 'image/jpeg';
     return 'image/jpeg';
   }
 
@@ -150,6 +177,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     final dark = Theme.of(context).brightness == Brightness.dark;
     final c = NVColors(dark);
     final auth = context.watch<AuthProvider>();
+    final streak = context.watch<NutritionProvider>().streak;
     final user = auth.user;
     final displayName = user?.displayName ?? 'Nutrimate user';
     final email = user?.email ?? '';
@@ -178,7 +206,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 20),
             child: _StreakCard(
-              days: 12,
+              days: streak,
               onTap: () => context.go('/app?tab=track'),
             ),
           ),
@@ -188,9 +216,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
             const SizedBox(height: 12),
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 20),
-              child: _VerifyBanner(
-                onTap: () => context.go('/verify-email'),
-              ),
+              child: _VerifyBanner(onTap: () => context.go('/verify-email')),
             ),
           ],
 
@@ -250,8 +276,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     ? Icons.dark_mode_outlined
                     : Icons.light_mode_outlined,
                 title: 'Appearance',
-                detail:
-                    user?.appearanceLabel ?? (dark ? 'Dark' : 'Light'),
+                detail: user?.appearanceLabel ?? (dark ? 'Dark' : 'Light'),
                 onTap: () => context.push('/app/profile/appearance'),
               ),
               _SettingRow(
@@ -349,10 +374,7 @@ class _ProfileHero extends StatelessWidget {
                   NV.accent.withValues(alpha: 0.22),
                   vitA.fill.withValues(alpha: 0.12),
                 ]
-              : [
-                  NV.accentSoft,
-                  vitA.bg.withValues(alpha: 0.6),
-                ],
+              : [NV.accentSoft, vitA.bg.withValues(alpha: 0.6)],
         ),
         border: Border.all(color: c.border.withValues(alpha: 0.6)),
       ),
@@ -416,9 +438,7 @@ class _ProfileHero extends StatelessWidget {
                   decoration: BoxDecoration(
                     color: c.surface.withValues(alpha: 0.7),
                     shape: BoxShape.circle,
-                    border: Border.all(
-                      color: c.border.withValues(alpha: 0.7),
-                    ),
+                    border: Border.all(color: c.border.withValues(alpha: 0.7)),
                   ),
                   child: Icon(
                     Icons.edit_outlined,
@@ -440,8 +460,7 @@ class _ProfileHero extends StatelessWidget {
           ],
           const SizedBox(height: 14),
           Container(
-            padding:
-                const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
             decoration: BoxDecoration(
               color: isVerified
                   ? NV.accent.withValues(alpha: dark ? 0.22 : 0.12)
@@ -541,9 +560,7 @@ class _StreakCard extends StatelessWidget {
                             fontWeight: FontWeight.w800,
                             letterSpacing: -1,
                             color: c.text,
-                            fontFeatures: const [
-                              FontFeature.tabularFigures(),
-                            ],
+                            fontFeatures: const [FontFeature.tabularFigures()],
                           ),
                         ),
                         const SizedBox(width: 6),
@@ -566,11 +583,7 @@ class _StreakCard extends StatelessWidget {
                   ],
                 ),
               ),
-              Icon(
-                Icons.trending_up_rounded,
-                size: 22,
-                color: c.textMuted,
-              ),
+              Icon(Icons.trending_up_rounded, size: 22, color: c.textMuted),
             ],
           ),
         ),
@@ -600,9 +613,7 @@ class _VerifyBanner extends StatelessWidget {
           decoration: BoxDecoration(
             color: vitA.fill.withValues(alpha: dark ? 0.14 : 0.08),
             borderRadius: BorderRadius.circular(18),
-            border: Border.all(
-              color: vitA.fill.withValues(alpha: 0.28),
-            ),
+            border: Border.all(color: vitA.fill.withValues(alpha: 0.28)),
           ),
           padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
           child: Row(
@@ -643,11 +654,7 @@ class _VerifyBanner extends StatelessWidget {
                   ],
                 ),
               ),
-              Icon(
-                Icons.arrow_forward_rounded,
-                size: 18,
-                color: vitA.fill,
-              ),
+              Icon(Icons.arrow_forward_rounded, size: 18, color: vitA.fill),
             ],
           ),
         ),
@@ -696,10 +703,7 @@ class _SettingsGroup extends StatelessWidget {
         children.add(
           Padding(
             padding: const EdgeInsets.only(left: 60),
-            child: Container(
-              height: 1,
-              color: c.border.withValues(alpha: 0.6),
-            ),
+            child: Container(height: 1, color: c.border.withValues(alpha: 0.6)),
           ),
         );
       }

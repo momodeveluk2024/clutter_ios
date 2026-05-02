@@ -1,11 +1,1 @@
-{
-  "auth": {
-    "providers": {
-      "emailPassword": true,
-      "googleSignIn": {
-        "oAuthBrandDisplayName": "Nutrimate",
-        "supportEmail": "anyboyandsun@gmail.com"
-      }
-    }
-  }
-}
+{"auth":{"providers":{"emailPassword":true,"googleSignIn":{"oAuthBrandDisplayName":"Nutrimate","supportEmail":"anyboyandsun@gmail.com"}}},"flutter":{"platforms":{"android":{"default":{"projectId":"dsds-c4ba7","appId":"1:1005767331412:android:2091f8ed00a3794d9827c1","fileOutput":"android/app/google-services.json"}},"dart":{"lib/firebase_options.dart":{"projectId":"dsds-c4ba7","configurations":{"android":"1:1005767331412:android:2091f8ed00a3794d9827c1","ios":"1:1005767331412:ios:28d273020fd405cf9827c1","macos":"1:1005767331412:ios:780e685819b07a2e9827c1","web":"1:1005767331412:web:4effa6ef33d144a49827c1","windows":"1:1005767331412:web:0b240f17bc850c219827c1"}}}}}}

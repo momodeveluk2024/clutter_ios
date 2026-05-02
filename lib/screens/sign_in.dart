@@ -215,8 +215,9 @@ class _SignInScreenState extends State<SignInScreen>
                                           validator: (v) {
                                             final t = v?.trim() ?? '';
                                             if (t.isEmpty) return 'Email is required';
-                                            if (!t.contains('@'))
+                                            if (!t.contains('@')) {
                                               return 'Enter a valid email';
+                                            }
                                             return null;
                                           },
                                         ),
@@ -234,8 +235,9 @@ class _SignInScreenState extends State<SignInScreen>
                                             ),
                                           ),
                                           validator: (v) {
-                                            if ((v ?? '').isEmpty)
+                                            if ((v ?? '').isEmpty) {
                                               return 'Password is required';
+                                            }
                                             return null;
                                           },
                                         ),
@@ -662,14 +664,13 @@ class _SocialButton extends StatelessWidget {
     required this.label,
     this.icon,
     this.svgPath,
-    this.iconSize = 22,
     this.onPressed,
   }) : assert(icon != null || svgPath != null);
 
   final String label;
   final IconData? icon;
   final String? svgPath;
-  final double iconSize;
+  final double iconSize = 22;
   final VoidCallback? onPressed;
 
   @override

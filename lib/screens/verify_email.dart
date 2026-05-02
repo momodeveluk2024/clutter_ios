@@ -50,7 +50,9 @@ class _VerifyEmailScreenState extends State<VerifyEmailScreen>
       if (!mounted) return;
       final auth = context.read<AuthProvider>();
       if (!auth.verificationEmailSent) {
-        debugPrint('⚠️ Initial verification email was not sent — auto-sending now');
+        debugPrint(
+          '⚠️ Initial verification email was not sent — auto-sending now',
+        );
         _resendEmail();
       }
     });
@@ -99,10 +101,7 @@ class _VerifyEmailScreenState extends State<VerifyEmailScreen>
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(
-              'Error checking: $e',
-              style: GoogleFonts.inter(),
-            ),
+            content: Text('Error checking: $e', style: GoogleFonts.inter()),
             behavior: SnackBarBehavior.floating,
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(12),
@@ -137,11 +136,11 @@ class _VerifyEmailScreenState extends State<VerifyEmailScreen>
       await firebase_auth.FirebaseAuth.instance.setLanguageCode('en');
       await firebase_auth.FirebaseAuth.instance.currentUser
           ?.sendEmailVerification(
-        firebase_auth.ActionCodeSettings(
-          url: 'https://dsds-c4ba7.firebaseapp.com',
-          handleCodeInApp: false,
-        ),
-      );
+            firebase_auth.ActionCodeSettings(
+              url: 'https://dsds-c4ba7.firebaseapp.com',
+              handleCodeInApp: false,
+            ),
+          );
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -237,7 +236,7 @@ class _VerifyEmailScreenState extends State<VerifyEmailScreen>
                 fit: BoxFit.cover,
                 cacheWidth: 600,
                 filterQuality: FilterQuality.low,
-                errorBuilder: (_, __, ___) => const SizedBox(),
+                errorBuilder: (_, _, _) => const SizedBox(),
               ),
               // Soft gradient overlay
               DecoratedBox(
@@ -329,10 +328,7 @@ class _VerifyEmailScreenState extends State<VerifyEmailScreen>
                           const SizedBox(height: 20),
 
                           // ── Status indicator ──
-                          _StatusCard(
-                            checking: _checking,
-                            verified: _verified,
-                          ),
+                          _StatusCard(checking: _checking, verified: _verified),
                           const SizedBox(height: 24),
 
                           // ── I've verified button ──
@@ -340,13 +336,12 @@ class _VerifyEmailScreenState extends State<VerifyEmailScreen>
                             label: _checking
                                 ? 'Checking…'
                                 : _checkCooldown > 0
-                                    ? 'Wait ${_checkCooldown}s…'
-                                    : 'I\'ve verified my email',
+                                ? 'Wait ${_checkCooldown}s…'
+                                : 'I\'ve verified my email',
                             loading: _checking,
-                            onPressed:
-                                (_checking || _checkCooldown > 0)
-                                    ? null
-                                    : () => _checkVerification(),
+                            onPressed: (_checking || _checkCooldown > 0)
+                                ? null
+                                : () => _checkVerification(),
                           ),
                           const SizedBox(height: 16),
 
@@ -366,10 +361,7 @@ class _VerifyEmailScreenState extends State<VerifyEmailScreen>
                                         strokeWidth: 2,
                                       ),
                                     )
-                                  : const Icon(
-                                      Icons.refresh_rounded,
-                                      size: 20,
-                                    ),
+                                  : const Icon(Icons.refresh_rounded, size: 20),
                               label: Text(
                                 _cooldown > 0
                                     ? 'Resend in ${_cooldown}s'
@@ -382,8 +374,9 @@ class _VerifyEmailScreenState extends State<VerifyEmailScreen>
                               style: OutlinedButton.styleFrom(
                                 side: BorderSide(color: c.border),
                                 foregroundColor: NV.accent,
-                                disabledForegroundColor:
-                                    c.textMuted.withValues(alpha: 0.5),
+                                disabledForegroundColor: c.textMuted.withValues(
+                                  alpha: 0.5,
+                                ),
                                 shape: RoundedRectangleBorder(
                                   borderRadius: BorderRadius.circular(14),
                                 ),
@@ -396,12 +389,12 @@ class _VerifyEmailScreenState extends State<VerifyEmailScreen>
                           Row(
                             children: [
                               Expanded(
-                                child:
-                                    Container(height: 1, color: c.border),
+                                child: Container(height: 1, color: c.border),
                               ),
                               Padding(
-                                padding:
-                                    const EdgeInsets.symmetric(horizontal: 16),
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 16,
+                                ),
                                 child: Text(
                                   'didn\'t receive it?',
                                   style: GoogleFonts.inter(
@@ -413,8 +406,7 @@ class _VerifyEmailScreenState extends State<VerifyEmailScreen>
                                 ),
                               ),
                               Expanded(
-                                child:
-                                    Container(height: 1, color: c.border),
+                                child: Container(height: 1, color: c.border),
                               ),
                             ],
                           ),
@@ -609,9 +601,7 @@ class _StatusCard extends StatelessWidget {
         decoration: BoxDecoration(
           color: NV.ok.withValues(alpha: 0.10),
           borderRadius: BorderRadius.circular(14),
-          border: Border.all(
-            color: NV.ok.withValues(alpha: 0.30),
-          ),
+          border: Border.all(color: NV.ok.withValues(alpha: 0.30)),
         ),
         child: Row(
           children: [
@@ -663,9 +653,7 @@ class _StatusCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: NV.accent.withValues(alpha: 0.08),
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(
-          color: NV.accent.withValues(alpha: 0.20),
-        ),
+        border: Border.all(color: NV.accent.withValues(alpha: 0.20)),
       ),
       child: Row(
         children: [
@@ -708,10 +696,7 @@ class _StatusCard extends StatelessWidget {
                   checking
                       ? 'Please wait while we verify'
                       : 'Tap the button below after verifying',
-                  style: GoogleFonts.inter(
-                    fontSize: 12.5,
-                    color: c.textMuted,
-                  ),
+                  style: GoogleFonts.inter(fontSize: 12.5, color: c.textMuted),
                 ),
               ],
             ),
@@ -727,11 +712,7 @@ class _StatusCard extends StatelessWidget {
 // ═══════════════════════════════════════════════════════════════
 
 class _HelpTip extends StatelessWidget {
-  const _HelpTip({
-    required this.icon,
-    required this.text,
-    required this.color,
-  });
+  const _HelpTip({required this.icon, required this.text, required this.color});
   final IconData icon;
   final String text;
   final NVColors color;

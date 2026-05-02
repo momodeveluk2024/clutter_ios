@@ -8,8 +8,7 @@ import 'api_exceptions.dart';
 
 class ApiClient {
   ApiClient({required SecureTokenStorage tokenStorage})
-    : _tokenStorage = tokenStorage,
-      dio = Dio(
+    : dio = Dio(
         BaseOptions(
           baseUrl: ApiEndpoints.baseUrl,
           connectTimeout: const Duration(seconds: 30),
@@ -45,6 +44,9 @@ class ApiClient {
             final currentUser = firebase_auth.FirebaseAuth.instance.currentUser;
             if (currentUser != null) {
               try {
+                // Delay to handle clock skew between Firebase and the backend VPS.
+                // Without this, freshly issued tokens get rejected as "issued in the future".
+                await Future.delayed(const Duration(seconds: 1));
                 // Force refresh token
                 final token = await currentUser.getIdToken(true);
                 if (token != null) {
@@ -67,8 +69,6 @@ class ApiClient {
   }
 
   final Dio dio;
-  final SecureTokenStorage _tokenStorage;
-  Future<bool>? _refreshInFlight;
 
   Future<Response<dynamic>> get(String path, {Map<String, dynamic>? query}) {
     return _guard(() => dio.get<dynamic>(path, queryParameters: query));

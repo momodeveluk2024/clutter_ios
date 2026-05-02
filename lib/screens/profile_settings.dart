@@ -219,8 +219,6 @@ class _ProfileBodyScreenState extends State<ProfileBodyScreen> {
     final auth = context.read<AuthProvider>();
     final picked = await ImagePicker().pickImage(
       source: ImageSource.gallery,
-      imageQuality: 86,
-      maxWidth: 1200,
     );
     if (picked == null || !mounted) return;
     setState(() => _avatarUploading = true);

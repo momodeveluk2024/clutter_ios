@@ -207,14 +207,17 @@ class _SignUpScreenState extends State<SignUpScreen>
                                   alignment: Alignment.topCenter,
                                   child: _showEmailForm
                                       ? Column(
-                                          crossAxisAlignment: CrossAxisAlignment.start,
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.start,
                                           children: [
                                             _AuthField(
                                               controller: _name,
                                               label: 'Full name',
                                               hint: 'Jane Doe',
-                                              icon: Icons.person_outline_rounded,
-                                              textCapitalization: TextCapitalization.words,
+                                              icon:
+                                                  Icons.person_outline_rounded,
+                                              textCapitalization:
+                                                  TextCapitalization.words,
                                               validator: (v) {
                                                 if ((v?.trim() ?? '').isEmpty) {
                                                   return 'Name is required';
@@ -228,12 +231,16 @@ class _SignUpScreenState extends State<SignUpScreen>
                                               label: 'Email address',
                                               hint: 'you@example.com',
                                               icon: Icons.mail_outline_rounded,
-                                              keyboardType: TextInputType.emailAddress,
+                                              keyboardType:
+                                                  TextInputType.emailAddress,
                                               validator: (v) {
                                                 final t = v?.trim() ?? '';
-                                                if (t.isEmpty) return 'Email is required';
-                                                if (!t.contains('@'))
+                                                if (t.isEmpty) {
+                                                  return 'Email is required';
+                                                }
+                                                if (!t.contains('@')) {
                                                   return 'Enter a valid email';
+                                                }
                                                 return null;
                                               },
                                             ),
@@ -247,13 +254,15 @@ class _SignUpScreenState extends State<SignUpScreen>
                                               suffix: _FieldToggle(
                                                 hidden: _hidePassword,
                                                 onTap: () => setState(
-                                                  () => _hidePassword = !_hidePassword,
+                                                  () => _hidePassword =
+                                                      !_hidePassword,
                                                 ),
                                               ),
                                               validator: (v) {
                                                 final t = v ?? '';
-                                                if (t.isEmpty)
+                                                if (t.isEmpty) {
                                                   return 'Password is required';
+                                                }
                                                 if (t.length < 8) {
                                                   return 'Must be at least 8 characters';
                                                 }
@@ -262,20 +271,26 @@ class _SignUpScreenState extends State<SignUpScreen>
                                             ),
                                             // Password strength
                                             AnimatedSize(
-                                              duration: const Duration(milliseconds: 200),
+                                              duration: const Duration(
+                                                milliseconds: 200,
+                                              ),
                                               curve: Curves.easeOutCubic,
                                               child: hasPassword
                                                   ? Padding(
-                                                      padding: const EdgeInsets.only(
-                                                        top: 12,
-                                                        left: 4,
-                                                        right: 4,
-                                                      ),
+                                                      padding:
+                                                          const EdgeInsets.only(
+                                                            top: 12,
+                                                            left: 4,
+                                                            right: 4,
+                                                          ),
                                                       child: _PasswordStrength(
-                                                        password: _password.text,
+                                                        password:
+                                                            _password.text,
                                                       ),
                                                     )
-                                                  : const SizedBox(width: double.infinity),
+                                                  : const SizedBox(
+                                                      width: double.infinity,
+                                                    ),
                                             ),
                                             const SizedBox(height: 28),
 
@@ -285,17 +300,21 @@ class _SignUpScreenState extends State<SignUpScreen>
                                                   ? 'Creating account…'
                                                   : 'Sign up',
                                               loading: auth.isLoading,
-                                              onPressed: auth.isLoading ? null : _submit,
+                                              onPressed: auth.isLoading
+                                                  ? null
+                                                  : _submit,
                                             ),
                                           ],
                                         )
                                       : _SocialButton(
                                           icon: Icons.mail_outline_rounded,
                                           label: 'Continue with Email',
-                                          onPressed: () => setState(() => _showEmailForm = true),
+                                          onPressed: () => setState(
+                                            () => _showEmailForm = true,
+                                          ),
                                         ),
                                 ),
-                                
+
                                 if (_showEmailForm) ...[
                                   const SizedBox(height: 24),
                                   _OrDivider(),
@@ -311,7 +330,9 @@ class _SignUpScreenState extends State<SignUpScreen>
                                 _SocialButton(
                                   svgPath: 'assets/branding/google_logo.svg',
                                   label: 'Continue with Google',
-                                  onPressed: auth.isLoading ? null : _handleGoogleSignIn,
+                                  onPressed: auth.isLoading
+                                      ? null
+                                      : _handleGoogleSignIn,
                                 ),
                                 const SizedBox(height: 28),
 
@@ -684,14 +705,13 @@ class _SocialButton extends StatelessWidget {
     required this.label,
     this.icon,
     this.svgPath,
-    this.iconSize = 22,
     this.onPressed,
   }) : assert(icon != null || svgPath != null);
 
   final String label;
   final IconData? icon;
   final String? svgPath;
-  final double iconSize;
+  final double iconSize = 22;
   final VoidCallback? onPressed;
 
   @override
@@ -712,17 +732,9 @@ class _SocialButton extends StatelessWidget {
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             if (svgPath != null)
-              SvgPicture.asset(
-                svgPath!,
-                width: iconSize,
-                height: iconSize,
-              )
+              SvgPicture.asset(svgPath!, width: iconSize, height: iconSize)
             else if (icon != null)
-              Icon(
-                icon,
-                size: iconSize,
-                color: c.text,
-              ),
+              Icon(icon, size: iconSize, color: c.text),
             const SizedBox(width: 8),
             Text(
               label,

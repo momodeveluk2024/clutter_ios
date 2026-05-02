@@ -1,0 +1,79 @@
+@import "tailwindcss";
+
+@theme {
+  --color-bg: #F6F7F3;
+  --color-surface: #FFFFFF;
+  --color-surface-muted: #EEF1EA;
+  --color-border: #E5E8DF;
+  --color-text: #131A16;
+  --color-text-muted: #5E6A63;
+  --color-accent: #2F7D4A;
+  --color-accent-soft: #E6F1E9;
+  --color-accent-deep: #1E5A34;
+  --color-warn: #C57420;
+  --color-warn-soft: #FBEADB;
+  --color-err: #B23A3A;
+  --color-err-soft: #F4DEDE;
+
+  /* Nutrient hue map (for charts and pills) */
+  --color-nut-a: #E88A3D;   --color-nut-a-bg: #FBEADB;
+  --color-nut-c: #2F7D4A;   --color-nut-c-bg: #E6F1E9;
+  --color-nut-d: #C79B1A;   --color-nut-d-bg: #F7EFD3;
+  --color-nut-e: #7A5CC0;   --color-nut-e-bg: #EBE6F6;
+  --color-nut-k: #3A6B88;   --color-nut-k-bg: #E1ECF2;
+  --color-nut-b6: #B23A5C;  --color-nut-b6-bg: #F4E0E6;
+  --color-nut-b9: #6B8E3A;  --color-nut-b9-bg: #E9EFDA;
+  --color-nut-b12: #1E7A82; --color-nut-b12-bg: #DCECEE;
+  --color-nut-fe: #8A4B3D;  --color-nut-fe-bg: #F1DFDB;
+  --color-nut-zn: #4A5B70;  --color-nut-zn-bg: #DEE3EA;
+  --color-nut-mg: #2B8079;  --color-nut-mg-bg: #DAEDEA;
+  --color-nut-ca: #A07DBB;  --color-nut-ca-bg: #ECE3F2;
+
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 18px;
+
+  --font-sans: var(--font-inter), system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-mono: ui-monospace, "SF Mono", "Cascadia Mono", "Roboto Mono", monospace;
+}
+
+* { box-sizing: border-box; }
+
+html, body {
+  background: var(--color-bg);
+  color: var(--color-text);
+  font-family: var(--font-sans);
+  font-size: 14px;
+  line-height: 1.55;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+::selection { background: var(--color-accent); color: #fff; }
+
+.tabular { font-variant-numeric: tabular-nums; font-feature-settings: "tnum"; }
+
+.eyebrow {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--color-text-muted);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* Recharts overrides — match brand */
+.recharts-cartesian-grid line { stroke: var(--color-border); }
+.recharts-text { fill: var(--color-text-muted); font-size: 11px; }
+.recharts-default-tooltip {
+  background: var(--color-surface) !important;
+  border: 1px solid var(--color-border) !important;
+  border-radius: 12px !important;
+  box-shadow: 0 12px 32px -16px rgba(19, 26, 22, 0.18) !important;
+}

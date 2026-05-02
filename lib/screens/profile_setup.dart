@@ -62,6 +62,19 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
         canContinue: () => _answers.dob != null,
       ),
       _Step(
+        id: 'age',
+        eyebrow: 'About you',
+        question: 'How ',
+        questionAccent: 'old are you?',
+        helper:
+            'Used to tailor your AI recommendations and macro guidelines.',
+        builder: (context) => _AgePicker(
+          value: _answers.age,
+          onChanged: (value) => setState(() => _answers.age = value),
+        ),
+        canContinue: () => _answers.age != null,
+      ),
+      _Step(
         id: 'height',
         eyebrow: 'Body',
         question: 'How ',
@@ -405,6 +418,7 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
         dietaryPattern: _answers.diet,
         goals: _answers.goals.toList(),
         allergens: _answers.allergens.toList(),
+        preferences: _answers.age != null ? {'age': _answers.age} : null,
       );
       await auth.completeOnboarding();
       if (!mounted) return;
@@ -428,6 +442,7 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
 class _ProfileAnswers {
   String? sex;
   DateTime? dob;
+  int? age;
   double? heightCm;
   double? weightKg;
   String? activity;
@@ -1428,6 +1443,115 @@ class _WeightPickerState extends State<_WeightPicker> {
               ),
               Text(
                 '180 kg',
+                style: TextStyle(
+                  fontSize: 11,
+                  fontWeight: FontWeight.w600,
+                  color: Colors.white.withValues(alpha: 0.6),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _AgePicker extends StatefulWidget {
+  const _AgePicker({required this.value, required this.onChanged});
+
+  final int? value;
+  final ValueChanged<int> onChanged;
+
+  @override
+  State<_AgePicker> createState() => _AgePickerState();
+}
+
+class _AgePickerState extends State<_AgePicker> {
+  late int _value = widget.value ?? 30;
+
+  @override
+  Widget build(BuildContext context) {
+    return _SelectableTile(
+      selected: true,
+      onTap: () {},
+      padding: const EdgeInsets.all(22),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'AGE',
+            style: TextStyle(
+              fontSize: 11,
+              fontWeight: FontWeight.w800,
+              letterSpacing: 1.6,
+              color: Colors.white.withValues(alpha: 0.7),
+            ),
+          ),
+          const SizedBox(height: 10),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              Text(
+                '$_value',
+                style: GoogleFonts.instrumentSerif(
+                  fontSize: 76,
+                  fontWeight: FontWeight.w400,
+                  letterSpacing: -2,
+                  height: 1,
+                  color: Colors.white,
+                ),
+              ),
+              const SizedBox(width: 8),
+              Padding(
+                padding: const EdgeInsets.only(bottom: 12),
+                child: Text(
+                  'years',
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w700,
+                    color: Colors.white.withValues(alpha: 0.8),
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          SliderTheme(
+            data: SliderTheme.of(context).copyWith(
+              activeTrackColor: Colors.white,
+              inactiveTrackColor: Colors.white.withValues(alpha: 0.22),
+              thumbColor: Colors.white,
+              overlayColor: Colors.white.withValues(alpha: 0.12),
+              trackHeight: 5,
+              thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 12),
+            ),
+            child: Slider(
+              value: _value.toDouble(),
+              min: 16,
+              max: 100,
+              divisions: 84,
+              onChanged: (v) {
+                HapticFeedback.selectionClick();
+                final val = v.round();
+                setState(() => _value = val);
+                widget.onChanged(val);
+              },
+            ),
+          ),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                '16',
+                style: TextStyle(
+                  fontSize: 11,
+                  fontWeight: FontWeight.w600,
+                  color: Colors.white.withValues(alpha: 0.6),
+                ),
+              ),
+              Text(
+                '100',
                 style: TextStyle(
                   fontSize: 11,
                   fontWeight: FontWeight.w600,

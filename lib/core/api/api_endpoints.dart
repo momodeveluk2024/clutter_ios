@@ -48,6 +48,7 @@ class ApiEndpoints {
   static const favorites = '/favorites';
   static const reminders = '/reminders';
   static const recommendations = '/recommendations';
+  static const dailyMealPlan = '/recommendations/daily-plan';
   static const notificationDevices = '/notifications/devices';
   static const notificationPreferences = '/notifications/preferences';
   static const aiMealPhotoAnalyze = '/ai/meal-photo/analyze';

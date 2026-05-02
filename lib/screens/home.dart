@@ -38,7 +38,7 @@ class _HomeScreenState extends State<HomeScreen> {
     final user = auth.user;
     final now = DateTime.now();
     final totals = nutrition.todayTotals;
-    final pct = ((totals?.averagePercent ?? 0) / 100).clamp(0.0, 1.0);
+    final pct = totals?.averagePercent ?? 0;
 
     return Scaffold(
       backgroundColor: c.bg,
@@ -50,7 +50,11 @@ class _HomeScreenState extends State<HomeScreen> {
         icon: const Icon(Icons.add_rounded, size: 22),
         label: const Text(
           'Log meal',
-          style: TextStyle(fontWeight: FontWeight.w700, fontSize: 14, letterSpacing: -0.1),
+          style: TextStyle(
+            fontWeight: FontWeight.w700,
+            fontSize: 14,
+            letterSpacing: -0.1,
+          ),
         ),
       ),
       body: SafeArea(
@@ -63,71 +67,104 @@ class _HomeScreenState extends State<HomeScreen> {
               parent: BouncingScrollPhysics(),
             ),
             slivers: [
-              SliverToBoxAdapter(child: _TopBar(user: user, now: now)),
+              SliverToBoxAdapter(
+                child: _TopBar(user: user, now: now),
+              ),
               SliverPadding(
-                padding: const EdgeInsets.fromLTRB(NVSpace.x5, NVSpace.x4, NVSpace.x5, 0),
-                sliver: SliverList.list(children: [
-                  _HeroToday(
-                    pct: pct,
-                    streak: nutrition.streak,
-                    mealCount: nutrition.logs.length,
-                    trackedCount: totals?.nutrients.length ?? 0,
-                    isLoading: nutrition.isLoading && totals == null,
-                  ),
-                  const SizedBox(height: NVSpace.x6),
-                  _MacroBentoRow(totals: totals),
-                  const SizedBox(height: NVSpace.x8),
-                  if (nutrition.recommendations.isNotEmpty) ...[
-                    NVSectionHeader(
-                      eyebrow: 'For you',
-                      title: 'Recommended foods',
-                      trailing: TextButton(
-                        onPressed: () => context.push('/app/explore'),
-                        child: const Text('See all'),
+                padding: const EdgeInsets.fromLTRB(
+                  NVSpace.x5,
+                  NVSpace.x4,
+                  NVSpace.x5,
+                  0,
+                ),
+                sliver: SliverList.list(
+                  children: [
+                    _HeroToday(
+                      pct: pct,
+                      streak: nutrition.streak,
+                      mealCount: nutrition.logs.length,
+                      trackedCount: totals?.nutrients.length ?? 0,
+                      isLoading: nutrition.isLoading && totals == null,
+                    ),
+                    const SizedBox(height: NVSpace.x6),
+                    _MacroBentoRow(totals: totals),
+                    const SizedBox(height: NVSpace.x8),
+                    if (nutrition.dailyMealPlan?.hasItems ?? false) ...[
+                      NVSectionHeader(
+                        eyebrow: 'Today',
+                        title: 'Recommended meals',
+                        trailing: TextButton(
+                          onPressed: () => _showDailyMealPlan(
+                            context,
+                            nutrition.dailyMealPlan!,
+                          ),
+                          child: const Text('View plan'),
+                        ),
                       ),
+                      const SizedBox(height: NVSpace.x3),
+                      _DailyMealPlanCard(plan: nutrition.dailyMealPlan!),
+                      const SizedBox(height: NVSpace.x8),
+                    ],
+                    if (nutrition.recommendations.isNotEmpty) ...[
+                      NVSectionHeader(
+                        eyebrow: 'For you',
+                        title: 'Recommended foods',
+                        trailing: TextButton(
+                          onPressed: () => context.push('/app/explore'),
+                          child: const Text('See all'),
+                        ),
+                      ),
+                      const SizedBox(height: NVSpace.x3),
+                      ...nutrition.recommendations
+                          .take(2)
+                          .map(
+                            (rec) => Padding(
+                              padding: const EdgeInsets.only(
+                                bottom: NVSpace.x3,
+                              ),
+                              child: _RecommendationTile(rec: rec),
+                            ),
+                          ),
+                    ] else ...[
+                      _StarterCard(),
+                    ],
+                    const SizedBox(height: NVSpace.x8),
+                    NVSectionHeader(
+                      eyebrow: 'Today',
+                      title: nutrition.logs.isEmpty
+                          ? 'No meals yet'
+                          : '${nutrition.logs.length} ${nutrition.logs.length == 1 ? 'meal' : 'meals'} logged',
+                      trailing: nutrition.logs.isEmpty
+                          ? null
+                          : TextButton(
+                              onPressed: () => context.push('/app/tracker'),
+                              child: const Text('History'),
+                            ),
                     ),
                     const SizedBox(height: NVSpace.x3),
-                    ...nutrition.recommendations.take(2).map(
-                      (rec) => Padding(
-                        padding: const EdgeInsets.only(bottom: NVSpace.x3),
-                        child: _RecommendationTile(rec: rec),
-                      ),
-                    ),
-                  ] else ...[
-                    _StarterCard(),
-                  ],
-                  const SizedBox(height: NVSpace.x8),
-                  NVSectionHeader(
-                    eyebrow: 'Today',
-                    title: nutrition.logs.isEmpty
-                        ? 'No meals yet'
-                        : '${nutrition.logs.length} ${nutrition.logs.length == 1 ? 'meal' : 'meals'} logged',
-                    trailing: nutrition.logs.isEmpty
-                        ? null
-                        : TextButton(
-                            onPressed: () => context.push('/app/tracker'),
-                            child: const Text('History'),
+                    if (nutrition.logs.isEmpty)
+                      _EmptyMealsCard()
+                    else
+                      ...nutrition.logs
+                          .take(3)
+                          .map(
+                            (log) => Padding(
+                              padding: const EdgeInsets.only(
+                                bottom: NVSpace.x2,
+                              ),
+                              child: _MealRow(log: log),
+                            ),
                           ),
-                  ),
-                  const SizedBox(height: NVSpace.x3),
-                  if (nutrition.logs.isEmpty)
-                    _EmptyMealsCard()
-                  else
-                    ...nutrition.logs.take(3).map(
-                      (log) => Padding(
-                        padding: const EdgeInsets.only(bottom: NVSpace.x2),
-                        child: _MealRow(log: log),
-                      ),
+                    const SizedBox(height: NVSpace.x8),
+                    const NVSectionHeader(
+                      eyebrow: 'Coverage',
+                      title: 'Nutrients to focus on',
                     ),
-                  const SizedBox(height: NVSpace.x8),
-                  const NVSectionHeader(
-                    eyebrow: 'Coverage',
-                    title: 'Nutrients to focus on',
-                  ),
-                  const SizedBox(height: NVSpace.x3),
-                  _NutrientGapsRow(totals: totals),
-                  const SizedBox(height: 100),
-                ]),
+                    const SizedBox(height: NVSpace.x3),
+                    _NutrientGapsRow(totals: totals),
+                    const SizedBox(height: 100),
+                  ],
+                ),
               ),
             ],
           ),
@@ -153,18 +190,23 @@ class _TopBar extends StatelessWidget {
     final greeting = h < 5
         ? 'Late night'
         : h < 12
-            ? 'Good morning'
-            : h < 17
-                ? 'Good afternoon'
-                : h < 21
-                    ? 'Good evening'
-                    : 'Good night';
+        ? 'Good morning'
+        : h < 17
+        ? 'Good afternoon'
+        : h < 21
+        ? 'Good evening'
+        : 'Good night';
     final name = (user?.displayName as String?)?.split(' ').firstOrNull ?? '';
-    final dateLine =
-        '${_weekdayLong(now)}, ${_monthLong(now)} ${now.day}'.toUpperCase();
+    final dateLine = '${_weekdayLong(now)}, ${_monthLong(now)} ${now.day}'
+        .toUpperCase();
 
     return Padding(
-      padding: const EdgeInsets.fromLTRB(NVSpace.x5, NVSpace.x3, NVSpace.x5, NVSpace.x2),
+      padding: const EdgeInsets.fromLTRB(
+        NVSpace.x5,
+        NVSpace.x3,
+        NVSpace.x5,
+        NVSpace.x2,
+      ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
@@ -200,13 +242,29 @@ class _TopBar extends StatelessWidget {
   }
 
   String _weekdayLong(DateTime d) => const [
-        'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday',
-      ][d.weekday - 1];
+    'Monday',
+    'Tuesday',
+    'Wednesday',
+    'Thursday',
+    'Friday',
+    'Saturday',
+    'Sunday',
+  ][d.weekday - 1];
 
   String _monthLong(DateTime d) => const [
-        'January', 'February', 'March', 'April', 'May', 'June',
-        'July', 'August', 'September', 'October', 'November', 'December',
-      ][d.month - 1];
+    'January',
+    'February',
+    'March',
+    'April',
+    'May',
+    'June',
+    'July',
+    'August',
+    'September',
+    'October',
+    'November',
+    'December',
+  ][d.month - 1];
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -231,11 +289,17 @@ class _HeroToday extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final c = NVColors.of(context);
-    final pctValue = (pct * 100).round();
+    final pctValue = pct.round();
+    final ringPct = (pct / 100).clamp(0.0, 1.0);
 
     return NVCard(
       elevated: true,
-      padding: const EdgeInsets.fromLTRB(NVSpace.x5, NVSpace.x6, NVSpace.x5, NVSpace.x5),
+      padding: const EdgeInsets.fromLTRB(
+        NVSpace.x5,
+        NVSpace.x6,
+        NVSpace.x5,
+        NVSpace.x5,
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -283,7 +347,7 @@ class _HeroToday extends StatelessWidget {
                 ),
               ),
               RingProgress(
-                pct: pct,
+                pct: ringPct,
                 size: 92,
                 stroke: 9,
                 label: '$pctValue%',
@@ -328,7 +392,11 @@ class _HeroToday extends StatelessWidget {
 }
 
 class _MiniStat extends StatelessWidget {
-  const _MiniStat({required this.label, required this.value, required this.unit});
+  const _MiniStat({
+    required this.label,
+    required this.value,
+    required this.unit,
+  });
   final String label;
   final String value;
   final String unit;
@@ -345,10 +413,7 @@ class _MiniStat extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.baseline,
           textBaseline: TextBaseline.alphabetic,
           children: [
-            Text(
-              value,
-              style: nvNumber(20, color: c.text),
-            ),
+            Text(value, style: nvNumber(20, color: c.text)),
             const SizedBox(width: 4),
             Text(
               unit,
@@ -378,12 +443,12 @@ class _MacroBentoRow extends StatelessWidget {
     final macros = const ['Protein', 'Carbs', 'Fat'];
     final macroPercents = <String, double>{};
     for (final m in macros) {
-      final t = totals?.nutrients
-          .firstWhere(
-            (n) => n.code == m,
-            orElse: () => const NutrientTotal(code: '', name: '', unit: '', amount: 0),
-          );
-      macroPercents[m] = ((t?.driPercent ?? 0) / 100).clamp(0.0, 1.0);
+      final t = totals?.nutrients.firstWhere(
+        (n) => n.code == m,
+        orElse: () =>
+            const NutrientTotal(code: '', name: '', unit: '', amount: 0),
+      );
+      macroPercents[m] = t?.driPercent ?? 0;
     }
 
     return Row(
@@ -411,7 +476,7 @@ class _MacroTile extends StatelessWidget {
   Widget build(BuildContext context) {
     final c = NVColors.of(context);
     final hue = vitaminColors[code]!;
-    final pctLabel = '${(pct * 100).round()}%';
+    final pctLabel = '${pct.round()}%';
     final shortLabel = code; // Protein / Carbs / Fat — already friendly
     return NVCard(
       padding: const EdgeInsets.all(NVSpace.x4),
@@ -440,13 +505,170 @@ class _MacroTile extends StatelessWidget {
             ],
           ),
           const SizedBox(height: NVSpace.x3),
-          Text(
-            pctLabel,
-            style: nvNumber(22, color: c.text),
-          ),
+          Text(pctLabel, style: nvNumber(22, color: c.text)),
           const SizedBox(height: NVSpace.x2),
-          BarProgress(pct: pct, color: hue.fill, height: 4),
+          BarProgress(
+            pct: (pct / 100).clamp(0.0, 1.0),
+            color: hue.fill,
+            height: 4,
+          ),
         ],
+      ),
+    );
+  }
+}
+
+void _showDailyMealPlan(BuildContext context, DailyMealPlan plan) {
+  showModalBottomSheet<void>(
+    context: context,
+    showDragHandle: true,
+    isScrollControlled: true,
+    backgroundColor: Theme.of(context).colorScheme.surface,
+    builder: (sheetContext) => _DailyMealPlanSheet(plan: plan),
+  );
+}
+
+class _DailyMealPlanCard extends StatelessWidget {
+  const _DailyMealPlanCard({required this.plan});
+  final DailyMealPlan plan;
+
+  @override
+  Widget build(BuildContext context) {
+    final c = NVColors.of(context);
+    final slots = plan.meals.where((slot) => slot.items.isNotEmpty).toList();
+    return NVCard(
+      onTap: () => _showDailyMealPlan(context, plan),
+      padding: const EdgeInsets.all(NVSpace.x4),
+      child: Column(
+        children: [
+          for (var i = 0; i < math.min(slots.length, 3); i++) ...[
+            _MealPlanSlotRow(slot: slots[i], compact: true),
+            if (i < math.min(slots.length, 3) - 1)
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: NVSpace.x3),
+                child: Container(height: 1, color: c.border),
+              ),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+class _DailyMealPlanSheet extends StatelessWidget {
+  const _DailyMealPlanSheet({required this.plan});
+  final DailyMealPlan plan;
+
+  @override
+  Widget build(BuildContext context) {
+    final c = NVColors.of(context);
+    return SafeArea(
+      child: Padding(
+        padding: EdgeInsets.fromLTRB(
+          NVSpace.x5,
+          0,
+          NVSpace.x5,
+          MediaQuery.of(context).viewInsets.bottom + NVSpace.x6,
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Recommended meals today',
+              style: TextStyle(
+                fontSize: 20,
+                fontWeight: FontWeight.w800,
+                color: c.text,
+                letterSpacing: -0.4,
+              ),
+            ),
+            const SizedBox(height: 6),
+            Text(
+              'Picked from your current nutrient gaps and preferences.',
+              style: TextStyle(fontSize: 13, color: c.textMuted, height: 1.4),
+            ),
+            const SizedBox(height: NVSpace.x5),
+            ...plan.meals.map(
+              (slot) => Padding(
+                padding: const EdgeInsets.only(bottom: NVSpace.x3),
+                child: _MealPlanSlotRow(slot: slot, dismissOnTap: true),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _MealPlanSlotRow extends StatelessWidget {
+  const _MealPlanSlotRow({
+    required this.slot,
+    this.compact = false,
+    this.dismissOnTap = false,
+  });
+  final MealPlanSlot slot;
+  final bool compact;
+  final bool dismissOnTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final c = NVColors.of(context);
+    final item = slot.items.isEmpty ? null : slot.items.first;
+    return InkWell(
+      onTap: item == null
+          ? null
+          : () {
+              if (dismissOnTap) Navigator.of(context).maybePop();
+              context.push('/app/food/${item.foodId}');
+            },
+      borderRadius: BorderRadius.circular(NVRadius.cardSm),
+      child: Padding(
+        padding: EdgeInsets.all(compact ? 0 : NVSpace.x3),
+        child: Row(
+          children: [
+            FoodPhoto(
+              label: item?.foodName ?? slot.title,
+              imageUrl: item?.foodImageUrl,
+              width: compact ? 52 : 58,
+              height: compact ? 52 : 58,
+              radius: NVRadius.cardSm,
+              tone: 'warm',
+            ),
+            const SizedBox(width: NVSpace.x3),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  NVEyebrow(slot.title, color: c.textMuted),
+                  const SizedBox(height: 4),
+                  Text(
+                    item?.foodName ?? 'No recommendation yet',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      fontSize: compact ? 14 : 15,
+                      fontWeight: FontWeight.w800,
+                      color: c.text,
+                      letterSpacing: -0.2,
+                    ),
+                  ),
+                  if (item != null && !compact) ...[
+                    const SizedBox(height: 3),
+                    Text(
+                      item.reason,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(fontSize: 12, color: c.textMuted),
+                    ),
+                  ],
+                ],
+              ),
+            ),
+            Icon(Icons.chevron_right_rounded, size: 20, color: c.textMuted),
+          ],
+        ),
       ),
     );
   }
@@ -472,11 +694,7 @@ class _StarterCard extends StatelessWidget {
               color: NV.accentSoft,
               shape: BoxShape.circle,
             ),
-            child: const Icon(
-              Icons.eco_outlined,
-              color: NV.accent,
-              size: 22,
-            ),
+            child: const Icon(Icons.eco_outlined, color: NV.accent, size: 22),
           ),
           const SizedBox(width: NVSpace.x4),
           Expanded(
@@ -684,7 +902,11 @@ class _MealRow extends StatelessWidget {
                   itemText.isEmpty ? 'No items' : itemText,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: TextStyle(fontSize: 12, color: c.textMuted, height: 1.35),
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: c.textMuted,
+                    height: 1.35,
+                  ),
                 ),
               ],
             ),
@@ -721,9 +943,11 @@ class _NutrientGapsRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final gaps = _gaps(totals);
-    final starters = ['B12', 'D', 'C']
-        .map((code) => nutrientReferencesByCode[code]!)
-        .toList();
+    final starters = [
+      'B12',
+      'D',
+      'C',
+    ].map((code) => nutrientReferencesByCode[code]!).toList();
     final nutrients = gaps.isEmpty ? starters : gaps;
     final byCode = {
       for (final n in totals?.nutrients ?? const <NutrientTotal>[]) n.code: n,
@@ -761,7 +985,11 @@ class _NutrientGapsRow extends StatelessWidget {
 }
 
 class _NutrientGapCard extends StatelessWidget {
-  const _NutrientGapCard({required this.nutrient, required this.hue, required this.pct});
+  const _NutrientGapCard({
+    required this.nutrient,
+    required this.hue,
+    required this.pct,
+  });
   final NutrientReference nutrient;
   final VitaminHue hue;
   final double pct;
@@ -800,11 +1028,17 @@ class _NutrientGapCard extends StatelessWidget {
             const SizedBox(height: NVSpace.x3),
             Row(
               children: [
-                Expanded(child: BarProgress(pct: pct, color: hue.fill, height: 4)),
+                Expanded(
+                  child: BarProgress(pct: pct, color: hue.fill, height: 4),
+                ),
                 const SizedBox(width: 6),
                 Text(
                   '${(math.max(pct, 0) * 100).round()}%',
-                  style: nvNumber(11, color: c.textMuted, weight: FontWeight.w600),
+                  style: nvNumber(
+                    11,
+                    color: c.textMuted,
+                    weight: FontWeight.w600,
+                  ),
                 ),
               ],
             ),

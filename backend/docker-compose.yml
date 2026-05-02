@@ -1,0 +1,83 @@
+services:
+  postgres:
+    image: postgres:17-alpine
+    container_name: nutrivita-postgres
+    environment:
+      POSTGRES_DB: nutrivita
+      POSTGRES_USER: nutrivita
+      POSTGRES_PASSWORD: nutrivita
+    ports:
+      - "5432:5432"
+    volumes:
+      - nutrivita-postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U nutrivita -d nutrivita"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  migrate:
+    build:
+      context: .
+    env_file:
+      - .env
+    environment:
+      DATABASE_URL: postgres://nutrivita:nutrivita@postgres:5432/nutrivita?sslmode=disable
+    depends_on:
+      postgres:
+        condition: service_healthy
+    entrypoint: ["/app/migrate", "up"]
+
+  api:
+    build:
+      context: .
+    env_file:
+      - .env
+    environment:
+      HTTP_ADDR: :8080
+      DATABASE_URL: postgres://nutrivita:nutrivita@postgres:5432/nutrivita?sslmode=disable
+    ports:
+      - "8080:8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
+
+  marketing:
+    build:
+      context: ../web-apps/marketing
+      dockerfile: Dockerfile
+    ports:
+      - "3000:3000"
+    environment:
+      - PORT=3000
+    depends_on:
+      - api
+
+  admin:
+    build:
+      context: ../web-apps/admin
+      dockerfile: Dockerfile
+    ports:
+      - "3002:3000"
+    environment:
+      - PORT=3000
+      - NEXT_PUBLIC_API_URL=http://api:8080/v1
+    depends_on:
+      - api
+
+  pgadmin:
+    image: dpage/pgadmin4
+    container_name: nutrivita-pgadmin
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@nutrivita.com
+      PGADMIN_DEFAULT_PASSWORD: admin
+    ports:
+      - "5050:80"
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+volumes:
+  nutrivita-postgres-data:
