@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 
+import '../core/notifications/notification_service.dart';
 import '../core/providers/notification_provider.dart';
 import '../theme.dart';
 import '../widgets.dart';
@@ -233,6 +234,8 @@ class NotificationSettingsScreen extends StatelessWidget {
                       ),
                       const SizedBox(height: 8),
                       _TestPushButton(),
+                      const SizedBox(height: 8),
+                      _LocalTestButton(),
 
                       const SizedBox(height: 40),
                     ],
@@ -481,21 +484,17 @@ class _TestPushButtonState extends State<_TestPushButton> {
     setState(() => _sending = true);
     final messenger = ScaffoldMessenger.of(context);
     try {
-      final result = await context.read<NotificationProvider>().sendTestPush();
+      final count = await context.read<NotificationProvider>().sendTestPush();
       if (!mounted) return;
-      final messages = <String>[];
-      if (result.localShown) {
-        messages.add('Local heads-up shown.');
-      }
-      if (result.remoteDevices > 0) {
-        messages.add(
-          'FCM dispatched to ${result.remoteDevices} device'
-          '${result.remoteDevices == 1 ? '' : 's'}.',
-        );
-      } else if (!result.localShown) {
-        messages.add('Could not show notification — check OS permissions.');
-      }
-      messenger.showSnackBar(SnackBar(content: Text(messages.join(' '))));
+      messenger.showSnackBar(
+        SnackBar(
+          content: Text(
+            count > 0
+                ? 'Test push sent to $count device${count == 1 ? '' : 's'}.'
+                : 'Server accepted the request but no devices were registered.',
+          ),
+        ),
+      );
     } catch (e) {
       if (!mounted) return;
       messenger.showSnackBar(
@@ -557,6 +556,80 @@ class _TestPushButtonState extends State<_TestPushButton> {
             )
           else
             Icon(Icons.chevron_right_rounded, size: 18, color: c.textMuted),
+        ],
+      ),
+    );
+  }
+}
+
+/// Fires a notification straight from flutter_local_notifications, bypassing
+/// FCM entirely. If THIS shows up but the FCM test push doesn't, the issue is
+/// delivery (stale token / OS battery restriction). If neither shows up, the
+/// issue is permission or channel registration on the device.
+class _LocalTestButton extends StatelessWidget {
+  Future<void> _fire(BuildContext context) async {
+    final messenger = ScaffoldMessenger.of(context);
+    try {
+      await NotificationService.instance.showNow(
+        id: 9999,
+        channelId: 'meal_reminders',
+        title: 'Local notification works',
+        body: 'No backend, no FCM. If you see this, the channel is fine.',
+      );
+      messenger.showSnackBar(
+        const SnackBar(content: Text('Fired local notification.')),
+      );
+    } catch (e) {
+      messenger.showSnackBar(
+        SnackBar(content: Text('Local notification failed: $e')),
+      );
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final c = NVColors.of(context);
+    return NVCard(
+      padding: const EdgeInsets.all(NVSpace.x4),
+      onTap: () => _fire(context),
+      child: Row(
+        children: [
+          Container(
+            width: 36,
+            height: 36,
+            decoration: BoxDecoration(
+              color: vitaminColors['Carbs']!.bg,
+              shape: BoxShape.circle,
+            ),
+            child: Icon(
+              Icons.bolt_rounded,
+              size: 18,
+              color: vitaminColors['Carbs']!.fill,
+            ),
+          ),
+          const SizedBox(width: NVSpace.x3),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Show local test (bypass FCM)',
+                  style: TextStyle(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w600,
+                    color: c.text,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  "Fires a notification directly from this app. If you don't see THIS, the issue is permission or system-level suppression — not the backend.",
+                  style: TextStyle(fontSize: 12, color: c.textMuted),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: NVSpace.x3),
+          Icon(Icons.chevron_right_rounded, size: 18, color: c.textMuted),
         ],
       ),
     );
