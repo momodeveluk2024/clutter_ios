@@ -43,7 +43,16 @@ class DayNutrientTotals {
   }
 
   double get averagePercent {
-    final percents = nutrients.map((n) => n.driPercent).whereType<double>().toList();
+    // "Covered" = fraction of daily targets you've met. Each nutrient is
+    // capped at 100% before averaging, otherwise eating extra of one nutrient
+    // (e.g. 200% protein) would inflate the dial while leaving truly missed
+    // nutrients hidden. The cap makes the only way to push the dial up
+    // *covering the under-covered nutrients*.
+    final percents = nutrients
+        .map((n) => n.driPercent)
+        .whereType<double>()
+        .map((p) => p > 100 ? 100.0 : p)
+        .toList();
     if (percents.isEmpty) return 0;
     return percents.reduce((a, b) => a + b) / percents.length;
   }

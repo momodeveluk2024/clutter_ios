@@ -9,6 +9,7 @@ import '../core/models/nutrition.dart';
 import '../core/providers/nutrition_provider.dart';
 import '../theme.dart';
 import '../widgets.dart';
+import '../widgets/nv_loader.dart';
 import 'meal_log_detail.dart';
 
 class TrackerScreen extends StatefulWidget {
@@ -96,6 +97,15 @@ class _TrackerScreenState extends State<TrackerScreen> {
       0.0,
       1.0,
     );
+    final isFirstLoad =
+        nutrition.isLoading && nutrition.todayTotals == null;
+
+    if (isFirstLoad) {
+      return Container(
+        color: c.bg,
+        child: const Center(child: NVLoader(label: 'Loading meals…')),
+      );
+    }
 
     return SafeArea(
       bottom: false,

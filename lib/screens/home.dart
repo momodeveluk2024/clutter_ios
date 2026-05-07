@@ -11,6 +11,7 @@ import '../core/providers/auth_provider.dart';
 import '../core/providers/nutrition_provider.dart';
 import '../theme.dart';
 import '../widgets.dart';
+import '../widgets/nv_loader.dart';
 import 'meal_log_detail.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -39,6 +40,14 @@ class _HomeScreenState extends State<HomeScreen> {
     final now = DateTime.now();
     final totals = nutrition.todayTotals;
     final pct = totals?.averagePercent ?? 0;
+    final isFirstLoad = nutrition.isLoading && totals == null;
+
+    if (isFirstLoad) {
+      return Scaffold(
+        backgroundColor: c.bg,
+        body: const Center(child: NVLoader(label: 'Loading your day…')),
+      );
+    }
 
     return Scaffold(
       backgroundColor: c.bg,
