@@ -484,15 +484,12 @@ class _TestPushButtonState extends State<_TestPushButton> {
     setState(() => _sending = true);
     final messenger = ScaffoldMessenger.of(context);
     try {
-      final count = await context.read<NotificationProvider>().sendTestPush();
+      final result = await context.read<NotificationProvider>().sendTestPush();
       if (!mounted) return;
       messenger.showSnackBar(
         SnackBar(
-          content: Text(
-            count > 0
-                ? 'Test push sent to $count device${count == 1 ? '' : 's'}.'
-                : 'Server accepted the request but no devices were registered.',
-          ),
+          duration: const Duration(seconds: 6),
+          content: Text(result.describe()),
         ),
       );
     } catch (e) {

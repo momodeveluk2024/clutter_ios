@@ -147,49 +147,34 @@ class NotificationProvider extends ChangeNotifier {
     await _updateServerPreferences(lowCalorie: v);
   }
 
-  /// Result of [sendTestPush]: how many remote devices the backend
-  /// dispatched to (0 means the round-trip didn't reach an FCM device,
-  /// e.g. on an emulator without Play Services or before the user has
-  /// signed in), and whether a local heads-up was shown immediately.
-  /// The local heads-up always fires so the user has visible feedback
-  /// even when the cloud round-trip is unavailable.
-  Future<({int remoteDevices, bool localShown})> sendTestPush() async {
-    // Local heads-up first — guarantees something visible on the emulator
-    // regardless of network, auth, or FCM state. Goes through the
-    // meal_reminders channel which is configured Importance.high.
-    var localShown = false;
-    try {
-      await NotificationService.instance.showNow(
-        id: DateTime.now().millisecondsSinceEpoch.remainder(1 << 30),
-        channelId: 'meal_reminders',
-        title: 'Nutrimate test notification',
-        body: 'If you can see this banner, local notifications are working.',
-      );
-      localShown = true;
-    } catch (_) {
-      // Plugin not initialised yet — fall through; the remote attempt may
-      // still succeed and trigger the foreground handler.
-    }
-
-    // Remote round-trip (best effort). The backend dispatches an FCM push
-    // to every registered device. If we're not signed in or the call fails
-    // we still return localShown=true so the UI snackbar is honest.
+  /// Asks the backend to send a heads-up test push to every device the
+  /// current user has registered. Throws on network/HTTP error so the
+  /// caller can surface a snackbar.
+  Future<TestPushResult> sendTestPush() async {
     if (_api == null) {
-      return (remoteDevices: 0, localShown: localShown);
+      throw StateError('Sign in to send a test notification.');
     }
-    try {
-      final response = await _api.post(ApiEndpoints.notificationTest);
-      final data = response.data;
-      if (data is Map && data['sent_to_devices'] is num) {
-        return (
-          remoteDevices: (data['sent_to_devices'] as num).toInt(),
-          localShown: localShown,
-        );
+    final response = await _api.post(ApiEndpoints.notificationTest);
+    final data = response.data as Map?;
+    if (data == null) return const TestPushResult.empty();
+    return TestPushResult(
+      senderType: data['sender_type'] as String? ?? 'unknown',
+      deviceCount: (data['device_count'] as num?)?.toInt() ?? 0,
+      successCount: (data['success_count'] as num?)?.toInt() ?? 0,
+      failureCount: (data['failure_count'] as num?)?.toInt() ?? 0,
+      firstError: _firstError(data['results']),
+    );
+  }
+
+  String? _firstError(Object? results) {
+    if (results is! List) return null;
+    for (final entry in results) {
+      if (entry is Map && entry['ok'] == false) {
+        final err = entry['error'];
+        if (err is String && err.isNotEmpty) return err;
       }
-    } catch (_) {
-      // Swallow — the local heads-up already provided feedback.
     }
-    return (remoteDevices: 0, localShown: localShown);
+    return null;
   }
 
   // ── Meal time changes ─────────────────────────────────────────
@@ -263,5 +248,48 @@ class NotificationProvider extends ChangeNotifier {
     } catch (error) {
       remoteError = error.toString();
     }
+  }
+}
+
+/// Diagnostic payload returned by /v1/notifications/test. Lets the UI tell
+/// the user *why* a push didn't arrive (e.g. server is using the dev logger
+/// instead of FCM, or every token was rejected as not-registered).
+class TestPushResult {
+  const TestPushResult({
+    required this.senderType,
+    required this.deviceCount,
+    required this.successCount,
+    required this.failureCount,
+    this.firstError,
+  });
+
+  const TestPushResult.empty()
+    : senderType = 'unknown',
+      deviceCount = 0,
+      successCount = 0,
+      failureCount = 0,
+      firstError = null;
+
+  final String senderType; // "fcm" | "dev_logger" | "unknown"
+  final int deviceCount;
+  final int successCount;
+  final int failureCount;
+  final String? firstError;
+
+  /// Human-readable one-liner for the snackbar.
+  String describe() {
+    if (senderType == 'dev_logger') {
+      return 'Server has no Firebase credentials wired. Push was logged only — never sent.';
+    }
+    if (deviceCount == 0) {
+      return 'No push devices registered. Sign out and back in to register.';
+    }
+    if (successCount == 0) {
+      return 'FCM rejected every token ($failureCount failures). First error: ${firstError ?? "unknown"}';
+    }
+    if (failureCount > 0) {
+      return 'Sent to $successCount of $deviceCount devices. $failureCount failed: ${firstError ?? "unknown"}';
+    }
+    return 'Sent to $successCount device${successCount == 1 ? "" : "s"} via FCM.';
   }
 }
