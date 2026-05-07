@@ -481,17 +481,21 @@ class _TestPushButtonState extends State<_TestPushButton> {
     setState(() => _sending = true);
     final messenger = ScaffoldMessenger.of(context);
     try {
-      final count = await context.read<NotificationProvider>().sendTestPush();
+      final result = await context.read<NotificationProvider>().sendTestPush();
       if (!mounted) return;
-      messenger.showSnackBar(
-        SnackBar(
-          content: Text(
-            count > 0
-                ? 'Test push sent to $count device${count == 1 ? '' : 's'}.'
-                : 'Server accepted the request but no devices were registered.',
-          ),
-        ),
-      );
+      final messages = <String>[];
+      if (result.localShown) {
+        messages.add('Local heads-up shown.');
+      }
+      if (result.remoteDevices > 0) {
+        messages.add(
+          'FCM dispatched to ${result.remoteDevices} device'
+          '${result.remoteDevices == 1 ? '' : 's'}.',
+        );
+      } else if (!result.localShown) {
+        messages.add('Could not show notification — check OS permissions.');
+      }
+      messenger.showSnackBar(SnackBar(content: Text(messages.join(' '))));
     } catch (e) {
       if (!mounted) return;
       messenger.showSnackBar(

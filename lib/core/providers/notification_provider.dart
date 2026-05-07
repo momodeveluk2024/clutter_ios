@@ -147,19 +147,49 @@ class NotificationProvider extends ChangeNotifier {
     await _updateServerPreferences(lowCalorie: v);
   }
 
-  /// Asks the backend to send a heads-up test push to every device the
-  /// current user has registered. Throws on network/HTTP error so the
-  /// caller can surface a snackbar.
-  Future<int> sendTestPush() async {
+  /// Result of [sendTestPush]: how many remote devices the backend
+  /// dispatched to (0 means the round-trip didn't reach an FCM device,
+  /// e.g. on an emulator without Play Services or before the user has
+  /// signed in), and whether a local heads-up was shown immediately.
+  /// The local heads-up always fires so the user has visible feedback
+  /// even when the cloud round-trip is unavailable.
+  Future<({int remoteDevices, bool localShown})> sendTestPush() async {
+    // Local heads-up first — guarantees something visible on the emulator
+    // regardless of network, auth, or FCM state. Goes through the
+    // meal_reminders channel which is configured Importance.high.
+    var localShown = false;
+    try {
+      await NotificationService.instance.showNow(
+        id: DateTime.now().millisecondsSinceEpoch.remainder(1 << 30),
+        channelId: 'meal_reminders',
+        title: 'Nutrimate test notification',
+        body: 'If you can see this banner, local notifications are working.',
+      );
+      localShown = true;
+    } catch (_) {
+      // Plugin not initialised yet — fall through; the remote attempt may
+      // still succeed and trigger the foreground handler.
+    }
+
+    // Remote round-trip (best effort). The backend dispatches an FCM push
+    // to every registered device. If we're not signed in or the call fails
+    // we still return localShown=true so the UI snackbar is honest.
     if (_api == null) {
-      throw StateError('Sign in to send a test notification.');
+      return (remoteDevices: 0, localShown: localShown);
     }
-    final response = await _api.post(ApiEndpoints.notificationTest);
-    final data = response.data;
-    if (data is Map && data['sent_to_devices'] is num) {
-      return (data['sent_to_devices'] as num).toInt();
+    try {
+      final response = await _api.post(ApiEndpoints.notificationTest);
+      final data = response.data;
+      if (data is Map && data['sent_to_devices'] is num) {
+        return (
+          remoteDevices: (data['sent_to_devices'] as num).toInt(),
+          localShown: localShown,
+        );
+      }
+    } catch (_) {
+      // Swallow — the local heads-up already provided feedback.
     }
-    return 0;
+    return (remoteDevices: 0, localShown: localShown);
   }
 
   // ── Meal time changes ─────────────────────────────────────────
