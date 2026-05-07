@@ -32,6 +32,7 @@ class FcmNotificationService {
   FirebaseMessaging? _messaging;
   StreamSubscription<String>? _tokenRefreshSub;
   StreamSubscription<RemoteMessage>? _openedSub;
+  StreamSubscription<RemoteMessage>? _foregroundSub;
   bool _initialized = false;
   bool _available = false;
   String? _pendingRoute;
@@ -57,6 +58,14 @@ class FcmNotificationService {
     );
 
     _openedSub = FirebaseMessaging.onMessageOpenedApp.listen(_handleMessage);
+
+    // Android (and iOS) hand foreground pushes to the app instead of
+    // showing them automatically — without this listener the user sees
+    // nothing while they're in the app, even when the test push button
+    // succeeds. Re-present each foreground message via
+    // flutter_local_notifications so the heads-up banner appears.
+    _foregroundSub = FirebaseMessaging.onMessage.listen(_handleForeground);
+
     final messaging = _messaging;
     if (messaging == null) return;
 
@@ -107,10 +116,33 @@ class FcmNotificationService {
   Future<void> dispose() async {
     await _tokenRefreshSub?.cancel();
     await _openedSub?.cancel();
+    await _foregroundSub?.cancel();
   }
 
   void _handleMessage(RemoteMessage message) {
     notificationTapStream.add(FcmNotificationRouter.routeForData(message.data));
+  }
+
+  // Re-present a push that arrived while the app is in the foreground.
+  // Falls back to the message body or a generic title if either is empty
+  // so we never show an empty banner.
+  void _handleForeground(RemoteMessage message) {
+    final notification = message.notification;
+    final title = notification?.title?.trim();
+    final body = notification?.body?.trim();
+    if ((title == null || title.isEmpty) && (body == null || body.isEmpty)) {
+      return;
+    }
+    final channelId = message.data['type'] == 'low_calorie'
+        ? 'meal_reminders'
+        : 'engagement';
+    NotificationService.instance.showNow(
+      id: DateTime.now().millisecondsSinceEpoch.remainder(1 << 30),
+      channelId: channelId,
+      title: title?.isNotEmpty == true ? title! : 'Nutrimate',
+      body: body ?? '',
+      payload: FcmNotificationRouter.routeForData(message.data),
+    );
   }
 
   Future<String> _deviceID() async {
