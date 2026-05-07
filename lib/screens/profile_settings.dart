@@ -8,6 +8,7 @@ import '../core/providers/auth_provider.dart';
 import '../core/providers/reminder_provider.dart';
 import '../theme.dart';
 import '../widgets.dart';
+import '../widgets/nv_loader.dart';
 
 class ProfileGoalsScreen extends StatefulWidget {
   const ProfileGoalsScreen({super.key});
@@ -347,7 +348,7 @@ class _ProfileRemindersScreenState extends State<ProfileRemindersScreen> {
       child: Consumer<ReminderProvider>(
         builder: (context, provider, _) {
           if (provider.isLoading && provider.reminders.isEmpty) {
-            return const Center(child: CircularProgressIndicator());
+            return const Center(child: NVLoader(label: 'Loading reminders…'));
           }
           if (provider.reminders.isEmpty) {
             return NVCard(

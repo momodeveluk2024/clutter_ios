@@ -24,6 +24,7 @@ class NotificationProvider extends ChangeNotifier {
   bool hydration = false;
   bool weeklySummary = true;
   bool aiInsights = false;
+  bool lowCalorieAlerts = true;
 
   TimeOfDay breakfastTime = const TimeOfDay(hour: 8, minute: 0);
   TimeOfDay lunchTime = const TimeOfDay(hour: 12, minute: 30);
@@ -47,6 +48,7 @@ class NotificationProvider extends ChangeNotifier {
     hydration = await NotificationPrefs.getHydration();
     weeklySummary = await NotificationPrefs.getWeeklySummary();
     aiInsights = await NotificationPrefs.getAiInsights();
+    lowCalorieAlerts = await NotificationPrefs.getLowCalorie();
 
     breakfastTime = await NotificationPrefs.getBreakfastTime();
     lunchTime = await NotificationPrefs.getLunchTime();
@@ -138,6 +140,28 @@ class NotificationProvider extends ChangeNotifier {
     await NotificationScheduler.instance.rescheduleAll();
   }
 
+  Future<void> setLowCalorieAlerts(bool v) async {
+    lowCalorieAlerts = v;
+    notifyListeners();
+    await NotificationPrefs.setLowCalorie(v);
+    await _updateServerPreferences(lowCalorie: v);
+  }
+
+  /// Asks the backend to send a heads-up test push to every device the
+  /// current user has registered. Throws on network/HTTP error so the
+  /// caller can surface a snackbar.
+  Future<int> sendTestPush() async {
+    if (_api == null) {
+      throw StateError('Sign in to send a test notification.');
+    }
+    final response = await _api.post(ApiEndpoints.notificationTest);
+    final data = response.data;
+    if (data is Map && data['sent_to_devices'] is num) {
+      return (data['sent_to_devices'] as num).toInt();
+    }
+    return 0;
+  }
+
   // ── Meal time changes ─────────────────────────────────────────
 
   Future<void> setBreakfastTime(TimeOfDay t) async {
@@ -171,9 +195,11 @@ class NotificationProvider extends ChangeNotifier {
       nutrientTips = prefs.recommendationPushEnabled;
       weeklySummary = prefs.weeklySummaryPushEnabled;
       aiInsights = prefs.aiInsightsPushEnabled;
+      lowCalorieAlerts = prefs.lowCaloriePushEnabled;
       await NotificationPrefs.setNutrientTips(nutrientTips);
       await NotificationPrefs.setWeeklySummary(weeklySummary);
       await NotificationPrefs.setAiInsights(aiInsights);
+      await NotificationPrefs.setLowCalorie(lowCalorieAlerts);
       remoteError = null;
     } catch (error) {
       // This is expected while signed out or before the backend migration runs.
@@ -185,6 +211,7 @@ class NotificationProvider extends ChangeNotifier {
     bool? recommendations,
     bool? weeklySummary,
     bool? aiInsights,
+    bool? lowCalorie,
   }) async {
     if (_api == null) return;
     final data = <String, dynamic>{};
@@ -196,6 +223,9 @@ class NotificationProvider extends ChangeNotifier {
     }
     if (aiInsights != null) {
       data['ai_insights_push_enabled'] = aiInsights;
+    }
+    if (lowCalorie != null) {
+      data['low_calorie_push_enabled'] = lowCalorie;
     }
     try {
       await _api.patch(ApiEndpoints.notificationPreferences, data: data);

@@ -15,6 +15,7 @@ import '../screens/sign_in.dart';
 import '../screens/sign_up.dart';
 import '../screens/splash.dart';
 import '../screens/intro_video.dart';
+import '../screens/my_meal_edit.dart';
 import '../screens/verify_email.dart';
 import '../screens/vitamin_detail.dart';
 import 'providers/auth_provider.dart';
@@ -187,6 +188,13 @@ GoRouter buildRouter(AuthProvider auth) {
         path: '/app/vitamin/:code',
         builder: (context, state) =>
             VitaminDetailScreen(code: state.pathParameters['code'] ?? 'D'),
+      ),
+      GoRoute(
+        path: '/app/my-meal/:id',
+        builder: (context, state) {
+          final id = state.pathParameters['id'];
+          return MyMealEditScreen(mealId: id == 'new' ? null : id);
+        },
       ),
       GoRoute(
         path: '/app/profile/goals',

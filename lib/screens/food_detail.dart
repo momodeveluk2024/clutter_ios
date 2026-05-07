@@ -8,6 +8,7 @@ import '../core/providers/food_provider.dart';
 import '../core/providers/nutrition_provider.dart';
 import '../theme.dart';
 import '../widgets.dart';
+import '../widgets/nv_loader.dart';
 
 class FoodDetailScreen extends StatefulWidget {
   const FoodDetailScreen({super.key, this.foodId});
@@ -43,7 +44,7 @@ class _FoodDetailScreenState extends State<FoodDetailScreen> {
         builder: (context, snapshot) {
           if (snapshot.connectionState != ConnectionState.done) {
             return const Center(
-              child: CircularProgressIndicator(color: NV.accent),
+              child: NVLoader(label: 'Loading food…'),
             );
           }
           if (snapshot.hasError || !snapshot.hasData) {

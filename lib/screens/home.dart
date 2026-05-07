@@ -480,6 +480,7 @@ class _MacroTile extends StatelessWidget {
     final shortLabel = code; // Protein / Carbs / Fat — already friendly
     return NVCard(
       padding: const EdgeInsets.all(NVSpace.x4),
+      onTap: () => context.push('/app/vitamin/$code'),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [

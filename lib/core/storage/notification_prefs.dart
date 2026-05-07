@@ -15,6 +15,7 @@ class NotificationPrefs {
   static const _hydration = '${_prefix}hydration';
   static const _weeklySummary = '${_prefix}weekly_summary';
   static const _aiInsights = '${_prefix}ai_insights';
+  static const _lowCalorie = '${_prefix}low_calorie';
 
   static const _breakfastHour = '${_prefix}breakfast_hour';
   static const _breakfastMinute = '${_prefix}breakfast_minute';
@@ -43,6 +44,9 @@ class NotificationPrefs {
 
   static Future<bool> getAiInsights() => _getBool(_aiInsights, false);
   static Future<void> setAiInsights(bool v) => _setBool(_aiInsights, v);
+
+  static Future<bool> getLowCalorie() => _getBool(_lowCalorie, true);
+  static Future<void> setLowCalorie(bool v) => _setBool(_lowCalorie, v);
 
   // ── Meal times ────────────────────────────────────────────────
   static Future<TimeOfDay> getBreakfastTime() async => TimeOfDay(

@@ -8,6 +8,8 @@ class FoodSummary {
     required this.verified,
     required this.nutrients,
     this.imageUrl,
+    this.backgroundColor,
+    this.ownerUserId,
     this.driPercent,
   });
 
@@ -19,6 +21,8 @@ class FoodSummary {
   final bool verified;
   final List<String> nutrients;
   final String? imageUrl;
+  final String? backgroundColor;
+  final String? ownerUserId;
   final double? driPercent;
 
   factory FoodSummary.fromJson(Map<String, dynamic> json) {
@@ -33,6 +37,8 @@ class FoodSummary {
           .map((v) => v.toString())
           .toList(),
       imageUrl: json['image_url'] as String?,
+      backgroundColor: json['background_color'] as String?,
+      ownerUserId: json['owner_user_id'] as String?,
       driPercent: (json['dri_percent'] as num?)?.toDouble(),
     );
   }
@@ -77,6 +83,8 @@ class FoodDetail extends FoodSummary {
     required super.verified,
     required super.nutrients,
     super.imageUrl,
+    super.backgroundColor,
+    super.ownerUserId,
     super.driPercent,
     required this.source,
     required this.breakdown,
@@ -98,6 +106,8 @@ class FoodDetail extends FoodSummary {
       verified: json['verified'] as bool? ?? false,
       nutrients: breakdown.map((n) => n.code).toList(),
       imageUrl: json['image_url'] as String?,
+      backgroundColor: json['background_color'] as String?,
+      ownerUserId: json['owner_user_id'] as String?,
       driPercent: (json['dri_percent'] as num?)?.toDouble(),
       source: json['source'] as String? ?? 'seed',
       breakdown: breakdown,

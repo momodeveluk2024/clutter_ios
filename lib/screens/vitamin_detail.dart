@@ -8,6 +8,7 @@ import '../core/models/visual_catalog.dart';
 import '../core/providers/food_provider.dart';
 import '../theme.dart';
 import '../widgets.dart';
+import '../widgets/nv_loader.dart';
 
 class VitaminDetailScreen extends StatefulWidget {
   const VitaminDetailScreen({super.key, this.code = 'D'});
@@ -350,7 +351,7 @@ class _TopSources extends StatelessWidget {
               return const NVCard(
                 padding: EdgeInsets.all(18),
                 child: Center(
-                  child: CircularProgressIndicator(color: NV.accent),
+                  child: NVLoader(label: 'Finding food sources…'),
                 ),
               );
             }

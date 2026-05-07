@@ -24,7 +24,9 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      context.read<FoodProvider>().loadFavorites();
+      final foodProvider = context.read<FoodProvider>();
+      foodProvider.loadFavorites();
+      foodProvider.loadUserMeals();
       context.read<NutritionProvider>().refreshDashboard();
     });
   }
@@ -67,8 +69,8 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
                 borderRadius: BorderRadius.circular(12),
               ),
               child: Row(
-                children: List.generate(2, (i) {
-                  final labels = ['Foods', 'Meals'];
+                children: List.generate(3, (i) {
+                  final labels = ['Foods', 'Meals', 'My Meals'];
                   final active = i == _tab;
                   return Expanded(
                     child: GestureDetector(
@@ -107,14 +109,23 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
           Expanded(
             child: RefreshIndicator(
               onRefresh: () async {
-                await context.read<FoodProvider>().loadFavorites();
-                if (context.mounted) {
-                  await context.read<NutritionProvider>().refreshDashboard();
+                final foodProvider = context.read<FoodProvider>();
+                if (_tab == 2) {
+                  await foodProvider.loadUserMeals();
+                } else {
+                  await foodProvider.loadFavorites();
+                  if (context.mounted) {
+                    await context
+                        .read<NutritionProvider>()
+                        .refreshDashboard();
+                  }
                 }
               },
-              child: _tab == 0
-                  ? _FoodsList(foods: provider.favorites)
-                  : _MealsList(logs: nutrition.logs),
+              child: switch (_tab) {
+                0 => _FoodsList(foods: provider.favorites),
+                1 => _MealsList(logs: nutrition.logs),
+                _ => _MyMealsList(meals: provider.userMeals),
+              },
             ),
           ),
         ],
@@ -303,6 +314,151 @@ class _FavoriteFood extends StatelessWidget {
       ),
     );
   }
+}
+
+class _MyMealsList extends StatelessWidget {
+  const _MyMealsList({required this.meals});
+
+  final List<FoodSummary> meals;
+
+  @override
+  Widget build(BuildContext context) {
+    final dark = Theme.of(context).brightness == Brightness.dark;
+    final c = NVColors(dark);
+    return ListView(
+      padding: const EdgeInsets.fromLTRB(20, 0, 20, 16),
+      children: [
+        NVCard(
+          padding: const EdgeInsets.all(14),
+          onTap: () => context.push('/app/my-meal/new'),
+          child: Row(
+            children: [
+              Container(
+                width: 40,
+                height: 40,
+                decoration: const BoxDecoration(
+                  color: NV.accentSoft,
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(Icons.add, color: NV.accent, size: 22),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Create a meal',
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w700,
+                        color: c.text,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      'Set the photo, color, and exact nutrient amounts you want this meal to count for.',
+                      style: TextStyle(fontSize: 12, color: c.textMuted),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 14),
+        if (meals.isEmpty)
+          const _EmptyState(
+            title: 'No custom meals yet',
+            subtitle:
+                'Create your first meal above. It will be available to log just like any other food.',
+          )
+        else
+          ...meals.map(
+            (meal) => Padding(
+              padding: const EdgeInsets.only(bottom: 10),
+              child: _MyMealCard(meal: meal),
+            ),
+          ),
+      ],
+    );
+  }
+}
+
+class _MyMealCard extends StatelessWidget {
+  const _MyMealCard({required this.meal});
+
+  final FoodSummary meal;
+
+  @override
+  Widget build(BuildContext context) {
+    final dark = Theme.of(context).brightness == Brightness.dark;
+    final c = NVColors(dark);
+    final bg = _parseHex(meal.backgroundColor) ?? c.surface;
+    return NVCard(
+      padding: const EdgeInsets.all(12),
+      background: bg,
+      onTap: () => context.push('/app/my-meal/${meal.id}'),
+      child: Row(
+        children: [
+          FoodPhoto(
+            label: meal.name,
+            imageUrl: meal.imageUrl,
+            category: meal.category,
+            height: 52,
+            width: 52,
+            radius: 12,
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  meal.name,
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w700,
+                    color: c.text,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  '${meal.servingSizeG.round()} g serving',
+                  style: TextStyle(fontSize: 11, color: c.textMuted),
+                ),
+                const SizedBox(height: 6),
+                Row(
+                  children: meal.nutrients
+                      .take(4)
+                      .map(
+                        (v) => Padding(
+                          padding: const EdgeInsets.only(right: 4),
+                          child: VitaminChip(code: v, size: 18),
+                        ),
+                      )
+                      .toList(),
+                ),
+              ],
+            ),
+          ),
+          Icon(Icons.chevron_right_rounded, size: 18, color: c.textMuted),
+        ],
+      ),
+    );
+  }
+}
+
+Color? _parseHex(String? hex) {
+  if (hex == null) return null;
+  final cleaned = hex.replaceFirst('#', '').trim();
+  if (cleaned.length != 6 && cleaned.length != 8) return null;
+  final value = int.tryParse(
+    cleaned.length == 6 ? 'FF$cleaned' : cleaned,
+    radix: 16,
+  );
+  if (value == null) return null;
+  return Color(value);
 }
 
 class _EmptyState extends StatelessWidget {

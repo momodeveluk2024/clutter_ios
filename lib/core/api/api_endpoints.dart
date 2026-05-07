@@ -42,6 +42,7 @@ class ApiEndpoints {
   static const meOnboardingComplete = '/me/onboarding/complete';
   static const streak = '/me/streak';
   static const foods = '/foods';
+  static const myFoods = '/me/foods';
   static const logs = '/logs';
   static const todayIntake = '/logs/today/intake';
   static const weekIntake = '/logs/week';
@@ -51,10 +52,12 @@ class ApiEndpoints {
   static const dailyMealPlan = '/recommendations/daily-plan';
   static const notificationDevices = '/notifications/devices';
   static const notificationPreferences = '/notifications/preferences';
+  static const notificationTest = '/notifications/test';
   static const aiMealPhotoAnalyze = '/ai/meal-photo/analyze';
   static const aiChat = '/ai/chat';
 
   static String food(String id) => '/foods/$id';
+  static String foodImage(String id) => '/foods/$id/image';
   static String log(String id) => '/logs/$id';
   static String favorite(String id) => '/favorites/$id';
   static String reminder(String id) => '/reminders/$id';

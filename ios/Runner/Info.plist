@@ -4,6 +4,10 @@
 <dict>
 	<key>CADisableMinimumFrameDurationOnPhone</key>
 	<true/>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>Nutrimate needs access to your photos to set your profile picture and meal images.</string>
+	<key>NSCameraUsageDescription</key>
+	<string>Nutrimate needs camera access to take a profile or meal picture.</string>
 	<key>CFBundleDevelopmentRegion</key>
 	<string>$(DEVELOPMENT_LANGUAGE)</string>
 	<key>CFBundleExecutable</key>

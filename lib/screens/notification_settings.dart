@@ -5,6 +5,7 @@ import 'package:provider/provider.dart';
 import '../core/providers/notification_provider.dart';
 import '../theme.dart';
 import '../widgets.dart';
+import '../widgets/nv_loader.dart';
 
 class NotificationSettingsScreen extends StatelessWidget {
   const NotificationSettingsScreen({super.key});
@@ -19,7 +20,9 @@ class NotificationSettingsScreen extends StatelessWidget {
         child: Consumer<NotificationProvider>(
           builder: (context, notif, _) {
             if (notif.isLoading) {
-              return const Center(child: CircularProgressIndicator());
+              return const Center(
+                child: NVLoader(label: 'Loading preferences…'),
+              );
             }
             return Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -184,6 +187,25 @@ class NotificationSettingsScreen extends StatelessWidget {
                       const SizedBox(height: 22),
 
                       // ═══════════════════════════════════════
+                      //  CALORIE ALERTS
+                      // ═══════════════════════════════════════
+                      _SectionHeader(
+                        icon: Icons.bolt_rounded,
+                        label: 'CALORIE ALERTS',
+                        color: vitaminColors['B12']!.fill,
+                      ),
+                      const SizedBox(height: 8),
+                      _ToggleCard(
+                        title: 'Low calorie reminder',
+                        subtitle:
+                            "Heads-up after 8 PM if you're below 50% of your calorie goal and haven't logged in 6 hours",
+                        value: notif.lowCalorieAlerts,
+                        onChanged: notif.setLowCalorieAlerts,
+                      ),
+
+                      const SizedBox(height: 22),
+
+                      // ═══════════════════════════════════════
                       //  AI INSIGHTS
                       // ═══════════════════════════════════════
                       _SectionHeader(
@@ -198,6 +220,19 @@ class NotificationSettingsScreen extends StatelessWidget {
                         value: notif.aiInsights,
                         onChanged: notif.setAiInsights,
                       ),
+
+                      const SizedBox(height: 22),
+
+                      // ═══════════════════════════════════════
+                      //  TEST NOTIFICATION
+                      // ═══════════════════════════════════════
+                      _SectionHeader(
+                        icon: Icons.send_rounded,
+                        label: 'TEST',
+                        color: vitaminColors['Protein']!.fill,
+                      ),
+                      const SizedBox(height: 8),
+                      _TestPushButton(),
 
                       const SizedBox(height: 40),
                     ],
@@ -430,5 +465,96 @@ class _MealTimeRow extends StatelessWidget {
     final m = t.minute.toString().padLeft(2, '0');
     final period = t.period == DayPeriod.am ? 'AM' : 'PM';
     return '$h:$m $period';
+  }
+}
+
+class _TestPushButton extends StatefulWidget {
+  @override
+  State<_TestPushButton> createState() => _TestPushButtonState();
+}
+
+class _TestPushButtonState extends State<_TestPushButton> {
+  bool _sending = false;
+
+  Future<void> _send() async {
+    if (_sending) return;
+    setState(() => _sending = true);
+    final messenger = ScaffoldMessenger.of(context);
+    try {
+      final count = await context.read<NotificationProvider>().sendTestPush();
+      if (!mounted) return;
+      messenger.showSnackBar(
+        SnackBar(
+          content: Text(
+            count > 0
+                ? 'Test push sent to $count device${count == 1 ? '' : 's'}.'
+                : 'Server accepted the request but no devices were registered.',
+          ),
+        ),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      messenger.showSnackBar(
+        SnackBar(content: Text('Could not send test: $e')),
+      );
+    } finally {
+      if (mounted) setState(() => _sending = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final c = NVColors.of(context);
+    return NVCard(
+      padding: const EdgeInsets.all(NVSpace.x4),
+      onTap: _sending ? null : _send,
+      child: Row(
+        children: [
+          Container(
+            width: 36,
+            height: 36,
+            decoration: BoxDecoration(
+              color: vitaminColors['Protein']!.bg,
+              shape: BoxShape.circle,
+            ),
+            child: Icon(
+              Icons.notifications_active_rounded,
+              size: 18,
+              color: vitaminColors['Protein']!.fill,
+            ),
+          ),
+          const SizedBox(width: NVSpace.x3),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Send test notification',
+                  style: TextStyle(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w600,
+                    color: c.text,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  'Fires a heads-up push to every device on this account so you can verify FCM and OS permissions.',
+                  style: TextStyle(fontSize: 12, color: c.textMuted),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: NVSpace.x3),
+          if (_sending)
+            const SizedBox(
+              width: 18,
+              height: 18,
+              child: CircularProgressIndicator(strokeWidth: 2),
+            )
+          else
+            Icon(Icons.chevron_right_rounded, size: 18, color: c.textMuted),
+        ],
+      ),
+    );
   }
 }

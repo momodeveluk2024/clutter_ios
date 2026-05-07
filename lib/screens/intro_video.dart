@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:video_player/video_player.dart';
 
+import '../widgets/nv_loader.dart';
+
 class IntroVideoScreen extends StatefulWidget {
   const IntroVideoScreen({super.key});
 
@@ -82,7 +84,7 @@ class _IntroVideoScreenState extends State<IntroVideoScreen> {
               )
             else
               const Center(
-                child: CircularProgressIndicator(color: Colors.white),
+                child: NVLoader(label: 'Loading…'),
               ),
             SafeArea(
               child: Align(
