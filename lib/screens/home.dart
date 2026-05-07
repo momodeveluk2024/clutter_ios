@@ -93,6 +93,8 @@ class _HomeScreenState extends State<HomeScreen> {
                       streak: nutrition.streak,
                       mealCount: nutrition.logs.length,
                       trackedCount: totals?.nutrients.length ?? 0,
+                      metCount: totals?.metCount ?? 0,
+                      scoredCount: totals?.trackedCount ?? 0,
                       isLoading: nutrition.isLoading && totals == null,
                     ),
                     const SizedBox(height: NVSpace.x6),
@@ -286,6 +288,8 @@ class _HeroToday extends StatelessWidget {
     required this.streak,
     required this.mealCount,
     required this.trackedCount,
+    required this.metCount,
+    required this.scoredCount,
     required this.isLoading,
   });
 
@@ -293,6 +297,8 @@ class _HeroToday extends StatelessWidget {
   final int streak;
   final int mealCount;
   final int trackedCount;
+  final int metCount;
+  final int scoredCount;
   final bool isLoading;
 
   @override
@@ -360,7 +366,7 @@ class _HeroToday extends StatelessWidget {
                 size: 92,
                 stroke: 9,
                 label: '$pctValue%',
-                sub: 'covered',
+                sub: scoredCount > 0 ? '$metCount/$scoredCount met' : 'covered',
               ),
             ],
           ),

@@ -6,6 +6,7 @@ class NutrientTotal {
     required this.amount,
     this.driAmount,
     this.driPercent,
+    this.role = 'meet',
   });
 
   final String code;
@@ -14,6 +15,11 @@ class NutrientTotal {
   final double amount;
   final double? driAmount;
   final double? driPercent;
+  // 'meet' = reaching DRI is good (vitamins, minerals, protein).
+  // 'limit' = staying under DRI is good (sodium); going over hurts the score.
+  final String role;
+
+  bool get isLimit => role == 'limit';
 
   factory NutrientTotal.fromJson(Map<String, dynamic> json) {
     return NutrientTotal(
@@ -23,6 +29,7 @@ class NutrientTotal {
       amount: (json['amount'] as num?)?.toDouble() ?? 0,
       driAmount: (json['dri_amount'] as num?)?.toDouble(),
       driPercent: (json['dri_percent'] as num?)?.toDouble(),
+      role: json['role'] as String? ?? 'meet',
     );
   }
 }
@@ -42,20 +49,44 @@ class DayNutrientTotals {
     );
   }
 
-  double get averagePercent {
-    // "Covered" = fraction of daily targets you've met. Each nutrient is
-    // capped at 100% before averaging, otherwise eating extra of one nutrient
-    // (e.g. 200% protein) would inflate the dial while leaving truly missed
-    // nutrients hidden. The cap makes the only way to push the dial up
-    // *covering the under-covered nutrients*.
-    final percents = nutrients
-        .map((n) => n.driPercent)
-        .whereType<double>()
-        .map((p) => p > 100 ? 100.0 : p)
-        .toList();
-    if (percents.isEmpty) return 0;
-    return percents.reduce((a, b) => a + b) / percents.length;
+  // Nutrients that contributed a score (had a non-null DRI percent).
+  Iterable<NutrientTotal> get _scored =>
+      nutrients.where((n) => n.driPercent != null);
+
+  // Maps a nutrient's raw percent to its 0..100 contribution to the dial.
+  // Meet nutrients: reaching 100% is the goal, going over doesn't help.
+  // Limit nutrients: staying under is the goal, going over LINEARLY drops
+  // the score (200% sodium -> 0, 150% sodium -> 50). This is what makes
+  // logging a salty meal actually move the dial down instead of being
+  // silently ignored.
+  static double _scoreFor(NutrientTotal n) {
+    final p = n.driPercent ?? 0;
+    if (n.isLimit) {
+      if (p <= 100) return 100;
+      final remaining = 200 - p;
+      return remaining < 0 ? 0 : remaining;
+    }
+    return p > 100 ? 100 : p;
   }
+
+  double get averagePercent {
+    final scored = _scored.toList();
+    if (scored.isEmpty) return 0;
+    final sum = scored.fold<double>(0, (a, n) => a + _scoreFor(n));
+    return sum / scored.length;
+  }
+
+  // For the home dial subtitle: "X of N nutrients on target" so the user can
+  // see why adding more macros doesn't move the percentage when they're
+  // already maxed.
+  int get metCount {
+    return _scored.where((n) {
+      final p = n.driPercent ?? 0;
+      return n.isLimit ? p <= 100 : p >= 100;
+    }).length;
+  }
+
+  int get trackedCount => _scored.length;
 }
 
 class Recommendation {

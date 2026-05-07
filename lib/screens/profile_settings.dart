@@ -218,8 +218,14 @@ class _ProfileBodyScreenState extends State<ProfileBodyScreen> {
 
   Future<void> _pickAvatar() async {
     final auth = context.read<AuthProvider>();
+    // Avatars render as a small circle (~96px) — full-resolution iPhone
+    // shots are 5-12MB and blow past the server's 8MB multipart cap.
+    // Resize + JPEG-compress on-device so the upload always fits.
     final picked = await ImagePicker().pickImage(
       source: ImageSource.gallery,
+      maxWidth: 1024,
+      maxHeight: 1024,
+      imageQuality: 85,
     );
     if (picked == null || !mounted) return;
     setState(() => _avatarUploading = true);
