@@ -213,6 +213,34 @@ class _FoodDetailBody extends StatelessWidget {
                   height: 1.45,
                 ),
               ),
+              if (isFastFood) ...[
+                const SizedBox(height: 12),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                  decoration: BoxDecoration(
+                    color: Colors.red.withValues(alpha: 0.08),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: Colors.red.withValues(alpha: 0.2)),
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(Icons.warning_amber_rounded, size: 18, color: Colors.red.shade700),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: Text(
+                          'This food is marked as unhealthy. Consume in moderation.',
+                          style: TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w600,
+                            color: Colors.red.shade700,
+                            height: 1.3,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
               const SizedBox(height: NVSpace.x4),
               NVCard(
                 padding: const EdgeInsets.symmetric(
