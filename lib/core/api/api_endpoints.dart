@@ -50,6 +50,10 @@ class ApiEndpoints {
   static const reminders = '/reminders';
   static const recommendations = '/recommendations';
   static const dailyMealPlan = '/recommendations/daily-plan';
+  static const interactions = '/interactions';
+  static const personalShortcuts = '/foods/personal-shortcuts';
+  static String recommendationFeedback(String eventId) =>
+      '/recommendations/$eventId/feedback';
   static const notificationDevices = '/notifications/devices';
   static const notificationPreferences = '/notifications/preferences';
   static const notificationTest = '/notifications/test';

@@ -49,12 +49,32 @@ dependencies:
   shared_preferences: ^2.5.0
   firebase_core: ^3.12.1
   firebase_messaging: ^15.2.4
+  firebase_analytics: ^11.3.6
+  firebase_crashlytics: ^4.1.6
   uuid: ^4.5.3
   firebase_auth: ^5.5.1
   google_sign_in: ^6.2.1
   flutter_svg: ^2.2.4
   sign_in_button: ^4.1.0
   font_awesome_flutter: 10.7.0
+  drift: ^2.20.3
+  drift_flutter: ^0.2.4
+  path_provider: ^2.1.5
+  # Phase 3 — App Store launch readiness
+  sign_in_with_apple: ^6.1.4
+  sentry_flutter: ^8.13.2
+  in_app_review: ^2.0.10
+  intl: any
+  flutter_localizations:
+    sdk: flutter
+  # Phase 4 — UX depth & health sync
+  fl_chart: ^0.69.2
+  mobile_scanner: ^6.0.7
+  health: ^11.1.1
+  home_widget: ^0.7.0
+  openfoodfacts: ^3.20.0
+  # Phase 5 — Monetization
+  purchases_flutter: ^8.5.1
 
 dev_dependencies:
   flutter_test:
@@ -66,6 +86,8 @@ dev_dependencies:
   # package. See that file for information about deactivating specific lint
   # rules and activating additional ones.
   flutter_lints: ^6.0.0
+  drift_dev: ^2.20.3
+  build_runner: ^2.4.13
 
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec

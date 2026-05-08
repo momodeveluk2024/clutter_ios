@@ -1,0 +1,22 @@
+{
+  "@@locale": "en",
+  "appTitle": "Nutrimate",
+  "yourUsuals": "Your usuals",
+  "recentlyLogged": "Recently logged",
+  "suggestedFor": "Suggested for {mealType}",
+  "@suggestedFor": {
+    "placeholders": {
+      "mealType": { "type": "String" }
+    }
+  },
+  "logMeal": "Log meal",
+  "deleteAccount": "Delete account",
+  "deleteAccountConfirm": "Your account will be scheduled for deletion. Sign in within 30 days to recover.",
+  "weeklyRecapTitle": "Your week in nutrients",
+  "streakDaysLabel": "{count, plural, =1{1 day} other{{count} days}}",
+  "@streakDaysLabel": {
+    "placeholders": {
+      "count": { "type": "int" }
+    }
+  }
+}

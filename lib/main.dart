@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_crashlytics/firebase_crashlytics.dart';
 import 'package:flutter_timezone/flutter_timezone.dart';
 import 'package:timezone/data/latest_all.dart' as tz;
 import 'package:timezone/timezone.dart' as tz;
@@ -9,6 +10,7 @@ import 'package:flutter/material.dart';
 import 'package:device_preview/device_preview.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
+import 'core/analytics/analytics_service.dart';
 import 'core/api/api_client.dart';
 import 'core/notifications/fcm_notification_service.dart';
 import 'core/notifications/notification_service.dart';
@@ -31,6 +33,27 @@ Future<void> main() async {
     options: DefaultFirebaseOptions.currentPlatform,
   );
 
+  // Crashlytics: collect Dart errors in release; mirror to console in debug.
+  // Must run after Firebase.initializeApp.
+  FlutterError.onError = (details) {
+    if (kReleaseMode) {
+      FirebaseCrashlytics.instance.recordFlutterFatalError(details);
+    } else {
+      FlutterError.presentError(details);
+    }
+  };
+  PlatformDispatcher.instance.onError = (error, stack) {
+    if (kReleaseMode) {
+      FirebaseCrashlytics.instance.recordError(error, stack, fatal: true);
+    }
+    return true;
+  };
+  await FirebaseCrashlytics.instance.setCrashlyticsCollectionEnabled(
+    kReleaseMode,
+  );
+
+  await AnalyticsService.instance.initialize();
+
   // Initialize timezone data early so notification scheduling can use tz.local
   tz.initializeTimeZones();
   final localTz = await FlutterTimezone.getLocalTimezone();
@@ -40,6 +63,7 @@ Future<void> main() async {
   final api = ApiClient(tokenStorage: storage);
   final authProvider = AuthProvider(api: api, storage: storage);
   await authProvider.initialize();
+  AnalyticsService.instance.bindAuth(authProvider);
 
   final notificationProvider = NotificationProvider(api: api);
   authProvider.addListener(() {
