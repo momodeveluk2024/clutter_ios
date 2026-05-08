@@ -5,6 +5,7 @@ import 'package:provider/provider.dart';
 
 import '../core/providers/auth_provider.dart';
 import '../core/providers/nutrition_provider.dart';
+import '../core/tour/tour_prefs.dart';
 import '../theme.dart';
 import '../widgets.dart';
 
@@ -278,6 +279,17 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 title: 'Appearance',
                 detail: user?.appearanceLabel ?? (dark ? 'Dark' : 'Light'),
                 onTap: () => context.push('/app/profile/appearance'),
+              ),
+              _SettingRow(
+                icon: Icons.play_circle_outline_rounded,
+                title: 'Replay app tour',
+                detail: '',
+                onTap: () async {
+                  await TourPrefs.resetTour();
+                  if (context.mounted) {
+                    context.go('/app?tour=1');
+                  }
+                },
               ),
               _SettingRow(
                 icon: Icons.info_outline,

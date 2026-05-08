@@ -17,6 +17,11 @@ import 'meal_log_detail.dart';
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
 
+  /// GlobalKeys for the app tour to target.
+  static final scoreKey = GlobalKey(debugLabel: 'tour_score');
+  static final macroKey = GlobalKey(debugLabel: 'tour_macros');
+  static final fabKey = GlobalKey(debugLabel: 'tour_fab');
+
   @override
   State<HomeScreen> createState() => _HomeScreenState();
 }
@@ -40,6 +45,7 @@ class _HomeScreenState extends State<HomeScreen> {
     final now = DateTime.now();
     final totals = nutrition.todayTotals;
     final pct = totals?.averagePercent ?? 0;
+    final hasOverLimit = (totals?.overLimitNutrients.isNotEmpty ?? false);
     final isFirstLoad = nutrition.isLoading && totals == null;
 
     if (isFirstLoad) {
@@ -52,6 +58,7 @@ class _HomeScreenState extends State<HomeScreen> {
     return Scaffold(
       backgroundColor: c.bg,
       floatingActionButton: FloatingActionButton.extended(
+        key: HomeScreen.fabKey,
         onPressed: () => context.push('/app/search'),
         backgroundColor: NV.accent,
         foregroundColor: Colors.white,
@@ -88,17 +95,25 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
                 sliver: SliverList.list(
                   children: [
-                    _HeroToday(
-                      pct: pct,
-                      streak: nutrition.streak,
-                      mealCount: nutrition.logs.length,
-                      trackedCount: totals?.nutrients.length ?? 0,
-                      metCount: totals?.metCount ?? 0,
-                      scoredCount: totals?.trackedCount ?? 0,
-                      isLoading: nutrition.isLoading && totals == null,
+                    KeyedSubtree(
+                      key: HomeScreen.scoreKey,
+                      child: _HeroToday(
+                        pct: pct,
+                        streak: nutrition.streak,
+                        mealCount: nutrition.logs.length,
+                        trackedCount: totals?.nutrients.length ?? 0,
+                        metCount: totals?.metCount ?? 0,
+                        scoredCount: totals?.trackedCount ?? 0,
+                        isLoading: nutrition.isLoading && totals == null,
+                        insightMessage: totals?.insightMessage,
+                        hasOverLimit: hasOverLimit,
+                      ),
                     ),
                     const SizedBox(height: NVSpace.x6),
-                    _MacroBentoRow(totals: totals),
+                    KeyedSubtree(
+                      key: HomeScreen.macroKey,
+                      child: _MacroBentoRow(totals: totals),
+                    ),
                     const SizedBox(height: NVSpace.x8),
                     if (nutrition.dailyMealPlan?.hasItems ?? false) ...[
                       NVSectionHeader(
@@ -121,7 +136,10 @@ class _HomeScreenState extends State<HomeScreen> {
                         eyebrow: 'For you',
                         title: 'Recommended foods',
                         trailing: TextButton(
-                          onPressed: () => context.push('/app/explore'),
+                          onPressed: () => _showAllRecommendations(
+                            context,
+                            nutrition.recommendations,
+                          ),
                           child: const Text('See all'),
                         ),
                       ),
@@ -291,6 +309,8 @@ class _HeroToday extends StatelessWidget {
     required this.metCount,
     required this.scoredCount,
     required this.isLoading,
+    this.insightMessage,
+    this.hasOverLimit = false,
   });
 
   final double pct;
@@ -300,6 +320,8 @@ class _HeroToday extends StatelessWidget {
   final int metCount;
   final int scoredCount;
   final bool isLoading;
+  final String? insightMessage;
+  final bool hasOverLimit;
 
   @override
   Widget build(BuildContext context) {
@@ -318,7 +340,28 @@ class _HeroToday extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          NVEyebrow('Today', color: c.textMuted),
+          Row(
+            children: [
+              NVEyebrow('Today', color: c.textMuted),
+              const Spacer(),
+              Material(
+                color: Colors.transparent,
+                shape: const CircleBorder(),
+                child: InkWell(
+                  customBorder: const CircleBorder(),
+                  onTap: () => _showScoringExplainer(context),
+                  child: Padding(
+                    padding: const EdgeInsets.all(4),
+                    child: Icon(
+                      Icons.info_outline_rounded,
+                      size: 18,
+                      color: c.textMuted,
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
           const SizedBox(height: NVSpace.x3),
           Row(
             crossAxisAlignment: CrossAxisAlignment.center,
@@ -370,6 +413,70 @@ class _HeroToday extends StatelessWidget {
               ),
             ],
           ),
+          // ── Contextual insight banner ──
+          if (insightMessage != null && !isLoading) ...[
+            const SizedBox(height: NVSpace.x4),
+            Builder(builder: (context) {
+              final dark = Theme.of(context).brightness == Brightness.dark;
+              final warnBg = dark
+                  ? const Color(0xFF78350F).withValues(alpha: 0.25)
+                  : const Color(0xFFFEF3C7);
+              final warnBorder = dark
+                  ? const Color(0xFFB45309).withValues(alpha: 0.4)
+                  : const Color(0xFFFCD34D);
+              final warnIcon = dark
+                  ? const Color(0xFFFBBF24)
+                  : const Color(0xFFB45309);
+              final warnText = dark
+                  ? const Color(0xFFFDE68A)
+                  : const Color(0xFF92400E);
+              final tipBg = dark
+                  ? NV.accent.withValues(alpha: 0.12)
+                  : NV.accentSoft;
+              final tipBorder = dark
+                  ? NV.accent.withValues(alpha: 0.25)
+                  : NV.accent.withValues(alpha: 0.18);
+
+              return Container(
+                width: double.infinity,
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 10,
+                ),
+                decoration: BoxDecoration(
+                  color: hasOverLimit ? warnBg : tipBg,
+                  borderRadius: BorderRadius.circular(NVRadius.cardSm),
+                  border: Border.all(
+                    color: hasOverLimit ? warnBorder : tipBorder,
+                  ),
+                ),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Icon(
+                      hasOverLimit
+                          ? Icons.warning_amber_rounded
+                          : Icons.lightbulb_outline_rounded,
+                      size: 16,
+                      color: hasOverLimit ? warnIcon : NV.accent,
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        insightMessage!,
+                        style: TextStyle(
+                          fontSize: 12,
+                          height: 1.4,
+                          fontWeight: FontWeight.w500,
+                          color: hasOverLimit ? warnText : c.text,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              );
+            }),
+          ],
           const SizedBox(height: NVSpace.x5),
           Container(height: 1, color: c.border),
           const SizedBox(height: NVSpace.x4),
@@ -399,6 +506,163 @@ class _HeroToday extends StatelessWidget {
                 ),
               ),
             ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+void _showScoringExplainer(BuildContext context) {
+  final c = NVColors.of(context);
+  showModalBottomSheet<void>(
+    context: context,
+    showDragHandle: true,
+    isScrollControlled: true,
+    backgroundColor: Theme.of(context).colorScheme.surface,
+    builder: (_) => SafeArea(
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(
+          NVSpace.x5, 0, NVSpace.x5, NVSpace.x6,
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'How your score works',
+              style: TextStyle(
+                fontSize: 20,
+                fontWeight: FontWeight.w800,
+                color: c.text,
+                letterSpacing: -0.4,
+              ),
+            ),
+            const SizedBox(height: 6),
+            Text(
+              'Your daily score is the average coverage across all tracked nutrients.',
+              style: TextStyle(
+                fontSize: 13,
+                color: c.textMuted,
+                height: 1.45,
+              ),
+            ),
+            const SizedBox(height: NVSpace.x5),
+            _ExplainerRule(
+              icon: Icons.trending_up_rounded,
+              iconColor: NV.accent,
+              title: 'Score goes up',
+              body: 'When you log foods rich in nutrients you\'re low on, '
+                  'those nutrients move closer to 100% and your score rises.',
+            ),
+            const SizedBox(height: NVSpace.x3),
+            _ExplainerRule(
+              icon: Icons.pause_rounded,
+              iconColor: const Color(0xFF6B7280),
+              title: 'Score stays the same',
+              body: 'Nutrients are capped at 100%. If most are already at target, '
+                  'extra intake of the same nutrients won\'t increase your score.',
+            ),
+            const SizedBox(height: NVSpace.x3),
+            _ExplainerRule(
+              icon: Icons.trending_down_rounded,
+              iconColor: const Color(0xFFEF4444),
+              title: 'Score goes down',
+              body: 'Sodium is a "limit" nutrient — going over 100% of your daily '
+                  'limit actively lowers your score. Salty or processed foods '
+                  'can push it past the limit.',
+            ),
+            const SizedBox(height: NVSpace.x5),
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(14),
+              decoration: BoxDecoration(
+                color: NV.accentSoft,
+                borderRadius: BorderRadius.circular(NVRadius.cardSm),
+              ),
+              child: Row(
+                children: [
+                  const Icon(
+                    Icons.lightbulb_outline_rounded,
+                    size: 18,
+                    color: NV.accent,
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Text(
+                      'Tap any nutrient tile to see which foods can help improve that specific nutrient.',
+                      style: TextStyle(
+                        fontSize: 12,
+                        height: 1.4,
+                        fontWeight: FontWeight.w500,
+                        color: c.text,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    ),
+  );
+}
+
+class _ExplainerRule extends StatelessWidget {
+  const _ExplainerRule({
+    required this.icon,
+    required this.iconColor,
+    required this.title,
+    required this.body,
+  });
+  final IconData icon;
+  final Color iconColor;
+  final String title;
+  final String body;
+
+  @override
+  Widget build(BuildContext context) {
+    final c = NVColors.of(context);
+    return NVCard(
+      padding: const EdgeInsets.all(14),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            width: 34,
+            height: 34,
+            decoration: BoxDecoration(
+              color: iconColor.withValues(alpha: 0.12),
+              shape: BoxShape.circle,
+            ),
+            child: Icon(icon, size: 18, color: iconColor),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w700,
+                    color: c.text,
+                    letterSpacing: -0.1,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  body,
+                  style: TextStyle(
+                    fontSize: 12,
+                    height: 1.45,
+                    color: c.textMuted,
+                  ),
+                ),
+              ],
+            ),
           ),
         ],
       ),
@@ -806,6 +1070,85 @@ class _RecommendationTile extends StatelessWidget {
           const SizedBox(width: 8),
           Icon(Icons.arrow_forward_rounded, size: 18, color: c.textMuted),
         ],
+      ),
+    );
+  }
+}
+
+void _showAllRecommendations(
+  BuildContext context,
+  List<Recommendation> recommendations,
+) {
+  showModalBottomSheet<void>(
+    context: context,
+    showDragHandle: true,
+    isScrollControlled: true,
+    backgroundColor: Theme.of(context).colorScheme.surface,
+    builder: (_) => _AllRecommendationsSheet(recommendations: recommendations),
+  );
+}
+
+class _AllRecommendationsSheet extends StatelessWidget {
+  const _AllRecommendationsSheet({required this.recommendations});
+  final List<Recommendation> recommendations;
+
+  @override
+  Widget build(BuildContext context) {
+    final c = NVColors.of(context);
+    return SafeArea(
+      child: DraggableScrollableSheet(
+        initialChildSize: 0.65,
+        minChildSize: 0.4,
+        maxChildSize: 0.9,
+        expand: false,
+        builder: (context, scrollController) => Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(
+                NVSpace.x5, 0, NVSpace.x5, NVSpace.x4,
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Recommended for you',
+                    style: TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.w800,
+                      color: c.text,
+                      letterSpacing: -0.4,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    'Based on your nutrient gaps today',
+                    style: TextStyle(
+                      fontSize: 13,
+                      color: c.textMuted,
+                      height: 1.4,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            Expanded(
+              child: ListView.separated(
+                controller: scrollController,
+                padding: const EdgeInsets.fromLTRB(
+                  NVSpace.x5, 0, NVSpace.x5, NVSpace.x6,
+                ),
+                itemCount: recommendations.length,
+                separatorBuilder: (_, __) =>
+                    const SizedBox(height: NVSpace.x3),
+                itemBuilder: (context, index) {
+                  final rec = recommendations[index];
+                  return _RecommendationTile(rec: rec);
+                },
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

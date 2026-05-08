@@ -135,9 +135,71 @@ class _MealLogDetailSheet extends StatelessWidget {
             const SectionLabel('Foods eaten'),
             const SizedBox(height: 8),
             ...log.items.map((item) => _ItemRow(item: item)),
+            if ((log.pairedDrink ?? '').isNotEmpty) ...[
+              const SizedBox(height: 12),
+              Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 14,
+                  vertical: 10,
+                ),
+                decoration: BoxDecoration(
+                  color: c.surfaceMuted,
+                  borderRadius: BorderRadius.circular(14),
+                ),
+                child: Row(
+                  children: [
+                    Icon(
+                      Icons.local_cafe_outlined,
+                      size: 18,
+                      color: NV.accent,
+                    ),
+                    const SizedBox(width: 10),
+                    Text(
+                      'Paired with ${log.pairedDrink}',
+                      style: TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                        color: c.text,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
             if ((log.notes ?? '').isNotEmpty) ...[
               const SizedBox(height: 12),
-              Text(log.notes!, style: TextStyle(color: c.textMuted)),
+              Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 14,
+                  vertical: 10,
+                ),
+                decoration: BoxDecoration(
+                  color: c.surfaceMuted,
+                  borderRadius: BorderRadius.circular(14),
+                ),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Icon(
+                      Icons.sticky_note_2_outlined,
+                      size: 18,
+                      color: c.textMuted,
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Text(
+                        log.notes!,
+                        style: TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w500,
+                          color: c.text,
+                          height: 1.4,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
             ],
             if (allowDelete) ...[
               const SizedBox(height: 18),

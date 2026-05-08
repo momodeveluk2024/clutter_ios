@@ -29,7 +29,7 @@ class _ExploreScreenState extends State<ExploreScreen> {
 
   Future<void> _loadCatalog() async {
     setState(() => _loading = true);
-    final foods = await context.read<FoodProvider>().fetchFoods(limit: 100);
+    final foods = await context.read<FoodProvider>().fetchFoods(limit: 500);
     if (!mounted) return;
     setState(() {
       _foods = foods;

@@ -87,6 +87,64 @@ class DayNutrientTotals {
   }
 
   int get trackedCount => _scored.length;
+
+  // ── UI insight helpers ───────────────────────────────────────
+
+  /// Limit nutrients (e.g. sodium) that have exceeded 100 % DRI.
+  List<NutrientTotal> get overLimitNutrients =>
+      _scored.where((n) => n.isLimit && (n.driPercent ?? 0) > 100).toList();
+
+  /// Meet nutrients already at or above 100 % DRI (further intake won't help).
+  List<NutrientTotal> get cappedMeetNutrients =>
+      _scored.where((n) => !n.isLimit && (n.driPercent ?? 0) >= 100).toList();
+
+  /// Meet nutrients still below 100 % DRI (more food helps).
+  List<NutrientTotal> get unmetNutrients =>
+      _scored.where((n) => !n.isLimit && (n.driPercent ?? 0) < 100).toList();
+
+  /// A short, human-readable insight line for the home hero card.
+  /// Tone adapts to the overall score so it feels encouraging at high
+  /// percentages instead of alarming.
+  String get insightMessage {
+    final overLimit = overLimitNutrients;
+    final unmet = unmetNutrients;
+    final capped = cappedMeetNutrients;
+    final score = averagePercent;
+
+    // Priority 1: something is actively dragging the score DOWN
+    if (overLimit.isNotEmpty) {
+      final names = overLimit.map((n) => n.name).take(2).join(' & ');
+      return '$names exceeded the daily limit — this lowers your score.';
+    }
+
+    // Priority 2: everything is met — no room to grow
+    if (unmet.isEmpty && capped.isNotEmpty) {
+      return 'All tracked nutrients are on target! New meals may not raise your score.';
+    }
+
+    // Priority 3: still have room — tone depends on how well we're doing
+    if (unmet.isNotEmpty) {
+      // Find the closest nutrient to reaching target for a specific tip
+      final closest = unmet.toList()
+        ..sort((a, b) =>
+            (b.driPercent ?? 0).compareTo(a.driPercent ?? 0));
+      final topName = closest.first.name;
+
+      if (score >= 75) {
+        // Doing great — celebrate and give a specific nudge
+        return 'Almost there! A little more $topName could push you even higher.';
+      } else if (score >= 40) {
+        // Decent progress — motivational with specific tip
+        return 'Good start! Focus on $topName to keep climbing.';
+      } else {
+        // Early in the day or low coverage — actionable
+        return 'Log a meal to start building your nutrient coverage for today.';
+      }
+    }
+
+    // Fallback: just started
+    return 'Log meals to see your nutrient coverage.';
+  }
 }
 
 class Recommendation {

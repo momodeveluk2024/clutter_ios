@@ -82,6 +82,7 @@ class _FoodDetailBody extends StatelessWidget {
     final canLog = food.breakdown.any(
       (n) => n.amountPer100G > 0 || (n.driPercent ?? 0) > 0,
     );
+    final isFastFood = food.isUnhealthy;
 
     return CustomScrollView(
       physics: const BouncingScrollPhysics(),
@@ -236,6 +237,55 @@ class _FoodDetailBody extends StatelessWidget {
                   ],
                 ),
               ),
+              if (isFastFood) ...[
+                const SizedBox(height: NVSpace.x4),
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 14,
+                    vertical: 12,
+                  ),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFFEF2F2),
+                    borderRadius: BorderRadius.circular(NVRadius.cardSm),
+                    border: Border.all(color: const Color(0xFFFCA5A5)),
+                  ),
+                  child: Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 4,
+                        ),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFEF4444),
+                          borderRadius: BorderRadius.circular(6),
+                        ),
+                        child: const Text(
+                          'Unhealthy',
+                          style: TextStyle(
+                            fontSize: 11,
+                            fontWeight: FontWeight.w800,
+                            color: Colors.white,
+                            letterSpacing: 0.3,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: Text(
+                          'May be high in sodium, sugar, or saturated fat.',
+                          style: TextStyle(
+                            fontSize: 12,
+                            height: 1.4,
+                            color: c.textMuted,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
               const SizedBox(height: NVSpace.x5),
               Padding(
                 padding: const EdgeInsets.only(left: 4, bottom: 10),
@@ -414,7 +464,15 @@ class _LogFoodSheetState extends State<_LogFoodSheet> {
   String _mealType = 'breakfast';
   double _servingG = 100;
   DateTime _loggedOn = DateTime.now();
+  String? _pairedDrink;
+  final _notesController = TextEditingController();
   bool _saving = false;
+
+  @override
+  void dispose() {
+    _notesController.dispose();
+    super.dispose();
+  }
 
   Future<void> _save() async {
     final nutrition = context.read<NutritionProvider>();
@@ -435,6 +493,8 @@ class _LogFoodSheetState extends State<_LogFoodSheet> {
         servingG: _servingG,
         mealType: _mealType,
         date: _loggedOn,
+        pairedDrink: _pairedDrink,
+        notes: _notesController.text.trim(),
       );
       if (!mounted) return;
       Navigator.of(context).pop();
@@ -495,9 +555,97 @@ class _LogFoodSheetState extends State<_LogFoodSheet> {
         false;
   }
 
+  /// Computes the estimated score change if the user logs this serving.
+  ({double current, double projected, String label}) _scoreImpact() {
+    final nutrition = context.read<NutritionProvider>();
+    final totals = nutrition.todayTotals;
+    if (totals == null) {
+      return (current: 0, projected: 0, label: 'Log to see your score');
+    }
+
+    final currentScore = totals.averagePercent;
+
+    // Build a projected set of nutrient totals by simulating the addition
+    final projected = <String, _SimNutrient>{};
+    for (final n in totals.nutrients) {
+      projected[n.code] = _SimNutrient(
+        amount: n.amount,
+        driAmount: n.driAmount ?? 0,
+        isLimit: n.isLimit,
+      );
+    }
+
+    for (final nutrient in widget.food.breakdown) {
+      final added = nutrient.amountPer100G * (_servingG / 100);
+      if (added <= 0) continue;
+      final existing = projected[nutrient.code];
+      if (existing != null && existing.driAmount > 0) {
+        projected[nutrient.code] = _SimNutrient(
+          amount: existing.amount + added,
+          driAmount: existing.driAmount,
+          isLimit: existing.isLimit,
+        );
+      }
+    }
+
+    // Recalculate average using same logic as DayNutrientTotals._scoreFor
+    double projectedSum = 0;
+    int count = 0;
+    for (final n in totals.nutrients) {
+      if (n.driPercent == null) continue;
+      count++;
+      final sim = projected[n.code];
+      if (sim != null && sim.driAmount > 0) {
+        final p = (sim.amount / sim.driAmount) * 100;
+        if (sim.isLimit) {
+          if (p <= 100) {
+            projectedSum += 100;
+          } else {
+            final remaining = 200 - p;
+            projectedSum += remaining < 0 ? 0 : remaining;
+          }
+        } else {
+          projectedSum += p > 100 ? 100 : p;
+        }
+      } else {
+        // Unchanged nutrient — use original score contribution
+        final p = n.driPercent ?? 0;
+        if (n.isLimit) {
+          if (p <= 100) {
+            projectedSum += 100;
+          } else {
+            final remaining = 200 - p;
+            projectedSum += remaining < 0 ? 0 : remaining;
+          }
+        } else {
+          projectedSum += p > 100 ? 100 : p;
+        }
+      }
+    }
+
+    final projectedScore = count > 0 ? projectedSum / count : 0.0;
+    final delta = projectedScore - currentScore;
+
+    String label;
+    if (delta > 0.5) {
+      label = '+${delta.round()}% estimated';
+    } else if (delta < -0.5) {
+      label = '${delta.round()}% estimated';
+    } else {
+      label = 'No score change expected';
+    }
+
+    return (current: currentScore, projected: projectedScore, label: label);
+  }
+
   @override
   Widget build(BuildContext context) {
     final c = NVColors.of(context);
+    final impact = _scoreImpact();
+    final delta = impact.projected - impact.current;
+    final isPositive = delta > 0.5;
+    final isNegative = delta < -0.5;
+
     return SafeArea(
       child: SingleChildScrollView(
         padding: EdgeInsets.fromLTRB(
@@ -602,6 +750,135 @@ class _LogFoodSheetState extends State<_LogFoodSheet> {
                 onChanged: (value) => setState(() => _servingG = value),
               ),
             ),
+            // ── Pair with a drink (optional) ──
+            const SizedBox(height: NVSpace.x4),
+            NVEyebrow('Pair with a drink', color: c.textMuted),
+            const SizedBox(height: 8),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: [
+                for (final drink in const [
+                  ('💧', 'Water'),
+                  ('🍵', 'Tea'),
+                  ('☕', 'Coffee'),
+                  ('🧃', 'Juice'),
+                  ('🥛', 'Milk'),
+                  ('🥤', 'Coca-Cola'),
+                  ('🥤', 'Pepsi'),
+                  ('🍊', 'Fanta'),
+                  ('🫧', 'Sprite'),
+                  ('⚡', 'Energy drink'),
+                  ('🍹', 'Smoothie'),
+                  ('🍋', 'Lemonade'),
+                ])
+                  _DrinkChip(
+                    emoji: drink.$1,
+                    label: drink.$2,
+                    selected: _pairedDrink == drink.$2,
+                    onTap: () => setState(() {
+                      _pairedDrink =
+                          _pairedDrink == drink.$2 ? null : drink.$2;
+                    }),
+                  ),
+              ],
+            ),
+            // ── Notes (optional) ──
+            const SizedBox(height: NVSpace.x4),
+            NVEyebrow('Notes (optional)', color: c.textMuted),
+            const SizedBox(height: 8),
+            TextField(
+              controller: _notesController,
+              maxLines: 3,
+              minLines: 1,
+              textCapitalization: TextCapitalization.sentences,
+              style: TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w500,
+                color: c.text,
+              ),
+              decoration: InputDecoration(
+                hintText: 'e.g. At home with family, after gym…',
+                hintStyle: TextStyle(
+                  fontSize: 13,
+                  color: c.textMuted.withValues(alpha: 0.6),
+                ),
+                filled: true,
+                fillColor: c.surfaceMuted,
+                contentPadding: const EdgeInsets.symmetric(
+                  horizontal: 14,
+                  vertical: 12,
+                ),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(NVRadius.field),
+                  borderSide: BorderSide.none,
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(NVRadius.field),
+                  borderSide: const BorderSide(color: NV.accent, width: 1.4),
+                ),
+              ),
+            ),
+            // ── Score impact preview ──
+            const SizedBox(height: NVSpace.x4),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+              decoration: BoxDecoration(
+                color: isNegative
+                    ? const Color(0xFFFEF2F2)
+                    : isPositive
+                        ? NV.accentSoft
+                        : c.surface,
+                borderRadius: BorderRadius.circular(NVRadius.cardSm),
+                border: Border.all(
+                  color: isNegative
+                      ? const Color(0xFFFCA5A5)
+                      : isPositive
+                          ? NV.accent.withValues(alpha: 0.22)
+                          : c.border,
+                ),
+              ),
+              child: Row(
+                children: [
+                  Icon(
+                    isNegative
+                        ? Icons.trending_down_rounded
+                        : isPositive
+                            ? Icons.trending_up_rounded
+                            : Icons.trending_flat_rounded,
+                    size: 18,
+                    color: isNegative
+                        ? const Color(0xFFEF4444)
+                        : isPositive
+                            ? NV.accent
+                            : c.textMuted,
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      impact.label,
+                      style: TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                        color: isNegative
+                            ? const Color(0xFFDC2626)
+                            : isPositive
+                                ? NV.accent
+                                : c.textMuted,
+                      ),
+                    ),
+                  ),
+                  Text(
+                    '${impact.current.round()}% → ${impact.projected.round()}%',
+                    style: nvNumber(
+                      12,
+                      color: c.textMuted,
+                      weight: FontWeight.w600,
+                    ),
+                  ),
+                ],
+              ),
+            ),
             const SizedBox(height: NVSpace.x4),
             NVPrimaryButton(
               label: _saving ? 'Logging…' : 'Save to log',
@@ -646,4 +923,71 @@ String _dateLabel(DateTime date) {
     return 'Today';
   }
   return '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
+}
+
+/// Lightweight struct for the score-impact simulation.
+class _SimNutrient {
+  const _SimNutrient({
+    required this.amount,
+    required this.driAmount,
+    required this.isLimit,
+  });
+  final double amount;
+  final double driAmount;
+  final bool isLimit;
+}
+
+class _DrinkChip extends StatelessWidget {
+  const _DrinkChip({
+    required this.emoji,
+    required this.label,
+    required this.selected,
+    required this.onTap,
+  });
+
+  final String emoji;
+  final String label;
+  final bool selected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final c = NVColors.of(context);
+    return Material(
+      color: selected ? NV.accentSoft : c.surfaceMuted,
+      borderRadius: BorderRadius.circular(12),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(12),
+        onTap: onTap,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 180),
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(
+              color: selected
+                  ? NV.accent.withValues(alpha: 0.4)
+                  : c.border,
+              width: selected ? 1.5 : 1,
+            ),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(emoji, style: const TextStyle(fontSize: 16)),
+              const SizedBox(width: 6),
+              Text(
+                label,
+                style: TextStyle(
+                  fontSize: 13,
+                  fontWeight: selected ? FontWeight.w700 : FontWeight.w600,
+                  color: selected ? NV.accent : c.text,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
 }

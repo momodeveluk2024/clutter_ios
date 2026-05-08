@@ -313,7 +313,7 @@ class _BenefitsCard extends StatelessWidget {
   }
 }
 
-class _TopSources extends StatelessWidget {
+class _TopSources extends StatefulWidget {
   const _TopSources({
     required this.nutrient,
     required this.hue,
@@ -323,6 +323,35 @@ class _TopSources extends StatelessWidget {
   final NutrientReference nutrient;
   final VitaminHue hue;
   final Future<List<FoodSummary>> sourcesFuture;
+
+  @override
+  State<_TopSources> createState() => _TopSourcesState();
+}
+
+class _TopSourcesState extends State<_TopSources> {
+  bool _expanded = false;
+  List<FoodSummary>? _allSources;
+  bool _loadingMore = false;
+
+  Future<void> _loadAll() async {
+    setState(() => _loadingMore = true);
+    try {
+      final provider = context.read<FoodProvider>();
+      final all = await provider.fetchFoods(
+        nutrient: widget.nutrient.code,
+        limit: 300,
+      );
+      if (mounted) {
+        setState(() {
+          _allSources = all;
+          _expanded = true;
+          _loadingMore = false;
+        });
+      }
+    } catch (_) {
+      if (mounted) setState(() => _loadingMore = false);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -345,7 +374,7 @@ class _TopSources extends StatelessWidget {
         ),
         const SizedBox(height: 10),
         FutureBuilder<List<FoodSummary>>(
-          future: sourcesFuture,
+          future: widget.sourcesFuture,
           builder: (context, snapshot) {
             if (snapshot.connectionState != ConnectionState.done) {
               return const NVCard(
@@ -364,8 +393,8 @@ class _TopSources extends StatelessWidget {
                 ),
               );
             }
-            final foods = snapshot.data ?? const <FoodSummary>[];
-            if (foods.isEmpty) {
+            final initialFoods = snapshot.data ?? const <FoodSummary>[];
+            if (initialFoods.isEmpty) {
               return NVCard(
                 padding: const EdgeInsets.all(16),
                 child: Text(
@@ -374,15 +403,34 @@ class _TopSources extends StatelessWidget {
                 ),
               );
             }
+
+            final displayFoods = _expanded && _allSources != null
+                ? _allSources!
+                : initialFoods;
+
             return Column(
-              children: foods
-                  .map(
-                    (food) => Padding(
-                      padding: const EdgeInsets.only(bottom: 10),
-                      child: _SourceFoodCard(food: food, hue: hue),
-                    ),
+              children: [
+                ...displayFoods.map(
+                  (food) => Padding(
+                    padding: const EdgeInsets.only(bottom: 10),
+                    child: _SourceFoodCard(food: food, hue: widget.hue),
+                  ),
+                ),
+                const SizedBox(height: 4),
+                if (!_expanded)
+                  _ShowMoreButton(
+                    loading: _loadingMore,
+                    onTap: _loadAll,
+                    label: 'Show more sources',
                   )
-                  .toList(),
+                else
+                  _ShowMoreButton(
+                    loading: false,
+                    onTap: () => setState(() => _expanded = false),
+                    label: 'Show less',
+                    icon: Icons.keyboard_arrow_up_rounded,
+                  ),
+              ],
             );
           },
         ),
@@ -395,6 +443,64 @@ class _TopSources extends StatelessWidget {
           ),
         ),
       ],
+    );
+  }
+}
+
+class _ShowMoreButton extends StatelessWidget {
+  const _ShowMoreButton({
+    required this.loading,
+    required this.onTap,
+    required this.label,
+    this.icon = Icons.keyboard_arrow_down_rounded,
+  });
+
+  final bool loading;
+  final VoidCallback onTap;
+  final String label;
+  final IconData icon;
+
+  @override
+  Widget build(BuildContext context) {
+    final c = NVColors.of(context);
+    return Material(
+      color: c.surfaceMuted,
+      borderRadius: BorderRadius.circular(14),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(14),
+        onTap: loading ? null : onTap,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 12),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              if (loading) ...[
+                SizedBox(
+                  width: 16,
+                  height: 16,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    color: c.textMuted,
+                  ),
+                ),
+                const SizedBox(width: 8),
+              ],
+              Text(
+                loading ? 'Loading…' : label,
+                style: TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w700,
+                  color: NV.accent,
+                ),
+              ),
+              if (!loading) ...[
+                const SizedBox(width: 4),
+                Icon(icon, size: 18, color: NV.accent),
+              ],
+            ],
+          ),
+        ),
+      ),
     );
   }
 }

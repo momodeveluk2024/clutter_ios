@@ -117,12 +117,17 @@ class NutritionProvider extends ChangeNotifier {
     required double servingG,
     required String mealType,
     DateTime? date,
+    String? pairedDrink,
+    String? notes,
   }) async {
     await _api.post(
       ApiEndpoints.logs,
       data: {
         'logged_on': _dateString(date ?? DateTime.now()),
         'meal_type': mealType,
+        if (pairedDrink != null && pairedDrink.isNotEmpty)
+          'paired_drink': pairedDrink,
+        if (notes != null && notes.isNotEmpty) 'notes': notes,
         'items': [
           {'food_id': foodId, 'serving_g': servingG},
         ],

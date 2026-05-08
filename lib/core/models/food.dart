@@ -11,6 +11,7 @@ class FoodSummary {
     this.backgroundColor,
     this.ownerUserId,
     this.driPercent,
+    this.isUnhealthy = false,
   });
 
   final String id;
@@ -24,13 +25,52 @@ class FoodSummary {
   final String? backgroundColor;
   final String? ownerUserId;
   final double? driPercent;
+  final bool isUnhealthy;
+
+  /// Reformats USDA-style names like "chicken breast, cooked, roasted"
+  /// into "Chicken breast (cooked and roasted)".
+  static String prettifyName(String raw) {
+    final trimmed = raw.trim();
+    if (trimmed.isEmpty) return trimmed;
+
+    // Only reformat if there are commas (USDA style)
+    if (!trimmed.contains(',')) {
+      // Just capitalize first letter
+      return '${trimmed[0].toUpperCase()}${trimmed.substring(1)}';
+    }
+
+    final parts = trimmed.split(',').map((p) => p.trim()).toList();
+    final mainName = parts.first;
+    final capitalized =
+        '${mainName[0].toUpperCase()}${mainName.substring(1)}';
+
+    if (parts.length == 1) return capitalized;
+
+    // Join preparation methods with " and " for 2, or ", " + " and " for 3+
+    final methods = parts.sublist(1).where((m) => m.isNotEmpty).toList();
+    if (methods.isEmpty) return capitalized;
+
+    final String methodStr;
+    if (methods.length == 1) {
+      methodStr = methods.first;
+    } else {
+      methodStr =
+          '${methods.sublist(0, methods.length - 1).join(', ')} and ${methods.last}';
+    }
+
+    return '$capitalized ($methodStr)';
+  }
 
   factory FoodSummary.fromJson(Map<String, dynamic> json) {
+    final cat = json['category'] as String? ?? 'general';
+    // Backend sends is_unhealthy; fallback to category-based check
+    final unhealthy = json['is_unhealthy'] as bool? ??
+        const {'fast-food', 'sweets', 'sugary-drinks'}.contains(cat.toLowerCase());
     return FoodSummary(
       id: json['id'] as String,
-      name: json['name'] as String,
+      name: prettifyName(json['name'] as String),
       brand: json['brand'] as String?,
-      category: json['category'] as String? ?? 'general',
+      category: cat,
       servingSizeG: (json['serving_size_g'] as num?)?.toDouble() ?? 100,
       verified: json['verified'] as bool? ?? false,
       nutrients: (json['nutrients'] as List? ?? const [])
@@ -40,6 +80,7 @@ class FoodSummary {
       backgroundColor: json['background_color'] as String?,
       ownerUserId: json['owner_user_id'] as String?,
       driPercent: (json['dri_percent'] as num?)?.toDouble(),
+      isUnhealthy: unhealthy,
     );
   }
 }
@@ -86,6 +127,7 @@ class FoodDetail extends FoodSummary {
     super.backgroundColor,
     super.ownerUserId,
     super.driPercent,
+    super.isUnhealthy,
     required this.source,
     required this.breakdown,
   });
@@ -97,11 +139,14 @@ class FoodDetail extends FoodSummary {
     final breakdown = (json['nutrients'] as List? ?? const [])
         .map((v) => FoodNutrient.fromJson(Map<String, dynamic>.from(v as Map)))
         .toList();
+    final cat = json['category'] as String? ?? 'general';
+    final unhealthy = json['is_unhealthy'] as bool? ??
+        const {'fast-food', 'sweets', 'sugary-drinks'}.contains(cat.toLowerCase());
     return FoodDetail(
       id: json['id'] as String,
-      name: json['name'] as String,
+      name: FoodSummary.prettifyName(json['name'] as String),
       brand: json['brand'] as String?,
-      category: json['category'] as String? ?? 'general',
+      category: cat,
       servingSizeG: (json['serving_size_g'] as num?)?.toDouble() ?? 100,
       verified: json['verified'] as bool? ?? false,
       nutrients: breakdown.map((n) => n.code).toList(),
@@ -109,6 +154,7 @@ class FoodDetail extends FoodSummary {
       backgroundColor: json['background_color'] as String?,
       ownerUserId: json['owner_user_id'] as String?,
       driPercent: (json['dri_percent'] as num?)?.toDouble(),
+      isUnhealthy: unhealthy,
       source: json['source'] as String? ?? 'seed',
       breakdown: breakdown,
     );

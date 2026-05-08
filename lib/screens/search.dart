@@ -59,7 +59,7 @@ class _SearchScreenState extends State<SearchScreen> {
       final foods = await context.read<FoodProvider>().fetchFoods(
         query: _controller.text.trim(),
         category: _category,
-        limit: 50,
+        limit: 150,
       );
       if (!mounted) return;
       setState(() => _foods = foods);

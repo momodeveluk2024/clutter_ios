@@ -54,7 +54,7 @@ class NotificationService {
     // ── Timezone setup ─────────────────────────────────────────
     tz.initializeTimeZones();
     final localTz = await FlutterTimezone.getLocalTimezone();
-    tz.setLocalLocation(tz.getLocation(localTz));
+    tz.setLocalLocation(tz.getLocation(localTz.identifier));
 
     // ── Android init ───────────────────────────────────────────
     const androidSettings = AndroidInitializationSettings(
@@ -75,7 +75,7 @@ class NotificationService {
     );
 
     await _plugin.initialize(
-      settings,
+      settings: settings,
       onDidReceiveNotificationResponse: _onTap,
     );
 
@@ -117,11 +117,11 @@ class NotificationService {
     String? payload,
   }) async {
     await _plugin.zonedSchedule(
-      id,
-      title,
-      body,
-      _nextInstanceOfTime(hour, minute),
-      NotificationDetails(
+      id: id,
+      title: title,
+      body: body,
+      scheduledDate: _nextInstanceOfTime(hour, minute),
+      notificationDetails: NotificationDetails(
         android: AndroidNotificationDetails(
           channelId,
           _channelName(channelId),
@@ -147,11 +147,11 @@ class NotificationService {
     String? payload,
   }) async {
     await _plugin.zonedSchedule(
-      id,
-      title,
-      body,
-      _nextInstanceOfTime(hour, minute),
-      NotificationDetails(
+      id: id,
+      title: title,
+      body: body,
+      scheduledDate: _nextInstanceOfTime(hour, minute),
+      notificationDetails: NotificationDetails(
         android: AndroidNotificationDetails(
           channelId,
           _channelName(channelId),
@@ -178,11 +178,11 @@ class NotificationService {
     String? payload,
   }) async {
     await _plugin.zonedSchedule(
-      id,
-      title,
-      body,
-      _nextInstanceOfDayTime(dayOfWeek, hour, minute),
-      NotificationDetails(
+      id: id,
+      title: title,
+      body: body,
+      scheduledDate: _nextInstanceOfDayTime(dayOfWeek, hour, minute),
+      notificationDetails: NotificationDetails(
         android: AndroidNotificationDetails(
           channelId,
           _channelName(channelId),
@@ -204,10 +204,10 @@ class NotificationService {
     String? payload,
   }) async {
     await _plugin.show(
-      id,
-      title,
-      body,
-      NotificationDetails(
+      id: id,
+      title: title,
+      body: body,
+      notificationDetails: NotificationDetails(
         android: AndroidNotificationDetails(
           channelId,
           _channelName(channelId),
@@ -221,7 +221,7 @@ class NotificationService {
   }
 
   /// Cancel a specific notification.
-  Future<void> cancel(int id) => _plugin.cancel(id);
+  Future<void> cancel(int id) => _plugin.cancel(id: id);
 
   /// Cancel all notifications.
   Future<void> cancelAll() => _plugin.cancelAll();
@@ -229,7 +229,7 @@ class NotificationService {
   /// Cancel a range of IDs (e.g. all hydration notifications).
   Future<void> cancelRange(int from, int to) async {
     for (var i = from; i <= to; i++) {
-      await _plugin.cancel(i);
+      await _plugin.cancel(id: i);
     }
   }
 

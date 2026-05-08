@@ -115,13 +115,7 @@ const categoryVisuals = <String, CategoryVisual>{
     icon: Icons.spa_outlined,
     accent: Color(0xFF758E54),
   ),
-  'nuts': CategoryVisual(
-    label: 'Nuts',
-    imageUrl:
-        'https://images.unsplash.com/photo-1508061253366-f7da158b6d46?auto=format&fit=crop&w=900&q=80',
-    icon: Icons.scatter_plot,
-    accent: Color(0xFF9C6A3D),
-  ),
+
   'legumes': CategoryVisual(
     label: 'Legumes',
     imageUrl:
@@ -155,7 +149,9 @@ const fallbackCategoryVisual = CategoryVisual(
 
 CategoryVisual categoryVisualFor(String category) {
   final normalized = category.toLowerCase();
-  return categoryVisuals[normalized] ??
+  // Map legacy 'nuts' key to the canonical 'nuts-seeds' entry
+  final key = normalized == 'nuts' ? 'nuts-seeds' : normalized;
+  return categoryVisuals[key] ??
       CategoryVisual(
         label: _titleCase(category),
         imageUrl: fallbackCategoryVisual.imageUrl,

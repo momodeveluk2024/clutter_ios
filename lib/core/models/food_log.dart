@@ -30,6 +30,7 @@ class MealLog {
     required this.loggedOn,
     required this.mealType,
     this.notes,
+    this.pairedDrink,
     required this.items,
   });
 
@@ -37,6 +38,7 @@ class MealLog {
   final String loggedOn;
   final String mealType;
   final String? notes;
+  final String? pairedDrink;
   final List<MealLogItem> items;
 
   factory MealLog.fromJson(Map<String, dynamic> json) {
@@ -45,6 +47,7 @@ class MealLog {
       loggedOn: json['logged_on'] as String,
       mealType: json['meal_type'] as String,
       notes: json['notes'] as String?,
+      pairedDrink: json['paired_drink'] as String?,
       items: (json['items'] as List? ?? const [])
           .map((v) => MealLogItem.fromJson(Map<String, dynamic>.from(v as Map)))
           .toList(),

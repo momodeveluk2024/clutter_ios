@@ -43,38 +43,37 @@ dependencies:
   shimmer: ^3.0.0
   video_player: ^2.10.0
   image_picker: ^1.2.1
-  flutter_local_notifications: ^19.0.0
-  timezone: ^0.10.0
-  flutter_timezone: ^3.0.1
+  flutter_local_notifications: ^21.0.0
+  timezone: ^0.11.0
+  flutter_timezone: ^5.0.2
   shared_preferences: ^2.5.0
-  firebase_core: ^3.12.1
-  firebase_messaging: ^15.2.4
-  firebase_analytics: ^11.3.6
-  firebase_crashlytics: ^4.1.6
+  firebase_core: ^4.7.0
+  firebase_messaging: ^16.2.0
+  firebase_analytics: ^12.3.0
+  firebase_crashlytics: ^5.2.0
   uuid: ^4.5.3
-  firebase_auth: ^5.5.1
-  google_sign_in: ^6.2.1
+  firebase_auth: ^6.4.0
+  google_sign_in: ^7.2.0
   flutter_svg: ^2.2.4
   sign_in_button: ^4.1.0
-  font_awesome_flutter: 10.7.0
+  font_awesome_flutter: ^11.0.0
   drift: ^2.20.3
-  drift_flutter: ^0.2.4
+  drift_flutter: ^0.3.0
   path_provider: ^2.1.5
   # Phase 3 — App Store launch readiness
-  sign_in_with_apple: ^6.1.4
-  sentry_flutter: ^8.13.2
+  sign_in_with_apple: ^8.0.0
+  sentry_flutter: 9.20.0
   in_app_review: ^2.0.10
   intl: any
   flutter_localizations:
     sdk: flutter
   # Phase 4 — UX depth & health sync
-  fl_chart: ^0.69.2
-  mobile_scanner: ^6.0.7
-  health: ^11.1.1
-  home_widget: ^0.7.0
+  fl_chart: ^1.2.0
+  mobile_scanner: ^7.2.0
+  health: ^13.3.1
+  home_widget: ^0.9.1
   openfoodfacts: ^3.20.0
   # Phase 5 — Monetization
-  purchases_flutter: ^8.5.1
 
 dev_dependencies:
   flutter_test:
@@ -94,6 +93,7 @@ dev_dependencies:
 
 # The following section is specific to Flutter packages.
 flutter:
+  generate: true
 
   # The following line ensures that the Material Icons font is
   # included with your application, so that you can use the icons in

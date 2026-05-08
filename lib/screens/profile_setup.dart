@@ -61,32 +61,7 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
         ),
         canContinue: () => _answers.dob != null,
       ),
-      _Step(
-        id: 'age',
-        eyebrow: 'About you',
-        question: 'How ',
-        questionAccent: 'old are you?',
-        helper:
-            'Used to tailor your AI recommendations and macro guidelines.',
-        builder: (context) => _AgePicker(
-          value: _answers.age,
-          onChanged: (value) => setState(() => _answers.age = value),
-        ),
-        canContinue: () => _answers.age != null,
-      ),
-      _Step(
-        id: 'height',
-        eyebrow: 'Body',
-        question: 'How ',
-        questionAccent: 'tall are you?',
-        helper:
-            'Used together with weight to calibrate macros and energy needs.',
-        builder: (context) => _HeightPicker(
-          value: _answers.heightCm,
-          onChanged: (value) => setState(() => _answers.heightCm = value),
-        ),
-        canContinue: () => _answers.heightCm != null,
-      ),
+
       _Step(
         id: 'weight',
         eyebrow: 'Body',
@@ -409,7 +384,6 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
       await auth.updateProfile(
         sex: _answers.sex,
         dateOfBirth: _answers.dob == null ? null : _formatDate(_answers.dob!),
-        heightCm: _answers.heightCm,
         weightKg: _answers.weightKg,
         activityLevel: _answers.activity,
         pregnancyStatus: _answers.pregnancy,
@@ -418,7 +392,6 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
         dietaryPattern: _answers.diet,
         goals: _answers.goals.toList(),
         allergens: _answers.allergens.toList(),
-        preferences: _answers.age != null ? {'age': _answers.age} : null,
       );
       await auth.completeOnboarding();
       if (!mounted) return;
@@ -442,8 +415,6 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
 class _ProfileAnswers {
   String? sex;
   DateTime? dob;
-  int? age;
-  double? heightCm;
   double? weightKg;
   String? activity;
   String? pregnancy;

@@ -21,7 +21,7 @@ class FoodProvider extends ChangeNotifier {
     String query = '',
     String category = '',
     String nutrient = '',
-    int limit = 25,
+    int limit = 50,
   }) async {
     final response = await _api.get(
       ApiEndpoints.foods,
@@ -46,7 +46,7 @@ class FoodProvider extends ChangeNotifier {
     String query = '',
     String category = '',
     String nutrient = '',
-    int limit = 25,
+    int limit = 50,
   }) async {
     isLoading = true;
     error = null;

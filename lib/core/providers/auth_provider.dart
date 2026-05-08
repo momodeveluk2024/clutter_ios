@@ -18,11 +18,7 @@ class AuthProvider extends ChangeNotifier {
   final SecureTokenStorage _storage;
   firebase_auth.FirebaseAuth get _firebaseAuth =>
       firebase_auth.FirebaseAuth.instance;
-  final GoogleSignIn _googleSignIn = GoogleSignIn(
-    // Web Client ID from Google Cloud Console
-    serverClientId:
-        '1005767331412-o3rgulp2rikba2n70psamln8j3etpb9i.apps.googleusercontent.com',
-  );
+  final GoogleSignIn _googleSignIn = GoogleSignIn.instance;
 
   AppUser? _user;
   bool _isLoading = false;
@@ -157,24 +153,31 @@ class AuthProvider extends ChangeNotifier {
   Future<void> signInWithGoogle() async {
     _setLoading(true);
     try {
-      final GoogleSignInAccount? googleUser = await _googleSignIn.signIn();
-      if (googleUser == null) {
-        _setLoading(false);
-        return; // User canceled sign-in
-      }
+      // google_sign_in v7: initialize once, then authenticate
+      await _googleSignIn.initialize(
+        serverClientId:
+            '1005767331412-o3rgulp2rikba2n70psamln8j3etpb9i.apps.googleusercontent.com',
+      );
+      final GoogleSignInAccount googleUser = await _googleSignIn.authenticate();
 
       final GoogleSignInAuthentication googleAuth =
-          await googleUser.authentication;
+          googleUser.authentication;
 
       final firebase_auth.AuthCredential credential =
           firebase_auth.GoogleAuthProvider.credential(
-            accessToken: googleAuth.accessToken,
             idToken: googleAuth.idToken,
           );
 
       await _firebaseAuth.signInWithCredential(credential);
       await loadMe();
       _error = null;
+    } on GoogleSignInException catch (e) {
+      if (e.code == GoogleSignInExceptionCode.canceled) {
+        _setLoading(false);
+        return; // User canceled sign-in
+      }
+      _error = e.toString();
+      rethrow;
     } catch (e) {
       _error = e.toString();
       rethrow;

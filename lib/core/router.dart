@@ -131,6 +131,7 @@ GoRouter buildRouter(AuthProvider auth) {
             'you' => 4,
             _ => 0,
           },
+          startTour: state.uri.queryParameters['tour'] == '1',
         ),
       ),
       GoRoute(

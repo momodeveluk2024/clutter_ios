@@ -57,7 +57,7 @@ Future<void> main() async {
   // Initialize timezone data early so notification scheduling can use tz.local
   tz.initializeTimeZones();
   final localTz = await FlutterTimezone.getLocalTimezone();
-  tz.setLocalLocation(tz.getLocation(localTz));
+  tz.setLocalLocation(tz.getLocation(localTz.identifier));
 
   const storage = SecureTokenStorage();
   final api = ApiClient(tokenStorage: storage);
