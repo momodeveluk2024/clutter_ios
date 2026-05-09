@@ -135,9 +135,11 @@ class ApiClient {
     if (error.type == DioExceptionType.connectionError ||
         error.type == DioExceptionType.connectionTimeout) {
       return ApiException(
-        'Could not reach backend at ${ApiEndpoints.baseUrl}. '
-        'On a USB phone, run: adb reverse tcp:8080 tcp:8080 — '
-        'or pass --dart-define=NUTRIVITA_API_URL=http://<your-PC-LAN-IP>:8080/v1.',
+        kDebugMode
+            ? 'Could not reach backend at ${ApiEndpoints.baseUrl}. '
+              'On a USB phone, run: adb reverse tcp:8080 tcp:8080 — '
+              'or pass --dart-define=NUTRIVITA_API_URL=http://<your-PC-LAN-IP>:8080/v1.'
+            : 'Could not connect to the server. Please check your internet connection and try again.',
       );
     }
     return ApiException(error.message ?? 'Request failed', statusCode: status);
