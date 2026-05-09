@@ -24,6 +24,7 @@ class AuthProvider extends ChangeNotifier {
   bool _isLoading = false;
   String? _error;
   bool _initialized = false;
+  StreamSubscription<firebase_auth.User?>? _authSub;
 
   /// Whether the initial verification email was successfully sent during signup.
   /// If false, the VerifyEmailScreen should auto-send on mount.
@@ -63,7 +64,8 @@ class AuthProvider extends ChangeNotifier {
     // so the router knows whether the user is logged in.
     final completer = Completer<void>();
 
-    _firebaseAuth.authStateChanges().listen((firebaseUser) async {
+    _authSub?.cancel();
+    _authSub = _firebaseAuth.authStateChanges().listen((firebaseUser) async {
       if (firebaseUser == null) {
         _user = null;
       } else {
@@ -79,6 +81,12 @@ class AuthProvider extends ChangeNotifier {
     });
 
     return completer.future;
+  }
+
+  @override
+  void dispose() {
+    _authSub?.cancel();
+    super.dispose();
   }
 
   Future<void> signup({
@@ -110,10 +118,10 @@ class AuthProvider extends ChangeNotifier {
           ),
         );
         _verificationEmailSent = true;
-        debugPrint('✅ Verification email sent successfully to $email');
+        if (kDebugMode) debugPrint('✅ Verification email sent successfully to $email');
       } catch (e) {
         _verificationEmailSent = false;
-        debugPrint('❌ sendEmailVerification failed: $e');
+        if (kDebugMode) debugPrint('❌ sendEmailVerification failed: $e');
       }
 
       // Don't call reload() or getIdToken() here — the user hasn't verified

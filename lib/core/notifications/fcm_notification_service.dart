@@ -15,7 +15,7 @@ import 'notification_service.dart';
 Future<void> nutrimateFirebaseMessagingBackgroundHandler(
   RemoteMessage message,
 ) async {
-  debugPrint('[FCM-BG] background message received: ${message.messageId}');
+  if (kDebugMode) debugPrint('[FCM-BG] background message received: ${message.messageId}');
   try {
     await Firebase.initializeApp();
   } catch (_) {
@@ -54,7 +54,7 @@ class FcmNotificationService {
       _available = true;
       _messaging = FirebaseMessaging.instance;
     } catch (e) {
-      debugPrint('[FCM] Firebase init failed: $e');
+      if (kDebugMode) debugPrint('[FCM] Firebase init failed: $e');
       _available = false;
       return;
     }
@@ -67,7 +67,7 @@ class FcmNotificationService {
       sound: true,
       provisional: false,
     );
-    debugPrint('[FCM] permission status: ${settings.authorizationStatus}');
+    if (kDebugMode) debugPrint('[FCM] permission status: ${settings.authorizationStatus}');
 
     // On Android, ensure foreground messages can show heads-up banners.
     await _messaging!.setForegroundNotificationPresentationOptions(
@@ -93,7 +93,7 @@ class FcmNotificationService {
     if (messaging == null) return;
 
     final token = await messaging.getToken();
-    debugPrint('[FCM] device token: ${token?.substring(0, 20)}...');
+    if (kDebugMode) debugPrint('[FCM] device token: ${token?.substring(0, 20)}...');
 
     final initialMessage = await messaging.getInitialMessage();
     if (initialMessage != null) {
@@ -110,17 +110,17 @@ class FcmNotificationService {
     if (messaging == null) return;
     final settings = await messaging.requestPermission();
     if (settings.authorizationStatus == AuthorizationStatus.denied) {
-      debugPrint('[FCM] permission denied — cannot register device');
+      if (kDebugMode) debugPrint('[FCM] permission denied — cannot register device');
       return;
     }
 
     final token = tokenOverride ?? await messaging.getToken();
     if (token == null || token.isEmpty) {
-      debugPrint('[FCM] token is null/empty — cannot register device');
+      if (kDebugMode) debugPrint('[FCM] token is null/empty — cannot register device');
       return;
     }
 
-    debugPrint('[FCM] registering device with token ${token.substring(0, 20)}...');
+    if (kDebugMode) debugPrint('[FCM] registering device with token ${token.substring(0, 20)}...');
     final deviceID = await _deviceID();
     await _api!.post(
       ApiEndpoints.notificationDevices,
@@ -153,7 +153,7 @@ class FcmNotificationService {
   }
 
   void _handleMessage(RemoteMessage message) {
-    debugPrint('[FCM] onMessageOpenedApp: ${message.data}');
+    if (kDebugMode) debugPrint('[FCM] onMessageOpenedApp: ${message.data}');
     notificationTapStream.add(FcmNotificationRouter.routeForData(message.data));
   }
 
@@ -165,9 +165,11 @@ class FcmNotificationService {
   //   • notification+data messages (notification.title/body populated)
   //   • data-only messages (only message.data populated — e.g. server test)
   void _handleForeground(RemoteMessage message) {
-    debugPrint('[FCM] foreground message received: '
-        'notification=${message.notification?.title}, '
-        'data=${message.data}');
+    if (kDebugMode) {
+      debugPrint('[FCM] foreground message received: '
+          'notification=${message.notification?.title}, '
+          'data=${message.data}');
+    }
 
     // Try notification payload first, then fall back to data fields.
     final notification = message.notification;
@@ -187,7 +189,7 @@ class FcmNotificationService {
     // Last resort: if we still have nothing displayable, use a generic
     // message so the user at least sees *something* arrived.
     if ((title == null || title.isEmpty) && (body == null || body.isEmpty)) {
-      debugPrint('[FCM] foreground message dropped — no displayable content');
+      if (kDebugMode) debugPrint('[FCM] foreground message dropped — no displayable content');
       return;
     }
 
@@ -197,7 +199,7 @@ class FcmNotificationService {
         ? 'meal_reminders'
         : 'engagement';
 
-    debugPrint('[FCM] showing foreground notification: title=$title, channel=$channelId');
+    if (kDebugMode) debugPrint('[FCM] showing foreground notification: title=$title, channel=$channelId');
     NotificationService.instance.showNow(
       id: DateTime.now().millisecondsSinceEpoch.remainder(1 << 30),
       channelId: channelId,
