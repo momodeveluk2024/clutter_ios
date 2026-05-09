@@ -206,8 +206,8 @@ class _FoodDetailBody extends StatelessWidget {
               const SizedBox(height: 6),
               Text(
                 isReferenceProfile
-                    ? food.source
-                    : '${food.source} · ${food.servingSizeG.toStringAsFixed(0)}g serving',
+                    ? 'Nutrient profile · % Daily Value'
+                    : '${food.servingSizeG.toStringAsFixed(0)}g serving · ${food.category}',
                 style: TextStyle(
                   fontSize: 13,
                   color: c.textMuted,
@@ -432,7 +432,7 @@ class _FoodDetailBody extends StatelessWidget {
                 Padding(
                   padding: const EdgeInsets.only(top: 4, left: 4),
                   child: Text(
-                    'This imported VitaminFinder profile is stored as percent Daily Value for source browsing.',
+                    'Values shown as % of your recommended daily intake.',
                     style: TextStyle(fontSize: 11, color: c.textMuted),
                   ),
                 ),

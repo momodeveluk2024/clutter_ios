@@ -15,11 +15,16 @@ import 'notification_service.dart';
 Future<void> nutrimateFirebaseMessagingBackgroundHandler(
   RemoteMessage message,
 ) async {
+  debugPrint('[FCM-BG] background message received: ${message.messageId}');
   try {
     await Firebase.initializeApp();
   } catch (_) {
     // Firebase is optional in local/dev builds until config files are added.
   }
+  // Background messages that have a notification payload are handled by the
+  // system tray automatically. Data-only messages land here but there's
+  // nothing we need to do — the system channel meta-data in the manifest
+  // ensures they display.
 }
 
 class FcmNotificationService {
@@ -48,10 +53,28 @@ class FcmNotificationService {
       await Firebase.initializeApp();
       _available = true;
       _messaging = FirebaseMessaging.instance;
-    } catch (_) {
+    } catch (e) {
+      debugPrint('[FCM] Firebase init failed: $e');
       _available = false;
       return;
     }
+
+    // Request permission early — on MIUI/Xiaomi and Android 13+ this is
+    // required before any notification (local or FCM) can be displayed.
+    final settings = await _messaging!.requestPermission(
+      alert: true,
+      badge: true,
+      sound: true,
+      provisional: false,
+    );
+    debugPrint('[FCM] permission status: ${settings.authorizationStatus}');
+
+    // On Android, ensure foreground messages can show heads-up banners.
+    await _messaging!.setForegroundNotificationPresentationOptions(
+      alert: true,
+      badge: true,
+      sound: true,
+    );
 
     FirebaseMessaging.onBackgroundMessage(
       nutrimateFirebaseMessagingBackgroundHandler,
@@ -69,6 +92,9 @@ class FcmNotificationService {
     final messaging = _messaging;
     if (messaging == null) return;
 
+    final token = await messaging.getToken();
+    debugPrint('[FCM] device token: ${token?.substring(0, 20)}...');
+
     final initialMessage = await messaging.getInitialMessage();
     if (initialMessage != null) {
       _pendingRoute = FcmNotificationRouter.routeForData(initialMessage.data);
@@ -83,11 +109,18 @@ class FcmNotificationService {
     final messaging = _messaging;
     if (messaging == null) return;
     final settings = await messaging.requestPermission();
-    if (settings.authorizationStatus == AuthorizationStatus.denied) return;
+    if (settings.authorizationStatus == AuthorizationStatus.denied) {
+      debugPrint('[FCM] permission denied — cannot register device');
+      return;
+    }
 
     final token = tokenOverride ?? await messaging.getToken();
-    if (token == null || token.isEmpty) return;
+    if (token == null || token.isEmpty) {
+      debugPrint('[FCM] token is null/empty — cannot register device');
+      return;
+    }
 
+    debugPrint('[FCM] registering device with token ${token.substring(0, 20)}...');
     final deviceID = await _deviceID();
     await _api!.post(
       ApiEndpoints.notificationDevices,
@@ -120,26 +153,55 @@ class FcmNotificationService {
   }
 
   void _handleMessage(RemoteMessage message) {
+    debugPrint('[FCM] onMessageOpenedApp: ${message.data}');
     notificationTapStream.add(FcmNotificationRouter.routeForData(message.data));
   }
 
   // Re-present a push that arrived while the app is in the foreground.
-  // Falls back to the message body or a generic title if either is empty
-  // so we never show an empty banner.
+  // On Android, FCM does NOT auto-show a heads-up banner when the app is
+  // foregrounded, so we re-display via flutter_local_notifications.
+  //
+  // Handles both:
+  //   • notification+data messages (notification.title/body populated)
+  //   • data-only messages (only message.data populated — e.g. server test)
   void _handleForeground(RemoteMessage message) {
+    debugPrint('[FCM] foreground message received: '
+        'notification=${message.notification?.title}, '
+        'data=${message.data}');
+
+    // Try notification payload first, then fall back to data fields.
     final notification = message.notification;
-    final title = notification?.title?.trim();
-    final body = notification?.body?.trim();
+    String? title = notification?.title?.trim();
+    String? body = notification?.body?.trim();
+
+    // Data-only fallback: the server test push sends title/body in the
+    // notification envelope, but some OEMs strip it. Also handles
+    // future data-only messages.
+    if ((title == null || title.isEmpty) && message.data.containsKey('title')) {
+      title = (message.data['title'] as String?)?.trim();
+    }
+    if ((body == null || body.isEmpty) && message.data.containsKey('body')) {
+      body = (message.data['body'] as String?)?.trim();
+    }
+
+    // Last resort: if we still have nothing displayable, use a generic
+    // message so the user at least sees *something* arrived.
     if ((title == null || title.isEmpty) && (body == null || body.isEmpty)) {
+      debugPrint('[FCM] foreground message dropped — no displayable content');
       return;
     }
-    final channelId = message.data['type'] == 'low_calorie'
+
+    // Pick a channel: high-priority for calorie alerts / test, default for others.
+    final type = message.data['type']?.toString() ?? '';
+    final channelId = (type == 'low_calorie' || type == 'test' || type == 'test_push')
         ? 'meal_reminders'
         : 'engagement';
+
+    debugPrint('[FCM] showing foreground notification: title=$title, channel=$channelId');
     NotificationService.instance.showNow(
       id: DateTime.now().millisecondsSinceEpoch.remainder(1 << 30),
       channelId: channelId,
-      title: title?.isNotEmpty == true ? title! : 'Nutrimate',
+      title: (title != null && title.isNotEmpty) ? title : 'Nutrimate',
       body: body ?? '',
       payload: FcmNotificationRouter.routeForData(message.data),
     );
