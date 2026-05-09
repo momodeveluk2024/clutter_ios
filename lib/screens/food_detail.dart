@@ -484,10 +484,6 @@ class _FoodDetailBody extends StatelessWidget {
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
-      transitionAnimationController: AnimationController(
-        vsync: Navigator.of(context),
-        duration: const Duration(milliseconds: 350),
-      ),
       builder: (_) => _LogFoodSheet(food: food),
     );
     if (!context.mounted || result == null) return;
