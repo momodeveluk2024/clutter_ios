@@ -776,6 +776,48 @@ class _LogFoodSheetState extends State<_LogFoodSheet> {
       }
     }
 
+    if (_pairedDrink != null) {
+      const drinkMacros = {
+        'Water': {'Calories': 0.0, 'Carbs': 0.0},
+        'Tea': {'Calories': 1.0, 'Carbs': 0.3},
+        'Coffee': {'Calories': 2.0, 'Carbs': 0.0},
+        'Juice': {'Calories': 45.0, 'Carbs': 10.4},
+        'Milk': {'Calories': 61.0, 'Carbs': 4.8},
+        'Coca-Cola': {'Calories': 42.0, 'Carbs': 10.6},
+        'Pepsi': {'Calories': 41.0, 'Carbs': 10.4},
+        'Fanta': {'Calories': 48.0, 'Carbs': 12.0},
+        'Sprite': {'Calories': 40.0, 'Carbs': 10.0},
+        'Energy drink': {'Calories': 45.0, 'Carbs': 11.0},
+        'Smoothie': {'Calories': 55.0, 'Carbs': 13.0},
+        'Lemonade': {'Calories': 40.0, 'Carbs': 10.5},
+      };
+
+      final macros = drinkMacros[_pairedDrink];
+      if (macros != null) {
+        for (final entry in macros.entries) {
+          final code = entry.key;
+          final added = entry.value * (330.0 / 100);
+          if (added <= 0) continue;
+
+          final existing = projected[code];
+          if (existing != null && existing.driAmount > 0) {
+            projected[code] = _SimNutrient(
+              amount: existing.amount + added,
+              driAmount: existing.driAmount,
+              isLimit: existing.isLimit,
+            );
+          } else if (existing == null) {
+            projected[code] = _SimNutrient(
+              amount: added,
+              driAmount: code == 'Calories' ? 2000.0 : 275.0,
+              isLimit: false,
+            );
+            newCodes.add(code);
+          }
+        }
+      }
+    }
+
     // Recalculate average using same logic as DayNutrientTotals._scoreFor.
     // Include both existing nutrients AND newly introduced ones.
     double projectedSum = 0;

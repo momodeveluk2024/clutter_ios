@@ -103,6 +103,21 @@ class NutritionProvider extends ChangeNotifier {
     notifyListeners();
   }
 
+  static const Map<String, String> drinkFoodIds = {
+    'Water': '018f0000-0000-7000-8004-000000000001',
+    'Tea': '018f0000-0000-7000-8004-000000000002',
+    'Coffee': '018f0000-0000-7000-8004-000000000003',
+    'Juice': '018f0000-0000-7000-8004-000000000004',
+    'Milk': '018f0000-0000-7000-8004-000000000005',
+    'Coca-Cola': '018f0000-0000-7000-8004-000000000006',
+    'Pepsi': '018f0000-0000-7000-8004-000000000007',
+    'Fanta': '018f0000-0000-7000-8004-000000000008',
+    'Sprite': '018f0000-0000-7000-8004-000000000009',
+    'Energy drink': '018f0000-0000-7000-8004-000000000010',
+    'Smoothie': '018f0000-0000-7000-8004-000000000011',
+    'Lemonade': '018f0000-0000-7000-8004-000000000012',
+  };
+
   Future<void> createLog({
     required String foodId,
     required double servingG,
@@ -111,6 +126,17 @@ class NutritionProvider extends ChangeNotifier {
     String? pairedDrink,
     String? notes,
   }) async {
+    final items = [
+      {'food_id': foodId, 'serving_g': servingG},
+    ];
+
+    if (pairedDrink != null && drinkFoodIds.containsKey(pairedDrink)) {
+      items.add({
+        'food_id': drinkFoodIds[pairedDrink]!,
+        'serving_g': 330.0, // standard can/glass serving size in ml/g
+      });
+    }
+
     await _api.post(
       ApiEndpoints.logs,
       data: {
@@ -119,9 +145,7 @@ class NutritionProvider extends ChangeNotifier {
         if (pairedDrink != null && pairedDrink.isNotEmpty)
           'paired_drink': pairedDrink,
         if (notes != null && notes.isNotEmpty) 'notes': notes,
-        'items': [
-          {'food_id': foodId, 'serving_g': servingG},
-        ],
+        'items': items,
       },
     );
     await Future.wait([
