@@ -27,28 +27,22 @@ class NutritionProvider extends ChangeNotifier {
     error = null;
     notifyListeners();
     try {
-      final totalsResponse = await _api.get(
-        ApiEndpoints.todayIntake,
-        query: {'date': day},
-      );
-      todayTotals = DayNutrientTotals.fromJson(
-        Map<String, dynamic>.from(totalsResponse.data as Map),
-      );
+      // Fire all independent API calls in parallel instead of sequentially.
+      // This cuts dashboard load from ~5 round-trips to ~1 round-trip.
+      final results = await Future.wait([
+        _api.get(ApiEndpoints.todayIntake, query: {'date': day}),
+        _api.get(ApiEndpoints.logs, query: {'from': day, 'to': day}),
+        _api.get(ApiEndpoints.recommendations, query: {'date': day}),
+      ]);
 
-      final logsResponse = await _api.get(
-        ApiEndpoints.logs,
-        query: {'from': day, 'to': day},
+      todayTotals = DayNutrientTotals.fromJson(
+        Map<String, dynamic>.from(results[0].data as Map),
       );
-      logs = (logsResponse.data['logs'] as List? ?? const [])
+      logs = (results[1].data['logs'] as List? ?? const [])
           .map((v) => MealLog.fromJson(Map<String, dynamic>.from(v as Map)))
           .toList();
-
-      final recommendationsResponse = await _api.get(
-        ApiEndpoints.recommendations,
-        query: {'date': day},
-      );
       recommendations =
-          (recommendationsResponse.data['recommendations'] as List? ?? const [])
+          (results[2].data['recommendations'] as List? ?? const [])
               .map(
                 (v) => Recommendation.fromJson(
                   Map<String, dynamic>.from(v as Map),
@@ -56,16 +50,13 @@ class NutritionProvider extends ChangeNotifier {
               )
               .toList();
 
-      try {
-        dailyMealPlan = await loadDailyMealPlan(
-          date: selectedDate,
-          notify: false,
-        );
-      } catch (_) {
-        dailyMealPlan = null;
-      }
-
-      await loadStreak(notify: false);
+      // These two are lower priority — fire in parallel, swallow errors.
+      await Future.wait([
+        loadDailyMealPlan(date: selectedDate, notify: false)
+            .then((v) { dailyMealPlan = v; return v; })
+            .catchError((_) { dailyMealPlan = null; return null; }),
+        loadStreak(notify: false).catchError((_) => 0),
+      ]);
     } catch (e) {
       error = e.toString();
     } finally {
@@ -133,15 +124,19 @@ class NutritionProvider extends ChangeNotifier {
         ],
       },
     );
-    await refreshDashboard(date: date);
-    await loadWeek(endDate: date);
+    await Future.wait([
+      refreshDashboard(date: date),
+      loadWeek(endDate: date),
+    ]);
   }
 
   Future<void> deleteLog(String id, {DateTime? date}) async {
     final day = date ?? selectedDate;
     await _api.delete(ApiEndpoints.log(id));
-    await refreshDashboard(date: day);
-    await loadWeek(endDate: day);
+    await Future.wait([
+      refreshDashboard(date: day),
+      loadWeek(endDate: day),
+    ]);
   }
 
   String _dateString(DateTime date) {
