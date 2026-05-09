@@ -482,7 +482,7 @@ class ProfileAboutScreen extends StatelessWidget {
                 ),
                 const SizedBox(height: 8),
                 Text(
-                  'Version 1.0.0\nNutrition catalog powered by curated USDA-sourced data.',
+                  'Version 1.0.3\nNutrition catalog powered by curated USDA-sourced data.',
                   style: TextStyle(
                     color: NVColors(false).textMuted,
                     height: 1.4,
