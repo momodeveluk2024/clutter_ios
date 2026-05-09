@@ -272,7 +272,7 @@ class _TopBar extends StatelessWidget {
             displayName: (user?.displayName as String?) ?? 'User',
             avatarUrl: user?.avatarUrl as String?,
             size: 44,
-            onTap: () => context.push('/app/profile'),
+            onTap: () => context.go('/app?tab=you'),
           ),
         ],
       ),
