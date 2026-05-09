@@ -1,6 +1,7 @@
 import 'dart:math' as math;
 import 'dart:ui';
 
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:shimmer/shimmer.dart';
@@ -115,17 +116,15 @@ class FoodPhoto extends StatelessWidget {
 
     return ClipRRect(
       borderRadius: BorderRadius.circular(radius),
-      child: Image.network(
-        url,
+      child: CachedNetworkImage(
+        imageUrl: url,
         width: width ?? double.infinity,
         height: height,
         fit: fit,
         filterQuality: FilterQuality.medium,
-        loadingBuilder: (context, child, progress) {
-          if (progress == null) return child;
-          return _ShimmerBox(width: width, height: height, radius: 0);
-        },
-        errorBuilder: (context, error, stackTrace) =>
+        placeholder: (context, url) =>
+            _ShimmerBox(width: width, height: height, radius: 0),
+        errorWidget: (context, url, error) =>
             _buildAssetFallback(fallbackAsset),
       ),
     );
@@ -200,12 +199,12 @@ class UserAvatar extends StatelessWidget {
                   fontWeight: FontWeight.w700,
                 ),
               )
-            : Image.network(
-                ApiEndpoints.mediaUrl(url),
+            : CachedNetworkImage(
+                imageUrl: ApiEndpoints.mediaUrl(url),
                 width: size,
                 height: size,
                 fit: BoxFit.cover,
-                errorBuilder: (_, _, _) => Text(
+                errorWidget: (_, _, _) => Text(
                   _initialsFor(displayName, fallback: '?'),
                   style: TextStyle(
                     color: fg,

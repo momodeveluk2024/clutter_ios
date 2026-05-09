@@ -10,6 +10,12 @@ class FoodProvider extends ChangeNotifier {
 
   final ApiClient _api;
 
+  /// LRU in-memory cache for food detail pages (max 50 entries).
+  /// Keyed by food ID. Prevents redundant API calls when users
+  /// revisit the same food detail.
+  static const _maxCacheSize = 50;
+  final _detailCache = <String, FoodDetail>{};
+
   List<FoodSummary> foods = [];
   List<FoodSummary> favorites = [];
   List<FoodSummary> userMeals = [];
@@ -69,6 +75,16 @@ class FoodProvider extends ChangeNotifier {
   }
 
   Future<FoodDetail> getFood(String id) async {
+    // ── Cache hit → return instantly, no loading state flicker ──
+    final cached = _detailCache.remove(id);
+    if (cached != null) {
+      // Re-insert to mark as most-recently-used
+      _detailCache[id] = cached;
+      selectedFood = cached;
+      notifyListeners();
+      return cached;
+    }
+
     isLoading = true;
     error = null;
     notifyListeners();
@@ -77,6 +93,7 @@ class FoodProvider extends ChangeNotifier {
       selectedFood = FoodDetail.fromJson(
         Map<String, dynamic>.from(response.data as Map),
       );
+      _putCache(id, selectedFood!);
       return selectedFood!;
     } catch (e) {
       error = e.toString();
@@ -86,6 +103,17 @@ class FoodProvider extends ChangeNotifier {
       notifyListeners();
     }
   }
+
+  void _putCache(String id, FoodDetail detail) {
+    _detailCache.remove(id); // re-insert at end (most recent)
+    _detailCache[id] = detail;
+    while (_detailCache.length > _maxCacheSize) {
+      _detailCache.remove(_detailCache.keys.first); // evict oldest
+    }
+  }
+
+  /// Invalidate a single cache entry (after edit / delete).
+  void invalidateCache(String id) => _detailCache.remove(id);
 
   Future<List<FoodSummary>> loadFavorites() async {
     final response = await _api.get(ApiEndpoints.favorites);

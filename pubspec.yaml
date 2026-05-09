@@ -74,6 +74,7 @@ dependencies:
   home_widget: ^0.9.1
   openfoodfacts: ^3.20.0
   # Phase 5 — Monetization
+  cached_network_image: ^3.4.1
 
 dev_dependencies:
   flutter_test:

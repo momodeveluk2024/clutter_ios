@@ -161,20 +161,20 @@ class _SearchScreenState extends State<SearchScreen> {
             Expanded(
               child: RefreshIndicator(
                 onRefresh: _loadFoods,
-                child: ListView(
-                  padding: const EdgeInsets.fromLTRB(20, 4, 20, 16),
-                  children: _tab == 0
-                      ? _foodResults()
-                      : _tab == 1
-                      ? const [_NutrientResults()]
-                      : const [
-                          _MessageCard(
-                            message:
-                                'Recipes will connect to logged meal templates next.',
-                            icon: Icons.restaurant_menu,
-                          ),
-                        ],
-                ),
+                child: _tab == 0
+                    ? _buildFoodList()
+                    : ListView(
+                        padding: const EdgeInsets.fromLTRB(20, 4, 20, 16),
+                        children: _tab == 1
+                            ? const [_NutrientResults()]
+                            : const [
+                                _MessageCard(
+                                  message:
+                                      'Recipes will connect to logged meal templates next.',
+                                  icon: Icons.restaurant_menu,
+                                ),
+                              ],
+                      ),
               ),
             ),
           ],
@@ -183,23 +183,46 @@ class _SearchScreenState extends State<SearchScreen> {
     );
   }
 
-  List<Widget> _foodResults() {
-    return [
-      Padding(
-        padding: const EdgeInsets.fromLTRB(4, 10, 4, 8),
-        child: SectionLabel(
-          _isLoading ? 'Searching' : '${_foods.length} results',
-        ),
-      ),
-      if (_error != null)
-        _MessageCard(message: _error!, icon: Icons.error_outline)
-      else if (_isLoading)
-        const _LoadingList()
-      else if (_foods.isEmpty)
-        const _MessageCard(message: 'No foods found', icon: Icons.search_off)
-      else
-        ..._foods.map((food) => _FoodResult(food: food)),
-    ];
+  /// Uses ListView.builder for O(visible) rendering instead of O(n).
+  /// With 500 foods this eliminates the big initial-frame jank.
+  Widget _buildFoodList() {
+    if (_error != null) {
+      return ListView(
+        padding: const EdgeInsets.fromLTRB(20, 4, 20, 16),
+        children: [_MessageCard(message: _error!, icon: Icons.error_outline)],
+      );
+    }
+    if (_isLoading) {
+      return ListView(
+        padding: const EdgeInsets.fromLTRB(20, 4, 20, 16),
+        children: const [_LoadingList()],
+      );
+    }
+    if (_foods.isEmpty) {
+      return ListView(
+        padding: const EdgeInsets.fromLTRB(20, 4, 20, 16),
+        children: const [
+          _MessageCard(message: 'No foods found', icon: Icons.search_off),
+        ],
+      );
+    }
+    // +1 for the header row
+    return ListView.builder(
+      padding: const EdgeInsets.fromLTRB(20, 4, 20, 16),
+      itemCount: _foods.length + 1,
+      itemBuilder: (context, index) {
+        if (index == 0) {
+          return Padding(
+            padding: const EdgeInsets.fromLTRB(4, 10, 4, 8),
+            child: SectionLabel('${_foods.length} results'),
+          );
+        }
+        return Padding(
+          padding: const EdgeInsets.only(bottom: 8),
+          child: _FoodResult(food: _foods[index - 1]),
+        );
+      },
+    );
   }
 
   Widget _tabButton(String label, int index, NVColors c) {
