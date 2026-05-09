@@ -13,6 +13,24 @@ import 'tracker.dart';
 import 'favorites.dart';
 import 'profile.dart';
 
+/// Allows child widgets to switch the active tab without routing.
+/// Usage: AppShellScope.of(context)?.switchTab(4);
+class AppShellScope extends InheritedWidget {
+  final void Function(int index) switchTab;
+
+  const AppShellScope({
+    super.key,
+    required this.switchTab,
+    required super.child,
+  });
+
+  static AppShellScope? of(BuildContext context) =>
+      context.findAncestorWidgetOfExactType<AppShellScope>();
+
+  @override
+  bool updateShouldNotify(AppShellScope old) => false;
+}
+
 class AppShell extends StatefulWidget {
   const AppShell({super.key, this.initialTab = 0, this.startTour = false});
   final int initialTab;
@@ -155,9 +173,17 @@ class _AppShellState extends State<AppShell> {
       4: AppShell.profileTabKey,
     };
 
-    return Scaffold(
-      backgroundColor: c.bg,
-      body: IndexedStack(index: _index, children: pages),
+    return AppShellScope(
+      switchTab: (i) {
+        if (i >= 0 && i < _tabs.length && i != _index) {
+          HapticFeedback.selectionClick();
+          setState(() => _index = i);
+          _refreshTab(context, i);
+        }
+      },
+      child: Scaffold(
+        backgroundColor: c.bg,
+        body: IndexedStack(index: _index, children: pages),
       bottomNavigationBar: Container(
         decoration: BoxDecoration(
           color: c.surface,
@@ -217,6 +243,7 @@ class _AppShellState extends State<AppShell> {
             ),
           ),
         ),
+      ),
       ),
     );
   }

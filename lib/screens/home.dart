@@ -4,6 +4,8 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 
+import 'app_shell.dart';
+
 import '../core/models/food_log.dart';
 import '../core/models/nutrient_reference.dart';
 import '../core/models/nutrition.dart';
@@ -272,7 +274,14 @@ class _TopBar extends StatelessWidget {
             displayName: (user?.displayName as String?) ?? 'User',
             avatarUrl: user?.avatarUrl as String?,
             size: 44,
-            onTap: () => context.go('/app?tab=you'),
+            onTap: () {
+              final scope = AppShellScope.of(context);
+              if (scope != null) {
+                scope.switchTab(4); // Profile tab
+              } else {
+                context.go('/app?tab=you'); // Fallback
+              }
+            },
           ),
         ],
       ),
