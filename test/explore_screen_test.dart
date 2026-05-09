@@ -43,6 +43,30 @@ class _ExploreApiClient extends ApiClient {
             'verified': true,
             'nutrients': ['C'],
           },
+          {
+            'id': '018f0000-0000-7000-8002-000000000104',
+            'name': 'Almonds',
+            'category': 'nuts',
+            'serving_size_g': 100,
+            'verified': true,
+            'nutrients': ['E', 'Mg'],
+          },
+          {
+            'id': '018f0000-0000-7000-8002-000000000105',
+            'name': 'Sunflower Seeds',
+            'category': 'nuts-seeds',
+            'serving_size_g': 100,
+            'verified': true,
+            'nutrients': ['E', 'Se'],
+          },
+          {
+            'id': '018f0000-0000-7000-8002-000000000106',
+            'name': 'Walnuts',
+            'category': 'nuts-seeds',
+            'serving_size_g': 100,
+            'verified': true,
+            'nutrients': ['E'],
+          },
         ],
       },
       requestOptions: RequestOptions(path: path),
@@ -94,14 +118,22 @@ void main() {
     expect(find.text('Vitamins'), findsOneWidget);
     expect(find.text('Minerals'), findsOneWidget);
     expect(find.text('Macros'), findsOneWidget);
-    expect(find.text('13 essentials'), findsOneWidget);
     expect(find.text('Browse nutrients'), findsNothing);
     expect(find.text('Vegetables'), findsOneWidget);
     expect(find.text('Fruit'), findsOneWidget);
+    expect(find.text('Nuts & Seeds'), findsOneWidget);
+    expect(find.text('3 items'), findsOneWidget);
     expect(find.text('VITAMINS'), findsNothing);
     expect(find.text('MINERALS'), findsNothing);
     expect(find.text('MACROS'), findsNothing);
     expect(find.text('Vitamin A'), findsNothing);
+
+    await tester.tap(find.text('Nuts & Seeds'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('category=nuts-seeds'), findsOneWidget);
+    router.go('/');
+    await tester.pumpAndSettle();
 
     await tester.tap(find.text('Vitamins'));
     await tester.pumpAndSettle();

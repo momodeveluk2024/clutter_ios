@@ -93,6 +93,7 @@ class FoodNutrient {
     required this.amountPer100G,
     this.driAmount,
     this.driPercent,
+    this.role = 'meet',
   });
 
   final String code;
@@ -101,6 +102,11 @@ class FoodNutrient {
   final double amountPer100G;
   final double? driAmount;
   final double? driPercent;
+  /// 'meet' = reaching DRI is good (vitamins, minerals, protein).
+  /// 'limit' = staying under DRI is good (sodium); going over hurts the score.
+  final String role;
+
+  bool get isLimit => role == 'limit';
 
   factory FoodNutrient.fromJson(Map<String, dynamic> json) {
     return FoodNutrient(
@@ -110,6 +116,7 @@ class FoodNutrient {
       amountPer100G: (json['amount_per_100g'] as num?)?.toDouble() ?? 0,
       driAmount: (json['dri_amount'] as num?)?.toDouble(),
       driPercent: (json['dri_percent'] as num?)?.toDouble(),
+      role: json['role'] as String? ?? 'meet',
     );
   }
 }

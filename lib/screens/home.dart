@@ -245,8 +245,17 @@ class _TopBar extends StatelessWidget {
               children: [
                 NVEyebrow(dateLine, color: c.textMuted),
                 const SizedBox(height: 6),
-                Text(
-                  name.isEmpty ? greeting : '$greeting, $name.',
+                Text.rich(
+                  TextSpan(
+                    text: name.isEmpty ? greeting : '$greeting, ',
+                    children: [
+                      if (name.isNotEmpty)
+                        TextSpan(
+                          text: '$name.',
+                          style: const TextStyle(color: NV.accent),
+                        ),
+                    ],
+                  ),
                   style: TextStyle(
                     fontSize: 22,
                     fontWeight: FontWeight.w700,

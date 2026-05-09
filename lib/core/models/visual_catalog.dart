@@ -147,10 +147,13 @@ const fallbackCategoryVisual = CategoryVisual(
   accent: NV.accent,
 );
 
-CategoryVisual categoryVisualFor(String category) {
+String canonicalCategoryKey(String category) {
   final normalized = category.toLowerCase();
-  // Map legacy 'nuts' key to the canonical 'nuts-seeds' entry
-  final key = normalized == 'nuts' ? 'nuts-seeds' : normalized;
+  return normalized == 'nuts' ? 'nuts-seeds' : normalized;
+}
+
+CategoryVisual categoryVisualFor(String category) {
+  final key = canonicalCategoryKey(category);
   return categoryVisuals[key] ??
       CategoryVisual(
         label: _titleCase(category),

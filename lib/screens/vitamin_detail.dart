@@ -348,8 +348,12 @@ class _TopSourcesState extends State<_TopSources> {
           _loadingMore = false;
         });
       }
-    } catch (_) {
-      if (mounted) setState(() => _loadingMore = false);
+    } catch (error) {
+      if (!mounted) return;
+      setState(() => _loadingMore = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Could not load more sources: $error')),
+      );
     }
   }
 

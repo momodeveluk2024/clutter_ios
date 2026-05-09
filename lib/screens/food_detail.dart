@@ -8,6 +8,7 @@ import '../core/providers/food_provider.dart';
 import '../core/providers/nutrition_provider.dart';
 import '../theme.dart';
 import '../widgets.dart';
+import '../widgets/log_success_toast.dart';
 import '../widgets/nv_loader.dart';
 
 class FoodDetailScreen extends StatefulWidget {
@@ -259,8 +260,11 @@ class _FoodDetailBody extends StatelessWidget {
                       label: 'nutrients',
                     ),
                     _Metric(
-                      value: food.verified ? 'Yes' : 'No',
-                      label: 'verified',
+                      value: isFastFood ? 'Unhealthy' : 'Healthy',
+                      label: 'classification',
+                      valueColor: isFastFood
+                          ? const Color(0xFFEF4444)
+                          : const Color(0xFF2F7D4A),
                     ),
                   ],
                 ),
@@ -315,6 +319,83 @@ class _FoodDetailBody extends StatelessWidget {
                 ),
               ],
               const SizedBox(height: NVSpace.x5),
+              // ── Limit-nutrient penalty info ──
+              Builder(builder: (context) {
+                final limitNutrients = food.breakdown
+                    .where((n) => n.isLimit)
+                    .toList();
+                if (limitNutrients.isEmpty) {
+                  return const SizedBox.shrink();
+                }
+                final names = limitNutrients
+                    .map((n) => n.name)
+                    .take(3)
+                    .join(', ');
+                return Padding(
+                  padding: const EdgeInsets.only(bottom: NVSpace.x4),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 14,
+                      vertical: 12,
+                    ),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFFFFBEB),
+                      borderRadius: BorderRadius.circular(NVRadius.cardSm),
+                      border: Border.all(
+                        color: const Color(0xFFFCD34D),
+                      ),
+                    ),
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Container(
+                          margin: const EdgeInsets.only(top: 2),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 6,
+                            vertical: 3,
+                          ),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFF59E0B),
+                            borderRadius: BorderRadius.circular(5),
+                          ),
+                          child: const Icon(
+                            Icons.trending_down_rounded,
+                            size: 14,
+                            color: Colors.white,
+                          ),
+                        ),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'Score penalty possible',
+                                style: TextStyle(
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w700,
+                                  color: const Color(0xFF92400E),
+                                  height: 1.3,
+                                ),
+                              ),
+                              const SizedBox(height: 3),
+                              Text(
+                                '$names — exceeding the daily limit lowers your health score. Look for the ⚠ icon below.',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  height: 1.4,
+                                  color: const Color(0xFFB45309),
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                );
+              }),
               Padding(
                 padding: const EdgeInsets.only(left: 4, bottom: 10),
                 child: Text(
@@ -391,22 +472,38 @@ class _FoodDetailBody extends StatelessWidget {
     );
   }
 
-  void _showLogSheet(BuildContext context, FoodDetail food) {
-    showModalBottomSheet<void>(
+  Future<void> _showLogSheet(BuildContext context, FoodDetail food) async {
+    final result = await showModalBottomSheet<_LogFoodResult>(
       context: context,
       isScrollControlled: true,
       showDragHandle: true,
       backgroundColor: Theme.of(context).colorScheme.surface,
       builder: (_) => _LogFoodSheet(food: food),
     );
+    if (!context.mounted || result == null) return;
+
+    LogSuccessToast.show(
+      context,
+      title: 'Logged ${food.name}',
+      subtitle: '${result.servingG.round()}g · ${_humanize(result.mealType)}',
+      imageUrl: food.imageUrl,
+    );
   }
 }
 
+class _LogFoodResult {
+  const _LogFoodResult({required this.servingG, required this.mealType});
+
+  final double servingG;
+  final String mealType;
+}
+
 class _Metric extends StatelessWidget {
-  const _Metric({required this.value, required this.label});
+  const _Metric({required this.value, required this.label, this.valueColor});
 
   final String value;
   final String label;
+  final Color? valueColor;
 
   @override
   Widget build(BuildContext context) {
@@ -415,7 +512,7 @@ class _Metric extends StatelessWidget {
       children: [
         Text(
           value,
-          style: nvNumber(18, color: c.text, weight: FontWeight.w700),
+          style: nvNumber(18, color: valueColor ?? c.text, weight: FontWeight.w700),
         ),
         const SizedBox(height: 4),
         NVEyebrow(label, color: c.textMuted),
@@ -434,6 +531,7 @@ class _NutrientRow extends StatelessWidget {
     final code = nutrient.code;
     final pct = ((nutrient.driPercent ?? 0) / 100).clamp(0.0, 1.0);
     final hue = vitaminColors[code] ?? vitaminColors['D']!;
+    final isLimit = nutrient.isLimit;
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 8),
       child: Row(
@@ -447,29 +545,70 @@ class _NutrientRow extends StatelessWidget {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Text(
-                      nutrient.name,
-                      style: TextStyle(
-                        fontSize: 13,
-                        color: c.text,
-                        fontWeight: FontWeight.w600,
-                        letterSpacing: -0.1,
+                    Flexible(
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Flexible(
+                            child: Text(
+                              nutrient.name,
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(
+                                fontSize: 13,
+                                color: c.text,
+                                fontWeight: FontWeight.w600,
+                                letterSpacing: -0.1,
+                              ),
+                            ),
+                          ),
+                          if (isLimit) ...[
+                            const SizedBox(width: 5),
+                            const Icon(
+                              Icons.warning_amber_rounded,
+                              size: 14,
+                              color: Color(0xFFF59E0B),
+                            ),
+                          ],
+                        ],
                       ),
                     ),
+                    const SizedBox(width: 8),
                     Text(
                       nutrient.driPercent == null
                           ? '—'
                           : '${nutrient.driPercent!.round()}%',
                       style: nvNumber(
                         13,
-                        color: pct >= 1 ? hue.fill : c.textMuted,
+                        color: pct >= 1
+                            ? isLimit
+                                ? const Color(0xFFEF4444)
+                                : hue.fill
+                            : c.textMuted,
                         weight: FontWeight.w700,
                       ),
                     ),
                   ],
                 ),
                 const SizedBox(height: 4),
-                BarProgress(pct: pct, color: hue.fill, height: 4),
+                if (isLimit)
+                  Text(
+                    'Limit · exceeding lowers score',
+                    style: TextStyle(
+                      fontSize: 10,
+                      color: const Color(0xFFF59E0B),
+                      fontWeight: FontWeight.w600,
+                    ),
+                  )
+                else
+                  const SizedBox.shrink(),
+                const SizedBox(height: 3),
+                BarProgress(
+                  pct: pct,
+                  color: isLimit && pct >= 1
+                      ? const Color(0xFFEF4444)
+                      : hue.fill,
+                  height: 4,
+                ),
               ],
             ),
           ),
@@ -525,10 +664,9 @@ class _LogFoodSheetState extends State<_LogFoodSheet> {
         notes: _notesController.text.trim(),
       );
       if (!mounted) return;
-      Navigator.of(context).pop();
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('Logged ${widget.food.name}')));
+      Navigator.of(context).pop(
+        _LogFoodResult(servingG: _servingG, mealType: _mealType),
+      );
     } catch (error) {
       if (!mounted) return;
       ScaffoldMessenger.of(
@@ -593,7 +731,8 @@ class _LogFoodSheetState extends State<_LogFoodSheet> {
 
     final currentScore = totals.averagePercent;
 
-    // Build a projected set of nutrient totals by simulating the addition
+    // Build a projected set of nutrient totals by simulating the addition.
+    // Start with what the user has already logged today.
     final projected = <String, _SimNutrient>{};
     for (final n in totals.nutrients) {
       projected[n.code] = _SimNutrient(
@@ -603,22 +742,39 @@ class _LogFoodSheetState extends State<_LogFoodSheet> {
       );
     }
 
+    // Track which nutrient codes are new (not in today's totals)
+    final newCodes = <String>{};
+
     for (final nutrient in widget.food.breakdown) {
       final added = nutrient.amountPer100G * (_servingG / 100);
       if (added <= 0) continue;
       final existing = projected[nutrient.code];
       if (existing != null && existing.driAmount > 0) {
+        // Nutrient already in today's totals — add to existing amount
         projected[nutrient.code] = _SimNutrient(
           amount: existing.amount + added,
           driAmount: existing.driAmount,
           isLimit: existing.isLimit,
         );
+      } else if (existing == null &&
+          nutrient.driAmount != null &&
+          nutrient.driAmount! > 0) {
+        // NEW nutrient not yet logged today — use the food's DRI data
+        projected[nutrient.code] = _SimNutrient(
+          amount: added,
+          driAmount: nutrient.driAmount!,
+          isLimit: nutrient.role == 'limit',
+        );
+        newCodes.add(nutrient.code);
       }
     }
 
-    // Recalculate average using same logic as DayNutrientTotals._scoreFor
+    // Recalculate average using same logic as DayNutrientTotals._scoreFor.
+    // Include both existing nutrients AND newly introduced ones.
     double projectedSum = 0;
     int count = 0;
+
+    // Score existing nutrients (already in today's totals)
     for (final n in totals.nutrients) {
       if (n.driPercent == null) continue;
       count++;
@@ -648,6 +804,23 @@ class _LogFoodSheetState extends State<_LogFoodSheet> {
         } else {
           projectedSum += p > 100 ? 100 : p;
         }
+      }
+    }
+
+    // Score NEW nutrients introduced by this food (not in today's totals yet)
+    for (final code in newCodes) {
+      final sim = projected[code]!;
+      count++;
+      final p = (sim.amount / sim.driAmount) * 100;
+      if (sim.isLimit) {
+        if (p <= 100) {
+          projectedSum += 100;
+        } else {
+          final remaining = 200 - p;
+          projectedSum += remaining < 0 ? 0 : remaining;
+        }
+      } else {
+        projectedSum += p > 100 ? 100 : p;
       }
     }
 

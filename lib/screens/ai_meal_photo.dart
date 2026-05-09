@@ -9,6 +9,7 @@ import '../core/providers/ai_provider.dart';
 import '../core/providers/nutrition_provider.dart';
 import '../theme.dart';
 import '../widgets.dart';
+import '../widgets/log_success_toast.dart';
 
 class AiMealPhotoScreen extends StatefulWidget {
   const AiMealPhotoScreen({
@@ -54,10 +55,24 @@ class _AiMealPhotoScreenState extends State<AiMealPhotoScreen> {
     await nutrition.refreshDashboard(date: date);
     await nutrition.loadWeek(endDate: date);
     if (!mounted) return;
+    final estimateForToast = ai.currentEstimate;
+    final itemCount = estimateForToast?.items.length ?? 0;
+    final firstItem = (itemCount > 0)
+        ? estimateForToast!.items.first.name
+        : null;
     context.go('/app/tracker');
-    ScaffoldMessenger.of(
+    LogSuccessToast.show(
       context,
-    ).showSnackBar(const SnackBar(content: Text('Meal saved to tracker.')));
+      title: itemCount <= 1
+          ? 'Meal logged${firstItem != null ? ' · $firstItem' : ''}'
+          : 'Meal logged · $itemCount items',
+      subtitle: 'Saved to ${_humanizeMeal(widget.mealType)}',
+    );
+  }
+
+  String _humanizeMeal(String value) {
+    if (value.isEmpty) return value;
+    return value[0].toUpperCase() + value.substring(1);
   }
 
   @override

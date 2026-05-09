@@ -18,6 +18,7 @@ class ExploreScreen extends StatefulWidget {
 class _ExploreScreenState extends State<ExploreScreen> {
   List<FoodSummary> _foods = [];
   bool _loading = true;
+  String? _error;
 
   @override
   void initState() {
@@ -28,13 +29,24 @@ class _ExploreScreenState extends State<ExploreScreen> {
   }
 
   Future<void> _loadCatalog() async {
-    setState(() => _loading = true);
-    final foods = await context.read<FoodProvider>().fetchFoods(limit: 500);
-    if (!mounted) return;
     setState(() {
-      _foods = foods;
-      _loading = false;
+      _loading = true;
+      _error = null;
     });
+    try {
+      final foods = await context.read<FoodProvider>().fetchFoods(limit: 500);
+      if (!mounted) return;
+      setState(() {
+        _foods = foods;
+        _loading = false;
+      });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _error = e.toString();
+        _loading = false;
+      });
+    }
   }
 
   @override
@@ -43,7 +55,8 @@ class _ExploreScreenState extends State<ExploreScreen> {
     final c = NVColors(dark);
     final categories = <String, int>{};
     for (final food in _foods) {
-      categories.update(food.category, (value) => value + 1, ifAbsent: () => 1);
+      final category = canonicalCategoryKey(food.category);
+      categories.update(category, (value) => value + 1, ifAbsent: () => 1);
     }
     final cats =
         categories.entries
@@ -101,23 +114,97 @@ class _ExploreScreenState extends State<ExploreScreen> {
               children: [
                 _NutrientGroupPickers(onSelected: _openNutrientBrowser),
                 const SizedBox(height: 16),
-                GridView.count(
-                  crossAxisCount: 2,
-                  mainAxisSpacing: 12,
-                  crossAxisSpacing: 12,
-                  mainAxisExtent: 176,
-                  physics: const NeverScrollableScrollPhysics(),
-                  shrinkWrap: true,
-                  children: cats.map((cat) {
-                    return _CategoryTile(
-                      name: cat.name,
-                      count: cat.count,
-                      onTap: () => context.push(
-                        '/app/search?category=${Uri.encodeComponent(cat.name)}',
-                      ),
-                    );
-                  }).toList(),
-                ),
+                if (_loading)
+                  Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 80),
+                    child: Column(
+                      children: [
+                        const CircularProgressIndicator(strokeWidth: 2.5),
+                        const SizedBox(height: 14),
+                        Text(
+                          'Loading catalog…',
+                          style: TextStyle(fontSize: 13, color: c.textMuted),
+                        ),
+                      ],
+                    ),
+                  )
+                else if (_error != null)
+                  Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 60),
+                    child: Column(
+                      children: [
+                        Icon(
+                          Icons.cloud_off_rounded,
+                          size: 36,
+                          color: c.textMuted,
+                        ),
+                        const SizedBox(height: 12),
+                        Text(
+                          'Could not load catalog',
+                          style: TextStyle(
+                            fontSize: 15,
+                            fontWeight: FontWeight.w700,
+                            color: c.text,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 24),
+                          child: Text(
+                            _error!,
+                            textAlign: TextAlign.center,
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: c.textMuted,
+                              height: 1.4,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 16),
+                        TextButton.icon(
+                          onPressed: _loadCatalog,
+                          icon: const Icon(Icons.refresh_rounded, size: 18),
+                          label: const Text('Retry'),
+                        ),
+                      ],
+                    ),
+                  )
+                else if (cats.isEmpty)
+                  Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 80),
+                    child: Column(
+                      children: [
+                        Icon(
+                          Icons.inbox_outlined,
+                          size: 36,
+                          color: c.textMuted,
+                        ),
+                        const SizedBox(height: 12),
+                        Text(
+                          'No foods in catalog yet',
+                          style: TextStyle(fontSize: 13, color: c.textMuted),
+                        ),
+                      ],
+                    ),
+                  )
+                else
+                  GridView.count(
+                    crossAxisCount: 2,
+                    mainAxisSpacing: 12,
+                    crossAxisSpacing: 12,
+                    mainAxisExtent: 176,
+                    physics: const NeverScrollableScrollPhysics(),
+                    shrinkWrap: true,
+                    children: cats.map((cat) {
+                      return _CategoryTile(
+                        name: cat.name,
+                        count: cat.count,
+                        onTap: () => context.push(
+                          '/app/search?category=${Uri.encodeComponent(cat.name)}',
+                        ),
+                      );
+                    }).toList(),
+                  ),
               ],
             ),
           ),

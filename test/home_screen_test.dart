@@ -45,7 +45,7 @@ class _NoopApiClient extends ApiClient {
 }
 
 void main() {
-  testWidgets('Home empty state remains a useful command center', (
+  testWidgets('Home greeting highlights the user name in green', (
     tester,
   ) async {
     final nutrition = NutritionProvider(api: _NoopApiClient())
@@ -78,9 +78,19 @@ void main() {
     );
     await tester.pump();
 
-    expect(find.textContaining('Daily command'), findsOneWidget);
-    expect(find.text('STARTER · RECOMMENDATIONS'), findsOneWidget);
-    expect(find.text('TOP · NUTRIENT GAPS'), findsOneWidget);
-    expect(find.text('12-day streak'), findsOneWidget);
+    expect(
+      find.byWidgetPredicate((widget) {
+        if (widget is! Text || widget.textSpan is! TextSpan) return false;
+        final text = widget.textSpan as TextSpan;
+        return text.children?.any(
+              (child) =>
+                  child is TextSpan &&
+                  child.text == 'ahmed.' &&
+                  child.style?.color == NV.accent,
+            ) ??
+            false;
+      }),
+      findsOneWidget,
+    );
   });
 }
