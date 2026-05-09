@@ -478,6 +478,16 @@ class _FoodDetailBody extends StatelessWidget {
       isScrollControlled: true,
       showDragHandle: true,
       backgroundColor: Theme.of(context).colorScheme.surface,
+      constraints: BoxConstraints(
+        maxHeight: MediaQuery.sizeOf(context).height * 0.80,
+      ),
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      transitionAnimationController: AnimationController(
+        vsync: Navigator.of(context),
+        duration: const Duration(milliseconds: 350),
+      ),
       builder: (_) => _LogFoodSheet(food: food),
     );
     if (!context.mounted || result == null) return;
@@ -632,6 +642,7 @@ class _LogFoodSheetState extends State<_LogFoodSheet> {
   double _servingG = 100;
   DateTime _loggedOn = DateTime.now();
   String? _pairedDrink;
+  bool _showAllDrinks = false;
   final _notesController = TextEditingController();
   bool _saving = false;
 
@@ -955,35 +966,79 @@ class _LogFoodSheetState extends State<_LogFoodSheet> {
             const SizedBox(height: NVSpace.x4),
             NVEyebrow('Pair with a drink', color: c.textMuted),
             const SizedBox(height: 8),
-            Wrap(
-              spacing: 8,
-              runSpacing: 8,
-              children: [
-                for (final drink in const [
-                  ('💧', 'Water'),
-                  ('🍵', 'Tea'),
-                  ('☕', 'Coffee'),
-                  ('🧃', 'Juice'),
-                  ('🥛', 'Milk'),
-                  ('🥤', 'Coca-Cola'),
-                  ('🥤', 'Pepsi'),
-                  ('🍊', 'Fanta'),
-                  ('🫧', 'Sprite'),
-                  ('⚡', 'Energy drink'),
-                  ('🍹', 'Smoothie'),
-                  ('🍋', 'Lemonade'),
-                ])
-                  _DrinkChip(
-                    emoji: drink.$1,
-                    label: drink.$2,
-                    selected: _pairedDrink == drink.$2,
-                    onTap: () => setState(() {
-                      _pairedDrink =
-                          _pairedDrink == drink.$2 ? null : drink.$2;
-                    }),
+            Builder(builder: (context) {
+              const allDrinks = [
+                ('💧', 'Water'),
+                ('🍵', 'Tea'),
+                ('☕', 'Coffee'),
+                ('🧃', 'Juice'),
+                ('🥛', 'Milk'),
+                ('🥤', 'Coca-Cola'),
+                ('🥤', 'Pepsi'),
+                ('🍊', 'Fanta'),
+                ('🫧', 'Sprite'),
+                ('⚡', 'Energy drink'),
+                ('🍹', 'Smoothie'),
+                ('🍋', 'Lemonade'),
+              ];
+              final visible = _showAllDrinks ? allDrinks : allDrinks.take(3).toList();
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  AnimatedSize(
+                    duration: const Duration(milliseconds: 250),
+                    curve: Curves.easeOutCubic,
+                    alignment: Alignment.topLeft,
+                    child: Wrap(
+                      spacing: 8,
+                      runSpacing: 8,
+                      children: [
+                        for (final drink in visible)
+                          _DrinkChip(
+                            emoji: drink.$1,
+                            label: drink.$2,
+                            selected: _pairedDrink == drink.$2,
+                            onTap: () => setState(() {
+                              _pairedDrink =
+                                  _pairedDrink == drink.$2 ? null : drink.$2;
+                            }),
+                          ),
+                      ],
+                    ),
                   ),
-              ],
-            ),
+                  const SizedBox(height: 6),
+                  GestureDetector(
+                    onTap: () => setState(() => _showAllDrinks = !_showAllDrinks),
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 4),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            _showAllDrinks ? 'Show less' : 'Show more',
+                            style: TextStyle(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w600,
+                              color: NV.accent,
+                            ),
+                          ),
+                          const SizedBox(width: 4),
+                          AnimatedRotation(
+                            turns: _showAllDrinks ? 0.5 : 0,
+                            duration: const Duration(milliseconds: 250),
+                            child: Icon(
+                              Icons.keyboard_arrow_down_rounded,
+                              size: 18,
+                              color: NV.accent,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
+              );
+            }),
             // ── Notes (optional) ──
             const SizedBox(height: NVSpace.x4),
             NVEyebrow('Notes (optional)', color: c.textMuted),
