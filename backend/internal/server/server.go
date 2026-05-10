@@ -79,7 +79,7 @@ func New(cfg config.Config, store *db.Store, logger *slog.Logger) *App {
 		validate:       validator.New(validator.WithRequiredStructEnabled()),
 		tokenizer:      auth.NewTokenManager(cfg.JWTSecret, cfg.AccessTokenTTL),
 		authLimit:      newRateLimiter(10, time.Minute),
-		aiLimit:        newRateLimiter(20, time.Hour),
+		aiLimit:        newRateLimiter(20, 24*time.Hour),
 		lockouts:       newLoginLockouts(5, 15*time.Minute),
 		scheduler:      jobs.NewNoopReminderScheduler(logger),
 		push:           push,

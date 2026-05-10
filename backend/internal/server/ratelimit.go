@@ -32,6 +32,9 @@ func newRateLimiter(limit int, window time.Duration) *rateLimiter {
 func (l *rateLimiter) middleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		key := clientIP(r)
+		if claims := authFromContext(r.Context()); claims != nil {
+			key = claims.UserID.String()
+		}
 		now := time.Now()
 
 		l.mu.Lock()
