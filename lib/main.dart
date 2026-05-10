@@ -12,6 +12,7 @@ import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import 'core/analytics/analytics_service.dart';
 import 'core/api/api_client.dart';
+import 'core/api/version_check.dart';
 import 'core/notifications/fcm_notification_service.dart';
 import 'core/notifications/notification_service.dart';
 import 'core/providers/auth_provider.dart';
@@ -146,6 +147,9 @@ class _NutrimateAppState extends State<NutrimateApp> {
       if (route != null && route.trim().isNotEmpty) {
         _router.go(route);
       }
+      
+      final api = ApiClient(tokenStorage: const SecureTokenStorage());
+      VersionCheckService(api).checkVersion(context);
     });
   }
 
