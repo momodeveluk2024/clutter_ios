@@ -60,7 +60,7 @@ class NotificationService {
 
     // ── Android init ───────────────────────────────────────────
     const androidSettings = AndroidInitializationSettings(
-      '@mipmap/ic_launcher',
+      '@drawable/notification_logo',
     );
 
     // ── iOS / macOS init ───────────────────────────────────────
