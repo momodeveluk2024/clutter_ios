@@ -88,8 +88,12 @@ class _AppShellState extends State<AppShell> {
     }
     final completed = await TourPrefs.hasCompletedTour();
     if (!completed && mounted) {
-      // Small delay so the home screen has time to lay out its widgets
-      await Future.delayed(const Duration(milliseconds: 600));
+      // Wait a generous amount of time so the home screen data has loaded
+      // and Impeller has finished compiling shaders for the complex UI.
+      // On first install, shader compilation alone can take several seconds
+      // on MIUI/Xiaomi devices with Impeller, and starting a dialog overlay
+      // during that window causes an ANR.
+      await Future.delayed(const Duration(seconds: 8));
       if (mounted) _runTour();
     }
   }

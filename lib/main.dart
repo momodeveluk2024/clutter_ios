@@ -103,7 +103,12 @@ Future<void> _initializeNotificationsAfterFirstFrame(
   NotificationProvider notificationProvider, {
   required bool isAuthenticated,
 }) async {
-  await WidgetsBinding.instance.endOfFrame;
+  // Wait well past the critical first-render window. On first install,
+  // Impeller shader compilation + the HomeScreen data load can block the
+  // main thread for several seconds. Running notification channel creation
+  // (platform channel calls) during that window pushes the device over
+  // the ANR threshold on MIUI.
+  await Future.delayed(const Duration(seconds: 5));
   await NotificationService.instance.initialize();
   await notificationProvider.initialize();
   await notificationProvider.handleAuthChanged(

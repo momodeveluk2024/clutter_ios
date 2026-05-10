@@ -38,7 +38,7 @@ class _HomeScreenState extends State<HomeScreen> {
     // competes with Impeller shader compilation and Activity resume on the
     // Android main thread, causing ANR on MIUI devices.
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      Future.delayed(const Duration(milliseconds: 800), () {
+      Future.delayed(const Duration(seconds: 3), () {
         if (mounted) _refresh();
       });
     });
