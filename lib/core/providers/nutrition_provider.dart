@@ -124,6 +124,7 @@ class NutritionProvider extends ChangeNotifier {
     required String mealType,
     DateTime? date,
     String? pairedDrink,
+    int pairedDrinkQuantity = 1,
     String? notes,
   }) async {
     final items = [
@@ -133,7 +134,7 @@ class NutritionProvider extends ChangeNotifier {
     if (pairedDrink != null && drinkFoodIds.containsKey(pairedDrink)) {
       items.add({
         'food_id': drinkFoodIds[pairedDrink]!,
-        'serving_g': 330.0, // standard can/glass serving size in ml/g
+        'serving_g': 330.0 * pairedDrinkQuantity, // standard can/glass serving size in ml/g
       });
     }
 

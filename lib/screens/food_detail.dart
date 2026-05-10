@@ -638,6 +638,7 @@ class _LogFoodSheetState extends State<_LogFoodSheet> {
   double _servingG = 100;
   DateTime _loggedOn = DateTime.now();
   String? _pairedDrink;
+  int _drinkQuantity = 1;
   bool _showAllDrinks = false;
   final _notesController = TextEditingController();
   bool _saving = false;
@@ -668,6 +669,7 @@ class _LogFoodSheetState extends State<_LogFoodSheet> {
         mealType: _mealType,
         date: _loggedOn,
         pairedDrink: _pairedDrink,
+        pairedDrinkQuantity: _drinkQuantity,
         notes: _notesController.text.trim(),
       );
       if (!mounted) return;
@@ -796,7 +798,7 @@ class _LogFoodSheetState extends State<_LogFoodSheet> {
       if (macros != null) {
         for (final entry in macros.entries) {
           final code = entry.key;
-          final added = entry.value * (330.0 / 100);
+          final added = entry.value * (330.0 / 100) * _drinkQuantity;
           if (added <= 0) continue;
 
           final existing = projected[code];
@@ -1037,42 +1039,85 @@ class _LogFoodSheetState extends State<_LogFoodSheet> {
                             label: drink.$2,
                             selected: _pairedDrink == drink.$2,
                             onTap: () => setState(() {
-                              _pairedDrink =
-                                  _pairedDrink == drink.$2 ? null : drink.$2;
+                              if (_pairedDrink == drink.$2) {
+                                _pairedDrink = null;
+                                _drinkQuantity = 1;
+                              } else {
+                                _pairedDrink = drink.$2;
+                                _drinkQuantity = 1;
+                              }
                             }),
                           ),
                       ],
                     ),
                   ),
                   const SizedBox(height: 6),
-                  GestureDetector(
-                    onTap: () => setState(() => _showAllDrinks = !_showAllDrinks),
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(vertical: 4),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Text(
-                            _showAllDrinks ? 'Show less' : 'Show more',
-                            style: TextStyle(
-                              fontSize: 13,
-                              fontWeight: FontWeight.w600,
-                              color: NV.accent,
-                            ),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      GestureDetector(
+                        onTap: () => setState(() => _showAllDrinks = !_showAllDrinks),
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 4),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Text(
+                                _showAllDrinks ? 'Show less' : 'Show more',
+                                style: TextStyle(
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w600,
+                                  color: NV.accent,
+                                ),
+                              ),
+                              const SizedBox(width: 4),
+                              AnimatedRotation(
+                                turns: _showAllDrinks ? 0.5 : 0,
+                                duration: const Duration(milliseconds: 250),
+                                child: Icon(
+                                  Icons.keyboard_arrow_down_rounded,
+                                  size: 18,
+                                  color: NV.accent,
+                                ),
+                              ),
+                            ],
                           ),
-                          const SizedBox(width: 4),
-                          AnimatedRotation(
-                            turns: _showAllDrinks ? 0.5 : 0,
-                            duration: const Duration(milliseconds: 250),
-                            child: Icon(
-                              Icons.keyboard_arrow_down_rounded,
-                              size: 18,
-                              color: NV.accent,
-                            ),
-                          ),
-                        ],
+                        ),
                       ),
-                    ),
+                      if (_pairedDrink != null)
+                        Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            IconButton(
+                              onPressed: _drinkQuantity > 1
+                                  ? () => setState(() => _drinkQuantity--)
+                                  : null,
+                              icon: const Icon(Icons.remove_rounded, size: 20),
+                              padding: EdgeInsets.zero,
+                              constraints: const BoxConstraints(),
+                              color: NV.accent,
+                              disabledColor: c.textMuted.withValues(alpha: 0.3),
+                            ),
+                            Padding(
+                              padding: const EdgeInsets.symmetric(horizontal: 12),
+                              child: Text(
+                                '$_drinkQuantity',
+                                style: nvNumber(15, color: c.text, weight: FontWeight.w700),
+                              ),
+                            ),
+                            IconButton(
+                              onPressed: _drinkQuantity < 10
+                                  ? () => setState(() => _drinkQuantity++)
+                                  : null,
+                              icon: const Icon(Icons.add_rounded, size: 20),
+                              padding: EdgeInsets.zero,
+                              constraints: const BoxConstraints(),
+                              color: NV.accent,
+                              disabledColor: c.textMuted.withValues(alpha: 0.3),
+                            ),
+                          ],
+                        ),
+                    ],
                   ),
                 ],
               );
