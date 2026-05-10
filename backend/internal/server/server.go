@@ -211,6 +211,7 @@ func buildAIProvider(cfg config.Config, logger *slog.Logger) aipkg.Provider {
 		provider, err := aipkg.NewGeminiProvider(context.Background(), aipkg.GeminiConfig{
 			Project:  cfg.GoogleProject,
 			Location: cfg.GoogleLocation,
+			APIKey:   cfg.GeminiAPIKey,
 			Model:    cfg.GeminiModelFast,
 			Timeout:  45 * time.Second,
 		})

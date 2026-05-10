@@ -175,6 +175,7 @@ class FcmNotificationService {
     final notification = message.notification;
     String? title = notification?.title?.trim();
     String? body = notification?.body?.trim();
+    String? imageUrl = notification?.android?.imageUrl ?? notification?.apple?.imageUrl;
 
     // Data-only fallback: the server test push sends title/body in the
     // notification envelope, but some OEMs strip it. Also handles
@@ -184,6 +185,9 @@ class FcmNotificationService {
     }
     if ((body == null || body.isEmpty) && message.data.containsKey('body')) {
       body = (message.data['body'] as String?)?.trim();
+    }
+    if ((imageUrl == null || imageUrl.isEmpty) && message.data.containsKey('image')) {
+      imageUrl = (message.data['image'] as String?)?.trim();
     }
 
     // Last resort: if we still have nothing displayable, use a generic
@@ -206,6 +210,7 @@ class FcmNotificationService {
       title: (title != null && title.isNotEmpty) ? title : 'Nutrimate',
       body: body ?? '',
       payload: FcmNotificationRouter.routeForData(message.data),
+      imageUrl: imageUrl,
     );
   }
 

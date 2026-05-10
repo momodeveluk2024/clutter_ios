@@ -8,6 +8,8 @@ library;
 
 import 'dart:async';
 
+import 'package:dio/dio.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:flutter_timezone/flutter_timezone.dart';
 import 'package:timezone/data/latest_all.dart' as tz;
@@ -202,7 +204,32 @@ class NotificationService {
     required String title,
     required String body,
     String? payload,
+    String? imageUrl,
   }) async {
+    StyleInformation styleInformation = BigTextStyleInformation(body);
+    AndroidBitmap<Object>? largeIcon = const DrawableResourceAndroidBitmap('notification_logo');
+
+    if (imageUrl != null && imageUrl.isNotEmpty) {
+      try {
+        final dio = Dio();
+        final response = await dio.get<List<int>>(
+          imageUrl,
+          options: Options(responseType: ResponseType.bytes),
+        );
+        if (response.data != null) {
+          final byteArray = Uint8List.fromList(response.data!);
+          styleInformation = BigPictureStyleInformation(
+            ByteArrayAndroidBitmap(byteArray),
+            largeIcon: largeIcon,
+            contentTitle: title,
+            summaryText: body,
+          );
+        }
+      } catch (e) {
+        if (kDebugMode) debugPrint('[FCM] failed to load image for notification: $e');
+      }
+    }
+
     await _plugin.show(
       id: id,
       title: title,
@@ -213,7 +240,8 @@ class NotificationService {
           _channelName(channelId),
           importance: Importance.high,
           priority: Priority.high,
-          styleInformation: BigTextStyleInformation(body),
+          styleInformation: styleInformation,
+          largeIcon: largeIcon,
         ),
       ),
       payload: payload,

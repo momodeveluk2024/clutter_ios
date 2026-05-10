@@ -13,6 +13,7 @@ import (
 type GeminiConfig struct {
 	Project  string
 	Location string
+	APIKey   string
 	Model    string
 	Timeout  time.Duration
 }
@@ -24,20 +25,31 @@ type GeminiProvider struct {
 }
 
 func NewGeminiProvider(ctx context.Context, cfg GeminiConfig) (*GeminiProvider, error) {
-	if strings.TrimSpace(cfg.Project) == "" {
-		return nil, errors.New("google cloud project is required")
-	}
-	if strings.TrimSpace(cfg.Location) == "" {
-		return nil, errors.New("google cloud location is required")
-	}
 	if strings.TrimSpace(cfg.Model) == "" {
 		cfg.Model = "gemini-2.5-flash"
 	}
-	client, err := genai.NewClient(ctx, &genai.ClientConfig{
-		Project:  cfg.Project,
-		Location: cfg.Location,
-		Backend:  genai.BackendVertexAI,
-	})
+	
+	var clientCfg *genai.ClientConfig
+	if cfg.APIKey != "" {
+		clientCfg = &genai.ClientConfig{
+			APIKey:  cfg.APIKey,
+			Backend: genai.BackendGeminiAPI,
+		}
+	} else {
+		if strings.TrimSpace(cfg.Project) == "" {
+			return nil, errors.New("google cloud project is required")
+		}
+		if strings.TrimSpace(cfg.Location) == "" {
+			return nil, errors.New("google cloud location is required")
+		}
+		clientCfg = &genai.ClientConfig{
+			Project:  cfg.Project,
+			Location: cfg.Location,
+			Backend:  genai.BackendVertexAI,
+		}
+	}
+
+	client, err := genai.NewClient(ctx, clientCfg)
 	if err != nil {
 		return nil, err
 	}
