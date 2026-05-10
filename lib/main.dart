@@ -67,9 +67,13 @@ Future<void> main() async {
 
   final notificationProvider = NotificationProvider(api: api);
   authProvider.addListener(() {
-    notificationProvider.handleAuthChanged(
-      isAuthenticated: authProvider.isAuthenticated,
-    );
+    // Defer notification sync so it doesn't compete with the heavy
+    // login route transition on the Android main thread.
+    Future.delayed(const Duration(seconds: 2), () {
+      notificationProvider.handleAuthChanged(
+        isAuthenticated: authProvider.isAuthenticated,
+      );
+    });
   });
 
   final app = NutrimateApp(
