@@ -72,7 +72,11 @@ class NotificationProvider extends ChangeNotifier {
     if (_lastAuthenticated == isAuthenticated) return;
     _lastAuthenticated = isAuthenticated;
     if (isAuthenticated) {
-      await syncRemotePushDevice();
+      // Detach and delay FCM token sync to prevent severe thread contention/ANRs
+      // on certain Android devices during the heavy login routing and tutorial rendering phase.
+      Future.delayed(const Duration(seconds: 3), () async {
+        await syncRemotePushDevice();
+      });
       await _loadServerPreferences();
       notifyListeners();
     } else {
