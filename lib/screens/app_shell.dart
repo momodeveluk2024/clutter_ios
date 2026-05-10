@@ -51,6 +51,11 @@ class AppShell extends StatefulWidget {
 class _AppShellState extends State<AppShell> {
   late int _index = widget.initialTab;
 
+  /// Tracks which tabs have been mounted. Tabs not yet visited are rendered
+  /// as empty SizedBox placeholders inside the IndexedStack, preventing
+  /// their initState (and heavy API calls) from firing until needed.
+  final Set<int> _visitedTabs = {0}; // Home is always visited first
+
   static const _tabs = <_TabItem>[
     _TabItem('Home', Icons.home_outlined, Icons.home),
     _TabItem('Explore', Icons.explore_outlined, Icons.explore),
@@ -157,13 +162,21 @@ class _AppShellState extends State<AppShell> {
   Widget build(BuildContext context) {
     final dark = Theme.of(context).brightness == Brightness.dark;
     final c = NVColors(dark);
-    final pages = const [
+    const allPages = <Widget>[
       HomeScreen(),
       ExploreScreen(),
       TrackerScreen(),
       FavoritesScreen(),
       ProfileScreen(),
     ];
+
+    // Only materialize pages that the user has actually visited.
+    // This prevents IndexedStack from running initState() on all 5 tabs
+    // simultaneously at login, which was causing 20+ concurrent API
+    // requests and a 149KB JSON parse on the main thread → ANR.
+    final pages = List<Widget>.generate(allPages.length, (i) {
+      return _visitedTabs.contains(i) ? allPages[i] : const SizedBox.shrink();
+    });
 
     // Map tab indices to their GlobalKeys (only for tabs 1–4)
     final tabKeys = <int, GlobalKey>{
@@ -177,7 +190,10 @@ class _AppShellState extends State<AppShell> {
       switchTab: (i) {
         if (i >= 0 && i < _tabs.length && i != _index) {
           HapticFeedback.selectionClick();
-          setState(() => _index = i);
+          setState(() {
+            _index = i;
+            _visitedTabs.add(i);
+          });
           _refreshTab(context, i);
         }
       },
@@ -208,7 +224,10 @@ class _AppShellState extends State<AppShell> {
                     key: tabKeys[i],
                     onTap: () {
                       HapticFeedback.selectionClick();
-                      setState(() => _index = i);
+                      setState(() {
+                        _index = i;
+                        _visitedTabs.add(i);
+                      });
                       _refreshTab(context, i);
                     },
                     borderRadius: BorderRadius.circular(12),

@@ -27,7 +27,9 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
       final foodProvider = context.read<FoodProvider>();
       foodProvider.loadFavorites();
       foodProvider.loadUserMeals();
-      context.read<NutritionProvider>().refreshDashboard();
+      // Removed: refreshDashboard() was called here but FavoritesScreen
+      // doesn't render dashboard data. It was causing triplicate API
+      // requests alongside Home and Tracker screens.
     });
   }
 
