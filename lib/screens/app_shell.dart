@@ -12,7 +12,6 @@ import 'explore.dart';
 import 'tracker.dart';
 import 'favorites.dart';
 import 'profile.dart';
-import '../widgets/nv_loader.dart';
 
 /// Allows child widgets to switch the active tab without routing.
 /// Usage: AppShellScope.of(context)?.switchTab(4);
@@ -51,8 +50,6 @@ class AppShell extends StatefulWidget {
 
 class _AppShellState extends State<AppShell> {
   late int _index = widget.initialTab;
-  static bool _hasWarmedUp = false;
-  late bool _isWarmingUp;
 
   static const _tabs = <_TabItem>[
     _TabItem('Home', Icons.home_outlined, Icons.home),
@@ -65,16 +62,7 @@ class _AppShellState extends State<AppShell> {
   @override
   void initState() {
     super.initState();
-    _isWarmingUp = !_hasWarmedUp;
-    if (_isWarmingUp) {
-      _hasWarmedUp = true;
-      Future.delayed(const Duration(milliseconds: 3500), () {
-        if (mounted) setState(() => _isWarmingUp = false);
-        _maybeStartTour();
-      });
-    } else {
-      WidgetsBinding.instance.addPostFrameCallback((_) => _maybeStartTour());
-    }
+    WidgetsBinding.instance.addPostFrameCallback((_) => _maybeStartTour());
   }
 
   @override
@@ -84,9 +72,7 @@ class _AppShellState extends State<AppShell> {
       _index = widget.initialTab;
     }
     if (widget.startTour && !oldWidget.startTour) {
-      if (!_isWarmingUp) {
-        WidgetsBinding.instance.addPostFrameCallback((_) => _runTour());
-      }
+      WidgetsBinding.instance.addPostFrameCallback((_) => _runTour());
     }
   }
 
@@ -186,17 +172,6 @@ class _AppShellState extends State<AppShell> {
       3: AppShell.savedTabKey,
       4: AppShell.profileTabKey,
     };
-
-    if (_isWarmingUp) {
-      return Scaffold(
-        backgroundColor: c.bg,
-        body: Center(
-          child: NVLoader(
-            label: 'Setting up your profile...\nGetting everything ready.',
-          ),
-        ),
-      );
-    }
 
     return AppShellScope(
       switchTab: (i) {
