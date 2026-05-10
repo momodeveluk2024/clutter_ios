@@ -235,11 +235,12 @@ class _SpotlightPainter extends CustomPainter {
       Radius.circular(radius),
     );
 
-    final fullPath = Path()..addRect(Offset.zero & size);
-    final cutoutPath = Path()..addRRect(spotlight);
-    final combined = Path.combine(PathOperation.difference, fullPath, cutoutPath);
+    final path = Path()
+      ..addRect(Offset.zero & size)
+      ..addRRect(spotlight)
+      ..fillType = PathFillType.evenOdd;
 
-    canvas.drawPath(combined, paint);
+    canvas.drawPath(path, paint);
   }
 
   @override
