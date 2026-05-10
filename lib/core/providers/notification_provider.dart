@@ -37,10 +37,8 @@ class NotificationProvider extends ChangeNotifier {
 
   /// Load all saved prefs and request permission if first time.
   Future<void> initialize() async {
-    if (_api != null) {
-      await FcmNotificationService.instance.initialize(api: _api);
-      remotePushAvailable = FcmNotificationService.instance.available;
-    }
+    // FCM initialization is now deferred to syncRemotePushDevice() to
+    // completely prevent Android thread contention during app boot.
 
     mealReminders = await NotificationPrefs.getMealReminders();
     nutrientTips = await NotificationPrefs.getNutrientTips();
@@ -76,8 +74,10 @@ class NotificationProvider extends ChangeNotifier {
     if (isAuthenticated) {
       // Detach and delay FCM token sync to prevent severe thread contention/ANRs
       // on certain Android devices during the heavy login routing and tutorial rendering phase.
-      Future.delayed(const Duration(seconds: 3), () async {
-        await syncRemotePushDevice();
+      // Increased to 15 seconds to ensure all Impeller shader compilation and
+      // route transitions have completely finished.
+      Future.delayed(const Duration(seconds: 15), () {
+        syncRemotePushDevice();
       });
       await _loadServerPreferences();
       notifyListeners();
@@ -92,6 +92,10 @@ class NotificationProvider extends ChangeNotifier {
 
   Future<void> syncRemotePushDevice() async {
     try {
+      if (_api != null && !FcmNotificationService.instance.available) {
+        await FcmNotificationService.instance.initialize(api: _api!);
+        remotePushAvailable = FcmNotificationService.instance.available;
+      }
       await FcmNotificationService.instance.registerCurrentDevice();
       remoteError = null;
     } catch (error) {
