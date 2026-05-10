@@ -67,13 +67,9 @@ Future<void> main() async {
 
   final notificationProvider = NotificationProvider(api: api);
   authProvider.addListener(() {
-    // Defer notification sync so it doesn't compete with the heavy
-    // login route transition on the Android main thread.
-    Future.delayed(const Duration(seconds: 2), () {
-      notificationProvider.handleAuthChanged(
-        isAuthenticated: authProvider.isAuthenticated,
-      );
-    });
+    notificationProvider.handleAuthChanged(
+      isAuthenticated: authProvider.isAuthenticated,
+    );
   });
 
   final app = NutrimateApp(
@@ -103,12 +99,7 @@ Future<void> _initializeNotificationsAfterFirstFrame(
   NotificationProvider notificationProvider, {
   required bool isAuthenticated,
 }) async {
-  // Wait well past the critical first-render window. On first install,
-  // Impeller shader compilation + the HomeScreen data load can block the
-  // main thread for several seconds. Running notification channel creation
-  // (platform channel calls) during that window pushes the device over
-  // the ANR threshold on MIUI.
-  await Future.delayed(const Duration(seconds: 5));
+  await WidgetsBinding.instance.endOfFrame;
   await NotificationService.instance.initialize();
   await notificationProvider.initialize();
   await notificationProvider.handleAuthChanged(

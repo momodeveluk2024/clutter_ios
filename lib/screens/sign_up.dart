@@ -100,7 +100,6 @@ class _SignUpScreenState extends State<SignUpScreen>
       ),
       child: Scaffold(
         backgroundColor: c.bg,
-        resizeToAvoidBottomInset: false,
         body: FadeTransition(
           opacity: _entryAnim,
           child: Form(
@@ -134,10 +133,7 @@ class _SignUpScreenState extends State<SignUpScreen>
                 // ── Scrollable Form ──
                 Positioned.fill(
                   child: ListView(
-                    padding: EdgeInsets.only(
-                      top: heroH,
-                      bottom: media.viewInsets.bottom + 20,
-                    ),
+                    padding: EdgeInsets.only(top: heroH),
                     physics: const BouncingScrollPhysics(),
                     children: [
                       ClipRRect(

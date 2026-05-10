@@ -26,12 +26,6 @@ class AuthProvider extends ChangeNotifier {
   bool _initialized = false;
   StreamSubscription<firebase_auth.User?>? _authSub;
 
-  /// After the first auth event (handled during initialize()), subsequent
-  /// sign-in events should NOT call loadMe() because login()/signInWithGoogle()
-  /// already handle it. This prevents a double-loadMe race and reduces the
-  /// API burst during the critical Activity-resume window on Android.
-  bool _firstAuthEventHandled = false;
-
   /// Whether the initial verification email was successfully sent during signup.
   /// If false, the VerifyEmailScreen should auto-send on mount.
   bool _verificationEmailSent = false;
@@ -74,10 +68,7 @@ class AuthProvider extends ChangeNotifier {
     _authSub = _firebaseAuth.authStateChanges().listen((firebaseUser) async {
       if (firebaseUser == null) {
         _user = null;
-      } else if (!_firstAuthEventHandled) {
-        // Only call loadMe() for the very first auth event (app cold start).
-        // Subsequent sign-ins are handled by login()/signInWithGoogle() which
-        // already call loadMe() themselves.
+      } else {
         try {
           await loadMe();
         } catch (_) {
@@ -85,7 +76,6 @@ class AuthProvider extends ChangeNotifier {
         }
       }
       _initialized = true;
-      _firstAuthEventHandled = true;
       notifyListeners();
       if (!completer.isCompleted) completer.complete();
     });

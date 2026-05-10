@@ -32,16 +32,7 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   void initState() {
     super.initState();
-    // Defer the initial data load to give the Android Activity time to fully
-    // settle after login transitions (especially Google Sign-In which resumes
-    // the Activity from the background). Without this delay, the API burst
-    // competes with Impeller shader compilation and Activity resume on the
-    // Android main thread, causing ANR on MIUI devices.
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      Future.delayed(const Duration(seconds: 3), () {
-        if (mounted) _refresh();
-      });
-    });
+    WidgetsBinding.instance.addPostFrameCallback((_) => _refresh());
   }
 
   Future<void> _refresh() =>

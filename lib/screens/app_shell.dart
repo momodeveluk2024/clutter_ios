@@ -12,6 +12,7 @@ import 'explore.dart';
 import 'tracker.dart';
 import 'favorites.dart';
 import 'profile.dart';
+import '../widgets/nv_loader.dart';
 
 /// Allows child widgets to switch the active tab without routing.
 /// Usage: AppShellScope.of(context)?.switchTab(4);
@@ -50,11 +51,8 @@ class AppShell extends StatefulWidget {
 
 class _AppShellState extends State<AppShell> {
   late int _index = widget.initialTab;
-
-  /// Tracks which tabs have been mounted. Tabs not yet visited are rendered
-  /// as empty SizedBox placeholders inside the IndexedStack, preventing
-  /// their initState (and heavy API calls) from firing until needed.
-  final Set<int> _visitedTabs = {0}; // Home is always visited first
+  static bool _hasWarmedUp = false;
+  late bool _isWarmingUp;
 
   static const _tabs = <_TabItem>[
     _TabItem('Home', Icons.home_outlined, Icons.home),
@@ -67,7 +65,16 @@ class _AppShellState extends State<AppShell> {
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) => _maybeStartTour());
+    _isWarmingUp = !_hasWarmedUp;
+    if (_isWarmingUp) {
+      _hasWarmedUp = true;
+      Future.delayed(const Duration(milliseconds: 3500), () {
+        if (mounted) setState(() => _isWarmingUp = false);
+        _maybeStartTour();
+      });
+    } else {
+      WidgetsBinding.instance.addPostFrameCallback((_) => _maybeStartTour());
+    }
   }
 
   @override
@@ -77,7 +84,9 @@ class _AppShellState extends State<AppShell> {
       _index = widget.initialTab;
     }
     if (widget.startTour && !oldWidget.startTour) {
-      WidgetsBinding.instance.addPostFrameCallback((_) => _runTour());
+      if (!_isWarmingUp) {
+        WidgetsBinding.instance.addPostFrameCallback((_) => _runTour());
+      }
     }
   }
 
@@ -88,12 +97,8 @@ class _AppShellState extends State<AppShell> {
     }
     final completed = await TourPrefs.hasCompletedTour();
     if (!completed && mounted) {
-      // Wait a generous amount of time so the home screen data has loaded
-      // and Impeller has finished compiling shaders for the complex UI.
-      // On first install, shader compilation alone can take several seconds
-      // on MIUI/Xiaomi devices with Impeller, and starting a dialog overlay
-      // during that window causes an ANR.
-      await Future.delayed(const Duration(seconds: 8));
+      // Small delay so the home screen has time to lay out its widgets
+      await Future.delayed(const Duration(milliseconds: 600));
       if (mounted) _runTour();
     }
   }
@@ -166,21 +171,13 @@ class _AppShellState extends State<AppShell> {
   Widget build(BuildContext context) {
     final dark = Theme.of(context).brightness == Brightness.dark;
     final c = NVColors(dark);
-    const allPages = <Widget>[
+    final pages = const [
       HomeScreen(),
       ExploreScreen(),
       TrackerScreen(),
       FavoritesScreen(),
       ProfileScreen(),
     ];
-
-    // Only materialize pages that the user has actually visited.
-    // This prevents IndexedStack from running initState() on all 5 tabs
-    // simultaneously at login, which was causing 20+ concurrent API
-    // requests and a 149KB JSON parse on the main thread → ANR.
-    final pages = List<Widget>.generate(allPages.length, (i) {
-      return _visitedTabs.contains(i) ? allPages[i] : const SizedBox.shrink();
-    });
 
     // Map tab indices to their GlobalKeys (only for tabs 1–4)
     final tabKeys = <int, GlobalKey>{
@@ -190,14 +187,22 @@ class _AppShellState extends State<AppShell> {
       4: AppShell.profileTabKey,
     };
 
+    if (_isWarmingUp) {
+      return Scaffold(
+        backgroundColor: c.bg,
+        body: Center(
+          child: NVLoader(
+            label: 'Setting up your profile...\nGetting everything ready.',
+          ),
+        ),
+      );
+    }
+
     return AppShellScope(
       switchTab: (i) {
         if (i >= 0 && i < _tabs.length && i != _index) {
           HapticFeedback.selectionClick();
-          setState(() {
-            _index = i;
-            _visitedTabs.add(i);
-          });
+          setState(() => _index = i);
           _refreshTab(context, i);
         }
       },
@@ -228,10 +233,7 @@ class _AppShellState extends State<AppShell> {
                     key: tabKeys[i],
                     onTap: () {
                       HapticFeedback.selectionClick();
-                      setState(() {
-                        _index = i;
-                        _visitedTabs.add(i);
-                      });
+                      setState(() => _index = i);
                       _refreshTab(context, i);
                     },
                     borderRadius: BorderRadius.circular(12),

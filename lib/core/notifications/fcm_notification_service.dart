@@ -61,16 +61,13 @@ class FcmNotificationService {
 
     // Request permission early — on MIUI/Xiaomi and Android 13+ this is
     // required before any notification (local or FCM) can be displayed.
-    // Detached from await to prevent blocking app startup if the user
-    // ignores the dialog while doing other things.
-    _messaging!.requestPermission(
+    final settings = await _messaging!.requestPermission(
       alert: true,
       badge: true,
       sound: true,
       provisional: false,
-    ).then((settings) {
-      if (kDebugMode) debugPrint('[FCM] permission status: ${settings.authorizationStatus}');
-    });
+    );
+    if (kDebugMode) debugPrint('[FCM] permission status: ${settings.authorizationStatus}');
 
     // On Android, ensure foreground messages can show heads-up banners.
     await _messaging!.setForegroundNotificationPresentationOptions(
@@ -95,17 +92,13 @@ class FcmNotificationService {
     final messaging = _messaging;
     if (messaging == null) return;
 
-    // Detach these heavy platform calls so they don't block initialization
-    messaging.getToken().then((token) {
-      if (kDebugMode) debugPrint('[FCM] device token: ${token?.substring(0, 20)}...');
-    }).catchError((_) {});
+    final token = await messaging.getToken();
+    if (kDebugMode) debugPrint('[FCM] device token: ${token?.substring(0, 20)}...');
 
-    messaging.getInitialMessage().then((initialMessage) {
-      if (initialMessage != null) {
-        _pendingRoute = FcmNotificationRouter.routeForData(initialMessage.data);
-      }
-    }).catchError((_) {});
-
+    final initialMessage = await messaging.getInitialMessage();
+    if (initialMessage != null) {
+      _pendingRoute = FcmNotificationRouter.routeForData(initialMessage.data);
+    }
     _tokenRefreshSub = messaging.onTokenRefresh.listen(
       (token) => registerCurrentDevice(tokenOverride: token),
     );

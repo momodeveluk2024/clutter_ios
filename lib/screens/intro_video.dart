@@ -59,13 +59,7 @@ class _IntroVideoScreenState extends State<IntroVideoScreen> {
   @override
   void dispose() {
     _controller.removeListener(_onTick);
-    // Immediately stop playback, but detach and delay the actual hardware
-    // decoder teardown. On some Android devices (especially Xiaomi/MIUI),
-    // destroying the MediaCodec simultaneously during a heavy Flutter route
-    // transition causes massive GPU contention and an ANR (Signal 3).
-    _controller.pause();
-    final c = _controller;
-    Future.delayed(const Duration(seconds: 3), () => c.dispose());
+    _controller.dispose();
     super.dispose();
   }
 

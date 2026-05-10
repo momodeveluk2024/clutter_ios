@@ -20,25 +20,7 @@ class NutritionProvider extends ChangeNotifier {
   bool isLoading = false;
   String? error;
 
-  /// Guards against concurrent refreshDashboard() calls. When the Home
-  /// screen's initState and the auth-state listener both trigger a refresh
-  /// in the same frame, the second call joins the first instead of firing
-  /// duplicate API requests.
-  Future<void>? _pendingRefresh;
-
-  Future<void> refreshDashboard({DateTime? date}) {
-    // If a refresh is already in progress for the same date, join it.
-    final targetDate = _dateOnly(date ?? selectedDate);
-    if (_pendingRefresh != null && targetDate == selectedDate) {
-      return _pendingRefresh!;
-    }
-    _pendingRefresh = _doRefreshDashboard(date: date).whenComplete(() {
-      _pendingRefresh = null;
-    });
-    return _pendingRefresh!;
-  }
-
-  Future<void> _doRefreshDashboard({DateTime? date}) async {
+  Future<void> refreshDashboard({DateTime? date}) async {
     selectedDate = _dateOnly(date ?? selectedDate);
     final day = _dateString(selectedDate);
     isLoading = true;
