@@ -99,6 +99,7 @@ class _SignInScreenState extends State<SignInScreen>
       ),
       child: Scaffold(
         backgroundColor: c.bg,
+        resizeToAvoidBottomInset: false,
         body: FadeTransition(
           opacity: _entryAnim,
           child: Form(
@@ -133,7 +134,10 @@ class _SignInScreenState extends State<SignInScreen>
                 // ── Scrollable Form ──
                 Positioned.fill(
                   child: ListView(
-                    padding: EdgeInsets.only(top: heroH),
+                    padding: EdgeInsets.only(
+                      top: heroH,
+                      bottom: media.viewInsets.bottom + 20,
+                    ),
                     physics: const BouncingScrollPhysics(),
                     children: [
                       Container(

@@ -223,24 +223,23 @@ class _SpotlightPainter extends CustomPainter {
 
   @override
   void paint(Canvas canvas, Size size) {
+    // We use saveLayer and BlendMode.clear instead of Path operations
+    // to avoid severe GPU freezing bugs in Impeller on certain Android devices.
     final paint = Paint()..color = Colors.black.withValues(alpha: opacity);
 
-    if (targetRect == null) {
-      canvas.drawRect(Offset.zero & size, paint);
-      return;
+    canvas.saveLayer(Offset.zero & size, Paint());
+    canvas.drawRect(Offset.zero & size, paint);
+
+    if (targetRect != null) {
+      final holePaint = Paint()..blendMode = BlendMode.clear;
+      final spotlight = RRect.fromRectAndRadius(
+        targetRect!.inflate(padding),
+        Radius.circular(radius),
+      );
+      canvas.drawRRect(spotlight, holePaint);
     }
 
-    final spotlight = RRect.fromRectAndRadius(
-      targetRect!.inflate(padding),
-      Radius.circular(radius),
-    );
-
-    final path = Path()
-      ..addRect(Offset.zero & size)
-      ..addRRect(spotlight)
-      ..fillType = PathFillType.evenOdd;
-
-    canvas.drawPath(path, paint);
+    canvas.restore();
   }
 
   @override
