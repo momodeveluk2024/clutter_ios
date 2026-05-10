@@ -23,9 +23,13 @@ class ApiClient {
           final currentUser = firebase_auth.FirebaseAuth.instance.currentUser;
           if (currentUser != null) {
             try {
-              // Force refresh is not strictly needed, but getting the token might throw
-              // if the user was deleted from the Firebase Console.
-              final token = await currentUser.getIdToken();
+              // If multiple API requests fire concurrently (e.g. during login),
+              // deduplicate the token fetch to prevent platform channel flooding.
+              _pendingTokenRequest ??= currentUser.getIdToken().whenComplete(() {
+                _pendingTokenRequest = null;
+              });
+              final token = await _pendingTokenRequest;
+              
               if (token != null) {
                 options.headers['Authorization'] = 'Bearer $token';
               }
@@ -70,6 +74,7 @@ class ApiClient {
   }
 
   final Dio dio;
+  Future<String?>? _pendingTokenRequest;
 
   Future<Response<dynamic>> get(String path, {Map<String, dynamic>? query}) {
     return _guard(() => dio.get<dynamic>(path, queryParameters: query));
