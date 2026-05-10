@@ -57,11 +57,13 @@ class NotificationProvider extends ChangeNotifier {
     isLoading = false;
     notifyListeners();
 
-    // Request permission on first launch
+    // Request permission on first launch. Detach from await so we don't
+    // block initialization (and subsequent auth changes) if the user ignores the dialog.
     final alreadyRequested = await NotificationPrefs.wasPermissionRequested();
     if (!alreadyRequested) {
-      await NotificationService.instance.requestPermission();
-      await NotificationPrefs.markPermissionRequested();
+      NotificationService.instance.requestPermission().then((_) {
+        NotificationPrefs.markPermissionRequested();
+      });
     }
 
     // Schedule based on current prefs
