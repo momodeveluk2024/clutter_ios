@@ -40,6 +40,18 @@ func (a *App) handleAnalyzeMealPhoto(w http.ResponseWriter, r *http.Request) {
 		httpx.WriteError(w, http.StatusServiceUnavailable, "AI assistant is not configured")
 		return
 	}
+
+	count, err := a.store.CountUserAIEstimatesToday(r.Context(), claims.UserID)
+	if err != nil {
+		a.logger.Error("count ai estimates today", "error", err)
+		httpx.WriteError(w, http.StatusInternalServerError, "could not verify rate limits")
+		return
+	}
+	if count >= 20 {
+		httpx.WriteError(w, http.StatusTooManyRequests, "You have reached your daily limit of 20 AI estimates. Please try again tomorrow.")
+		return
+	}
+
 	r.Body = http.MaxBytesReader(w, r.Body, aipkg.MaxMealImageBytes+(1<<20))
 	if err := r.ParseMultipartForm(aipkg.MaxMealImageBytes); err != nil {
 		httpx.WriteError(w, http.StatusBadRequest, "invalid multipart upload")

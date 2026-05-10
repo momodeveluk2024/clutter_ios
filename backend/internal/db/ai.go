@@ -480,3 +480,13 @@ func (s *Store) listAIEstimateItems(ctx context.Context, estimateID uuid.UUID) (
 	}
 	return items, rows.Err()
 }
+
+func (s *Store) CountUserAIEstimatesToday(ctx context.Context, userID uuid.UUID) (int, error) {
+	var count int
+	err := s.pool.QueryRow(ctx, `
+		SELECT COUNT(*)::int
+		FROM ai_estimates
+		WHERE user_id = $1 AND created_at >= CURRENT_DATE
+	`, userID).Scan(&count)
+	return count, err
+}

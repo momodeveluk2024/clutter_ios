@@ -26,6 +26,7 @@ type Config struct {
 	GeminiModelPro          string
 	GeminiModelPreview      string
 	GeminiAPIKey            string
+	GoogleCredentialsJSON   string
 	ClaudeEnabled           bool
 	ClaudeModelFallback     string
 	ClaudeModelCheap        string
@@ -57,6 +58,7 @@ func Load() (Config, error) {
 		GeminiModelPro:          getEnv("GEMINI_MODEL_PRO", "gemini-2.5-pro"),
 		GeminiModelPreview:      getEnv("GEMINI_MODEL_PREVIEW", "gemini-3.1-pro-preview"),
 		GeminiAPIKey:            getEnv("GEMINI_API_KEY", ""),
+		GoogleCredentialsJSON:   getEnv("GOOGLE_APPLICATION_CREDENTIALS_JSON", ""),
 		ClaudeEnabled:           getBoolEnv("CLAUDE_ENABLED", false),
 		ClaudeModelFallback:     getEnv("CLAUDE_MODEL_FALLBACK", "claude-sonnet-4-6"),
 		ClaudeModelCheap:        getEnv("CLAUDE_MODEL_CHEAP", "claude-haiku-4-5"),

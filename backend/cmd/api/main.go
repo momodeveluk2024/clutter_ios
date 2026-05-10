@@ -23,6 +23,16 @@ func main() {
 		os.Exit(1)
 	}
 
+	if cfg.GoogleCredentialsJSON != "" {
+		err := os.WriteFile("google-credentials.json", []byte(cfg.GoogleCredentialsJSON), 0600)
+		if err != nil {
+			logger.Error("write google credentials file", "error", err)
+		} else {
+			os.Setenv("GOOGLE_APPLICATION_CREDENTIALS", "google-credentials.json")
+		}
+	}
+
+
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
 
