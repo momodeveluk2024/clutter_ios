@@ -58,6 +58,9 @@ class AiProvider extends ChangeNotifier {
       final response = await _api.postMultipart(
         ApiEndpoints.aiMealPhotoAnalyze,
         data,
+        // Photo upload + Gemini vision analysis routinely takes 15-40s; the
+        // default 20s timeout was canceling it and surfacing as a 502.
+        timeout: const Duration(seconds: 90),
       );
       currentEstimate = AiMealEstimate.fromJson(
         Map<String, dynamic>.from(response.data as Map),
@@ -119,6 +122,7 @@ class AiProvider extends ChangeNotifier {
           if (conversationId != null) 'conversation_id': conversationId,
           if (estimate != null) 'estimate_id': estimate.id,
         },
+        timeout: const Duration(seconds: 60),
       );
       final raw = Map<String, dynamic>.from(response.data as Map);
       conversationId = raw['conversation_id']?.toString() ?? conversationId;

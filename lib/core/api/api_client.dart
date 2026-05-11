@@ -71,20 +71,48 @@ class ApiClient {
 
   final Dio dio;
 
-  Future<Response<dynamic>> get(String path, {Map<String, dynamic>? query}) {
-    return _guard(() => dio.get<dynamic>(path, queryParameters: query));
+  /// Per-request override for the slow AI endpoints (meal-photo analysis,
+  /// chat, daily meal plan) — those legitimately take far longer than the
+  /// 20s default, and the default was canceling them mid-flight (502s).
+  Options? _timeoutOptions(Duration? timeout, {String? contentType}) {
+    if (timeout == null && contentType == null) return null;
+    return Options(
+      contentType: contentType,
+      receiveTimeout: timeout,
+      sendTimeout: timeout,
+    );
   }
 
-  Future<Response<dynamic>> post(String path, {Object? data}) {
-    return _guard(() => dio.post<dynamic>(path, data: data));
+  Future<Response<dynamic>> get(
+    String path, {
+    Map<String, dynamic>? query,
+    Duration? timeout,
+  }) {
+    return _guard(
+      () => dio.get<dynamic>(
+        path,
+        queryParameters: query,
+        options: _timeoutOptions(timeout),
+      ),
+    );
   }
 
-  Future<Response<dynamic>> postMultipart(String path, FormData data) {
+  Future<Response<dynamic>> post(String path, {Object? data, Duration? timeout}) {
+    return _guard(
+      () => dio.post<dynamic>(path, data: data, options: _timeoutOptions(timeout)),
+    );
+  }
+
+  Future<Response<dynamic>> postMultipart(
+    String path,
+    FormData data, {
+    Duration? timeout,
+  }) {
     return _guard(
       () => dio.post<dynamic>(
         path,
         data: data,
-        options: Options(contentType: 'multipart/form-data'),
+        options: _timeoutOptions(timeout, contentType: 'multipart/form-data'),
       ),
     );
   }

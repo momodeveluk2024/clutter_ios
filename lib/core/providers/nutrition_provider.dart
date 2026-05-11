@@ -102,6 +102,9 @@ class NutritionProvider extends ChangeNotifier {
     final response = await _api.get(
       ApiEndpoints.dailyMealPlan,
       query: {'date': day},
+      // Cached server-side after the first hit, but a cold miss generates via
+      // the model — give it room beyond the 20s default.
+      timeout: const Duration(seconds: 90),
     );
     dailyMealPlan = DailyMealPlan.fromJson(
       Map<String, dynamic>.from(response.data as Map),
