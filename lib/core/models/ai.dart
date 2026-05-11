@@ -104,9 +104,14 @@ class AiEstimateItem {
     );
   }
 
+  /// `true` for items the user just added in the editor — their `id` is a
+  /// placeholder (`local-…`) that the backend cannot parse as a UUID, so we
+  /// strip it on serialisation and let the backend assign a real one.
+  bool get isLocalOnly => id.startsWith('local-');
+
   Map<String, dynamic> toJson() {
     return {
-      if (id.isNotEmpty) 'id': id,
+      if (id.isNotEmpty && !isLocalOnly) 'id': id,
       'name': name,
       if (matchedFoodId != null) 'matched_food_id': matchedFoodId,
       'quantity_g': quantityG,
@@ -120,15 +125,17 @@ class AiEstimateItem {
   }
 
   AiEstimateItem copyWith({
+    String? name,
     double? quantityG,
     double? caloriesKcal,
     double? proteinG,
     double? carbsG,
     double? fatG,
+    String? source,
   }) {
     return AiEstimateItem(
       id: id,
-      name: name,
+      name: name ?? this.name,
       matchedFoodId: matchedFoodId,
       quantityG: quantityG ?? this.quantityG,
       caloriesKcal: caloriesKcal ?? this.caloriesKcal,
@@ -136,7 +143,7 @@ class AiEstimateItem {
       carbsG: carbsG ?? this.carbsG,
       fatG: fatG ?? this.fatG,
       confidence: confidence,
-      source: source,
+      source: source ?? this.source,
     );
   }
 }

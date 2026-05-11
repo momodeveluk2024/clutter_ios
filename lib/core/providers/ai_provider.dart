@@ -18,6 +18,20 @@ class AiProvider extends ChangeNotifier {
   bool isChatting = false;
   String? error;
 
+  /// Clear any in-memory estimate / chat state. Call this when opening a
+  /// fresh AI meal photo flow so the previous analysis does not leak into
+  /// the new screen.
+  void reset() {
+    currentEstimate = null;
+    messages = [];
+    conversationId = null;
+    isAnalyzing = false;
+    isSaving = false;
+    isChatting = false;
+    error = null;
+    notifyListeners();
+  }
+
   Future<AiMealEstimate> analyzeMealPhoto({
     required String imagePath,
     required String mealType,
@@ -26,6 +40,9 @@ class AiProvider extends ChangeNotifier {
     String locale = 'en',
     String unitSystem = 'metric',
   }) async {
+    // Always start from a clean slate so the new image cannot show the
+    // previous estimate while we wait for the server response.
+    currentEstimate = null;
     isAnalyzing = true;
     error = null;
     notifyListeners();
@@ -137,6 +154,15 @@ class AiProvider extends ChangeNotifier {
     if (estimate == null) return;
     currentEstimate = estimate.copyWith(
       items: estimate.items.where((item) => item.id != id).toList(),
+    );
+    notifyListeners();
+  }
+
+  void addLocalItem(AiEstimateItem item) {
+    final estimate = currentEstimate;
+    if (estimate == null) return;
+    currentEstimate = estimate.copyWith(
+      items: [...estimate.items, item],
     );
     notifyListeners();
   }
