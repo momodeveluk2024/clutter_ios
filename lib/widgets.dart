@@ -103,14 +103,23 @@ class FoodPhoto extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final url = imageUrl?.trim();
+    final raw = imageUrl?.trim();
     final slug = label
         .toLowerCase()
         .replaceAll(RegExp(r'[^a-z0-9]+'), '_')
         .replaceAll(RegExp(r'^_|_$'), '');
     final fallbackAsset = 'assets/foods/$slug.jpg';
 
-    if (url == null || url.isEmpty) {
+    if (raw == null || raw.isEmpty) {
+      return _buildAssetFallback(fallbackAsset);
+    }
+    // User-uploaded photos come back as a relative path like
+    // `/uploads/foods/<id>/<file>.jpg`; resolve it against the API origin so
+    // CachedNetworkImage can actually fetch it instead of erroring out and
+    // falling back to the generic category visual. Absolute URLs (the curated
+    // Unsplash catalog images) pass through untouched.
+    final url = ApiEndpoints.mediaUrl(raw);
+    if (url.isEmpty) {
       return _buildAssetFallback(fallbackAsset);
     }
 

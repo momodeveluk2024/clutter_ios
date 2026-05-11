@@ -202,12 +202,18 @@ class FoodProvider extends ChangeNotifier {
     final detail = FoodDetail.fromJson(
       Map<String, dynamic>.from(response.data as Map),
     );
+    // Keep the detail cache in sync so re-opening the edit/detail screen
+    // reflects the new name, color, image, etc. instead of a stale copy.
+    _putCache(id, detail);
+    if (selectedFood?.id == id) selectedFood = detail;
     await loadUserMeals();
     return detail;
   }
 
   Future<void> deleteUserMeal(String id) async {
     await _api.delete(ApiEndpoints.food(id));
+    invalidateCache(id);
+    if (selectedFood?.id == id) selectedFood = null;
     userMeals = userMeals.where((f) => f.id != id).toList();
     notifyListeners();
   }
@@ -232,6 +238,8 @@ class FoodProvider extends ChangeNotifier {
     final detail = FoodDetail.fromJson(
       Map<String, dynamic>.from(response.data as Map),
     );
+    _putCache(id, detail);
+    if (selectedFood?.id == id) selectedFood = detail;
     await loadUserMeals();
     return detail;
   }
