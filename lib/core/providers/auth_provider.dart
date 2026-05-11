@@ -207,6 +207,34 @@ class AuthProvider extends ChangeNotifier {
     _setLoading(false);
   }
 
+  /// Schedules the user's account for deletion (soft-delete with a 30-day
+  /// recovery window — see backend migration 00029_account_deletion.sql) and
+  /// signs the user out everywhere. Rethrows the API error if the request
+  /// fails so the caller can surface it; on success the local state is the
+  /// same as after [logout].
+  Future<void> deleteAccount() async {
+    _setLoading(true);
+    try {
+      await _api.delete(ApiEndpoints.me);
+    } catch (e) {
+      _error = e.toString();
+      _setLoading(false);
+      rethrow;
+    }
+    // Mirror logout(): drop Firebase + Google sessions and clear tokens. Best
+    // effort — if one of these fails we still want the user signed out.
+    try {
+      await Future.wait([
+        _googleSignIn.signOut(),
+        _firebaseAuth.signOut(),
+        _storage.clear(),
+      ]);
+    } catch (_) {}
+    _user = null;
+    _error = null;
+    _setLoading(false);
+  }
+
   Future<void> forgotPassword(String email) async {
     _setLoading(true);
     try {

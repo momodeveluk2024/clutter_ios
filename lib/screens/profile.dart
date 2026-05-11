@@ -174,6 +174,60 @@ class _ProfileScreenState extends State<ProfileScreen> {
     return 'image/jpeg';
   }
 
+  /// Two-step confirm → schedule account deletion → sign out and bounce to
+  /// the marketing root. The backend keeps a 30-day grace window so signing
+  /// back in within that window recovers the account.
+  Future<void> _confirmDeleteAccount() async {
+    final dark = Theme.of(context).brightness == Brightness.dark;
+    final c = NVColors(dark);
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: c.surface,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: Text(
+          'Delete account?',
+          style: TextStyle(
+            fontSize: 18,
+            fontWeight: FontWeight.w800,
+            color: c.text,
+            letterSpacing: -0.2,
+          ),
+        ),
+        content: Text(
+          'Your account will be scheduled for deletion. Sign in within 30 days to recover. After that, your profile, meal logs, photos, and custom foods are permanently removed.',
+          style: TextStyle(fontSize: 14, color: c.textMuted, height: 1.45),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(false),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(ctx).pop(true),
+            style: FilledButton.styleFrom(
+              backgroundColor: const Color(0xFFDC2626),
+              foregroundColor: Colors.white,
+            ),
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !mounted) return;
+    try {
+      await context.read<AuthProvider>().deleteAccount();
+      if (!mounted) return;
+      _showMessage(
+        'Account scheduled for deletion. Sign in within 30 days to recover.',
+      );
+      context.go('/');
+    } catch (e) {
+      if (!mounted) return;
+      _showErr(e);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final dark = Theme.of(context).brightness == Brightness.dark;
@@ -321,6 +375,38 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(16),
                     side: BorderSide(color: c.border),
+                  ),
+                  textStyle: const TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w800,
+                    letterSpacing: -0.1,
+                  ),
+                ),
+              ),
+            ),
+          ),
+
+          const SizedBox(height: 12),
+
+          // ──────── DELETE ACCOUNT ────────
+          // Schedules account deletion with a 30-day grace window (backend
+          // migration 00029_account_deletion.sql). Required by Apple
+          // guideline 5.1.1(v) and surfaced on the public /delete-account
+          // page.
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20),
+            child: SizedBox(
+              height: 52,
+              child: TextButton.icon(
+                onPressed: _confirmDeleteAccount,
+                icon: const Icon(Icons.delete_outline_rounded, size: 17),
+                label: const Text('Delete account'),
+                style: TextButton.styleFrom(
+                  backgroundColor: c.surface,
+                  foregroundColor: const Color(0xFFDC2626),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16),
+                    side: const BorderSide(color: Color(0xFFFCA5A5)),
                   ),
                   textStyle: const TextStyle(
                     fontSize: 14,
