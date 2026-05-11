@@ -3,6 +3,7 @@ import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
 
+import '../core/app_version.dart';
 import '../core/providers/auth_provider.dart';
 import '../core/providers/nutrition_provider.dart';
 import '../core/tour/tour_prefs.dart';
@@ -294,7 +295,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
               _SettingRow(
                 icon: Icons.info_outline,
                 title: 'About Nutrimate',
-                detail: 'v1.0.0',
+                detail: appVersion.isEmpty ? '' : 'v$appVersion',
                 onTap: () => context.push('/app/profile/about'),
               ),
             ],
@@ -334,7 +335,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
           const SizedBox(height: 14),
           Center(
             child: Text(
-              'NUTRIMATE · 1.0.0',
+              appVersion.isEmpty ? 'NUTRIMATE' : 'NUTRIMATE · $appVersion',
               style: TextStyle(
                 fontSize: 10,
                 letterSpacing: 2.4,

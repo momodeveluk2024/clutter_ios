@@ -12,6 +12,7 @@ import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import 'core/analytics/analytics_service.dart';
 import 'core/api/api_client.dart';
+import 'core/app_version.dart';
 import 'core/api/version_check.dart';
 import 'core/notifications/fcm_notification_service.dart';
 import 'core/notifications/notification_service.dart';
@@ -54,6 +55,7 @@ Future<void> main() async {
   );
 
   await AnalyticsService.instance.initialize();
+  await warmAppVersion();
 
   // Initialize timezone data early so notification scheduling can use tz.local
   tz.initializeTimeZones();

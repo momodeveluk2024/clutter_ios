@@ -3,6 +3,7 @@ import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
 
+import '../core/app_version.dart';
 import '../core/models/reminder.dart';
 import '../core/providers/auth_provider.dart';
 import '../core/providers/reminder_provider.dart';
@@ -482,7 +483,7 @@ class ProfileAboutScreen extends StatelessWidget {
                 ),
                 const SizedBox(height: 8),
                 Text(
-                  'Version 1.1.2\nNutrition catalog powered by curated USDA-sourced data.',
+                  '${appVersion.isEmpty ? 'Version' : 'Version $appVersion'}\nNutrition catalog powered by curated USDA-sourced data.',
                   style: TextStyle(
                     color: NVColors(false).textMuted,
                     height: 1.4,

@@ -20,8 +20,27 @@ class NutritionProvider extends ChangeNotifier {
   bool isLoading = false;
   String? error;
 
-  Future<void> refreshDashboard({DateTime? date}) async {
-    selectedDate = _dateOnly(date ?? selectedDate);
+  // Several screens (app shell, home, tracker, favorites) kick off
+  // refreshDashboard around the same time on launch — that used to fan out
+  // into 3-4 concurrent calls to the slow /recommendations/daily-plan
+  // endpoint. Collapse concurrent refreshes for the same day into one.
+  final Map<String, Future<void>> _refreshInFlight = {};
+  final Map<String, Future<DailyMealPlan?>> _mealPlanInFlight = {};
+
+  Future<void> refreshDashboard({DateTime? date}) {
+    final target = _dateOnly(date ?? selectedDate);
+    final key = _dateString(target);
+    final existing = _refreshInFlight[key];
+    if (existing != null) return existing;
+    final future = _refreshDashboard(target).whenComplete(() {
+      _refreshInFlight.remove(key);
+    });
+    _refreshInFlight[key] = future;
+    return future;
+  }
+
+  Future<void> _refreshDashboard(DateTime target) async {
+    selectedDate = target;
     final day = _dateString(selectedDate);
     isLoading = true;
     error = null;
@@ -68,8 +87,18 @@ class NutritionProvider extends ChangeNotifier {
   Future<DailyMealPlan?> loadDailyMealPlan({
     DateTime? date,
     bool notify = true,
-  }) async {
+  }) {
     final day = _dateString(date ?? selectedDate);
+    final existing = _mealPlanInFlight[day];
+    if (existing != null) return existing;
+    final future = _loadDailyMealPlan(day, notify).whenComplete(() {
+      _mealPlanInFlight.remove(day);
+    });
+    _mealPlanInFlight[day] = future;
+    return future;
+  }
+
+  Future<DailyMealPlan?> _loadDailyMealPlan(String day, bool notify) async {
     final response = await _api.get(
       ApiEndpoints.dailyMealPlan,
       query: {'date': day},
