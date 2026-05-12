@@ -1,7 +1,9 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 
+import '../core/api/api_endpoints.dart';
 import '../core/models/food.dart';
 import '../core/nutrition/overage_warning.dart';
 import '../core/providers/food_provider.dart';
@@ -643,10 +645,46 @@ class _LogFoodSheetState extends State<_LogFoodSheet> {
   final _notesController = TextEditingController();
   bool _saving = false;
 
+  // Image URLs keyed by chip label (e.g. "Coca-Cola"). Populated lazily from
+  // the drinks catalog so chips show the admin-uploaded photo for the matching
+  // drink instead of just an emoji. Empty until the fetch resolves; the chip
+  // falls back to the hardcoded emoji while loading and on any unmatched name.
+  Map<String, String> _drinkImages = const {};
+
+  @override
+  void initState() {
+    super.initState();
+    _loadDrinkImages();
+  }
+
   @override
   void dispose() {
     _notesController.dispose();
     super.dispose();
+  }
+
+  Future<void> _loadDrinkImages() async {
+    try {
+      final drinks = await context
+          .read<FoodProvider>()
+          .fetchFoods(category: 'drinks', limit: 100);
+      final matched = <String, String>{};
+      for (final label in _drinkChipLabels) {
+        final needle = label.toLowerCase();
+        for (final food in drinks) {
+          final url = food.imageUrl?.trim();
+          if (url == null || url.isEmpty) continue;
+          if (food.name.toLowerCase().contains(needle)) {
+            matched[label] = ApiEndpoints.mediaUrl(url);
+            break;
+          }
+        }
+      }
+      if (!mounted || matched.isEmpty) return;
+      setState(() => _drinkImages = matched);
+    } catch (_) {
+      // Fetch failures are non-fatal — chips just keep showing emojis.
+    }
   }
 
   Future<void> _save() async {
@@ -1007,21 +1045,9 @@ class _LogFoodSheetState extends State<_LogFoodSheet> {
             NVEyebrow('Pair with a drink', color: c.textMuted),
             const SizedBox(height: 8),
             Builder(builder: (context) {
-              const allDrinks = [
-                ('💧', 'Water'),
-                ('🍵', 'Tea'),
-                ('☕', 'Coffee'),
-                ('🧃', 'Juice'),
-                ('🥛', 'Milk'),
-                ('🥤', 'Coca-Cola'),
-                ('🥤', 'Pepsi'),
-                ('🍊', 'Fanta'),
-                ('🫧', 'Sprite'),
-                ('⚡', 'Energy drink'),
-                ('🍹', 'Smoothie'),
-                ('🍋', 'Lemonade'),
-              ];
-              final visible = _showAllDrinks ? allDrinks : allDrinks.take(3).toList();
+              final visible = _showAllDrinks
+                  ? _kDrinkOptions
+                  : _kDrinkOptions.take(3).toList();
               return Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -1037,6 +1063,7 @@ class _LogFoodSheetState extends State<_LogFoodSheet> {
                           _DrinkChip(
                             emoji: drink.$1,
                             label: drink.$2,
+                            imageUrl: _drinkImages[drink.$2],
                             selected: _pairedDrink == drink.$2,
                             onTap: () => setState(() {
                               if (_pairedDrink == drink.$2) {
@@ -1276,22 +1303,45 @@ class _SimNutrient {
   final bool isLimit;
 }
 
+// Hardcoded drink pairing options. Each chip is matched against the drinks
+// catalog by label substring so admins can swap the leading emoji with a real
+// photo just by uploading an image to a drink whose name contains the label.
+const List<(String, String)> _kDrinkOptions = [
+  ('💧', 'Water'),
+  ('🍵', 'Tea'),
+  ('☕', 'Coffee'),
+  ('🧃', 'Juice'),
+  ('🥛', 'Milk'),
+  ('🥤', 'Coca-Cola'),
+  ('🥤', 'Pepsi'),
+  ('🍊', 'Fanta'),
+  ('🫧', 'Sprite'),
+  ('⚡', 'Energy drink'),
+  ('🍹', 'Smoothie'),
+  ('🍋', 'Lemonade'),
+];
+
+Iterable<String> get _drinkChipLabels => _kDrinkOptions.map((d) => d.$2);
+
 class _DrinkChip extends StatelessWidget {
   const _DrinkChip({
     required this.emoji,
     required this.label,
     required this.selected,
     required this.onTap,
+    this.imageUrl,
   });
 
   final String emoji;
   final String label;
   final bool selected;
   final VoidCallback onTap;
+  final String? imageUrl;
 
   @override
   Widget build(BuildContext context) {
     final c = NVColors.of(context);
+    final hasImage = imageUrl != null && imageUrl!.isNotEmpty;
     return Material(
       color: selected ? NV.accentSoft : c.surfaceMuted,
       borderRadius: BorderRadius.circular(12),
@@ -1300,7 +1350,7 @@ class _DrinkChip extends StatelessWidget {
         onTap: onTap,
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 180),
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+          padding: EdgeInsets.fromLTRB(hasImage ? 6 : 12, hasImage ? 6 : 10, 12, hasImage ? 6 : 10),
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(12),
             border: Border.all(
@@ -1313,8 +1363,29 @@ class _DrinkChip extends StatelessWidget {
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Text(emoji, style: const TextStyle(fontSize: 16)),
-              const SizedBox(width: 6),
+              if (hasImage)
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(8),
+                  child: CachedNetworkImage(
+                    imageUrl: imageUrl!,
+                    width: 24,
+                    height: 24,
+                    fit: BoxFit.cover,
+                    fadeInDuration: const Duration(milliseconds: 120),
+                    placeholder: (_, _) => SizedBox(
+                      width: 24,
+                      height: 24,
+                      child: Center(
+                        child: Text(emoji, style: const TextStyle(fontSize: 16)),
+                      ),
+                    ),
+                    errorWidget: (_, _, _) =>
+                        Text(emoji, style: const TextStyle(fontSize: 16)),
+                  ),
+                )
+              else
+                Text(emoji, style: const TextStyle(fontSize: 16)),
+              const SizedBox(width: 8),
               Text(
                 label,
                 style: TextStyle(
