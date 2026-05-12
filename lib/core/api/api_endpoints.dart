@@ -42,6 +42,7 @@ class ApiEndpoints {
   static const meOnboardingComplete = '/me/onboarding/complete';
   static const streak = '/me/streak';
   static const foods = '/foods';
+  static const categories = '/categories';
   static const myFoods = '/me/foods';
   static const logs = '/logs';
   static const todayIntake = '/logs/today/intake';

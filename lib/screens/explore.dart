@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
+import '../core/models/category.dart';
 import '../core/models/food.dart';
 import '../core/models/nutrient_reference.dart';
 import '../core/models/visual_catalog.dart';
@@ -17,6 +18,7 @@ class ExploreScreen extends StatefulWidget {
 
 class _ExploreScreenState extends State<ExploreScreen> {
   List<FoodSummary> _foods = [];
+  Map<String, CategorySummary> _apiCategories = const {};
   bool _loading = true;
   String? _error;
 
@@ -34,10 +36,21 @@ class _ExploreScreenState extends State<ExploreScreen> {
       _error = null;
     });
     try {
-      final foods = await context.read<FoodProvider>().fetchFoods(limit: 500);
+      final provider = context.read<FoodProvider>();
+      final foodsFuture = provider.fetchFoods(limit: 500);
+      // Categories are admin-curated metadata; a transient failure here
+      // shouldn't blank out the Explore tab, so fall back to an empty map
+      // and let visual_catalog.dart provide the hardcoded defaults.
+      final categoriesFuture = provider.fetchCategories().catchError(
+        (_) => <CategorySummary>[],
+      );
+      final results = await Future.wait([foodsFuture, categoriesFuture]);
       if (!mounted) return;
+      final foods = results[0] as List<FoodSummary>;
+      final categories = results[1] as List<CategorySummary>;
       setState(() {
         _foods = foods;
+        _apiCategories = {for (final c in categories) c.slug: c};
         _loading = false;
       });
     } catch (e) {
@@ -60,14 +73,22 @@ class _ExploreScreenState extends State<ExploreScreen> {
     }
     final cats =
         categories.entries
-            .map((entry) => _CategoryCount(entry.key, entry.value))
+            .map((entry) => _CategoryCount(entry.key, entry.value, _apiCategories[entry.key]))
             .toList()
           ..sort((a, b) {
+            // Admin-curated displayOrder wins; orphan slugs (no API row)
+            // sink below the curated ones and then break ties by count.
+            final aHas = a.apiCategory != null;
+            final bHas = b.apiCategory != null;
+            if (aHas != bHas) return aHas ? -1 : 1;
+            if (aHas && bHas) {
+              final byOrder = a.apiCategory!.displayOrder
+                  .compareTo(b.apiCategory!.displayOrder);
+              if (byOrder != 0) return byOrder;
+            }
             final byCount = b.count.compareTo(a.count);
             if (byCount != 0) return byCount;
-            return categoryVisualFor(
-              a.name,
-            ).label.compareTo(categoryVisualFor(b.name).label);
+            return _resolveLabel(a).compareTo(_resolveLabel(b));
           });
 
     return SafeArea(
@@ -199,6 +220,7 @@ class _ExploreScreenState extends State<ExploreScreen> {
                       return _CategoryTile(
                         name: cat.name,
                         count: cat.count,
+                        apiCategory: cat.apiCategory,
                         onTap: () => context.push(
                           '/app/search?category=${Uri.encodeComponent(cat.name)}',
                         ),
@@ -226,10 +248,17 @@ class _ExploreScreenState extends State<ExploreScreen> {
 }
 
 class _CategoryCount {
-  const _CategoryCount(this.name, this.count);
+  const _CategoryCount(this.name, this.count, this.apiCategory);
 
   final String name;
   final int count;
+  final CategorySummary? apiCategory;
+}
+
+String _resolveLabel(_CategoryCount c) {
+  final api = c.apiCategory;
+  if (api != null && api.name.isNotEmpty) return api.name;
+  return categoryVisualFor(c.name).label;
 }
 
 enum _NutrientGroup {
@@ -613,17 +642,27 @@ class _CategoryTile extends StatelessWidget {
     required this.name,
     required this.count,
     required this.onTap,
+    this.apiCategory,
   });
 
   final String name;
   final int count;
   final VoidCallback onTap;
+  final CategorySummary? apiCategory;
 
   @override
   Widget build(BuildContext context) {
     final dark = Theme.of(context).brightness == Brightness.dark;
     final c = NVColors(dark);
     final visual = categoryVisualFor(name);
+    // Admin-curated label and cover image win when present, so edits in
+    // the dashboard show up in Explore without an app release.
+    final apiImage = apiCategory?.imageUrl;
+    final imageUrl = (apiImage != null && apiImage.isNotEmpty)
+        ? apiImage
+        : visual.imageUrl;
+    final apiName = apiCategory?.name;
+    final label = (apiName != null && apiName.isNotEmpty) ? apiName : visual.label;
     return ClipRRect(
       borderRadius: BorderRadius.circular(20),
       child: GestureDetector(
@@ -643,8 +682,8 @@ class _CategoryTile extends StatelessWidget {
                   fit: StackFit.expand,
                   children: [
                     FoodPhoto(
-                      label: name,
-                      imageUrl: visual.imageUrl,
+                      label: label,
+                      imageUrl: imageUrl,
                       height: 98,
                       radius: 0,
                       tone: 'cool',
@@ -687,7 +726,7 @@ class _CategoryTile extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      visual.label,
+                      label,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: TextStyle(

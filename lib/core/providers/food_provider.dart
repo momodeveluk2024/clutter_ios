@@ -3,6 +3,7 @@ import 'package:flutter/foundation.dart';
 
 import '../api/api_client.dart';
 import '../api/api_endpoints.dart';
+import '../models/category.dart';
 import '../models/food.dart';
 
 class FoodProvider extends ChangeNotifier {
@@ -22,6 +23,14 @@ class FoodProvider extends ChangeNotifier {
   FoodDetail? selectedFood;
   bool isLoading = false;
   String? error;
+
+  Future<List<CategorySummary>> fetchCategories() async {
+    final response = await _api.get(ApiEndpoints.categories);
+    final raw = response.data['categories'] as List? ?? const [];
+    return raw
+        .map((v) => CategorySummary.fromJson(Map<String, dynamic>.from(v as Map)))
+        .toList();
+  }
 
   Future<List<FoodSummary>> fetchFoods({
     String query = '',
