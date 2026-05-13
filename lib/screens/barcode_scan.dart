@@ -3,9 +3,7 @@ import 'package:go_router/go_router.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 import 'package:provider/provider.dart';
 
-import '../core/api/api_client.dart';
-import '../core/api/api_endpoints.dart';
-import '../core/models/food.dart';
+
 import '../core/providers/food_provider.dart';
 import '../theme.dart';
 
@@ -210,7 +208,7 @@ class _ScanOverlay extends StatelessWidget {
   Widget build(BuildContext context) {
     return CustomPaint(
       painter: _ScanOverlayPainter(
-        borderColor: resolving ? c.accent : Colors.white,
+        borderColor: resolving ? NV.accent : Colors.white,
       ),
       child: const SizedBox.expand(),
     );
