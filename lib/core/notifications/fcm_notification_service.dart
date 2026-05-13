@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart';
+import 'package:flutter_timezone/flutter_timezone.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:uuid/uuid.dart';
 
@@ -122,6 +123,17 @@ class FcmNotificationService {
 
     if (kDebugMode) debugPrint('[FCM] registering device with token ${token.substring(0, 20)}...');
     final deviceID = await _deviceID();
+
+    // Use IANA timezone (e.g. "Asia/Baghdad") instead of abbreviation ("AST")
+    // so the backend can accurately compute the user's local hour for push
+    // notification scheduling.
+    String timezone;
+    try {
+      timezone = (await FlutterTimezone.getLocalTimezone()).identifier;
+    } catch (_) {
+      timezone = DateTime.now().timeZoneName; // fallback
+    }
+
     await _api!.post(
       ApiEndpoints.notificationDevices,
       data: {
@@ -129,7 +141,7 @@ class FcmNotificationService {
         'fcm_token': token,
         'platform': _platformName(),
         'locale': PlatformDispatcher.instance.locale.toLanguageTag(),
-        'timezone': DateTime.now().timeZoneName,
+        'timezone': timezone,
       },
     );
   }
