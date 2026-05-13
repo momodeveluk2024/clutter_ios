@@ -137,6 +137,41 @@ const categoryVisuals = <String, CategoryVisual>{
     icon: Icons.egg_alt_outlined,
     accent: Color(0xFFC99A37),
   ),
+  'snacks': CategoryVisual(
+    label: 'Snacks',
+    imageUrl:
+        'https://images.unsplash.com/photo-1621939514649-280e2ee25f60?auto=format&fit=crop&w=900&q=80',
+    icon: Icons.cookie_outlined,
+    accent: Color(0xFFC07C41),
+  ),
+  'beverages': CategoryVisual(
+    label: 'Beverages',
+    imageUrl:
+        'https://images.unsplash.com/photo-1513558161293-cdaf765ed2fd?auto=format&fit=crop&w=900&q=80',
+    icon: Icons.local_drink_outlined,
+    accent: Color(0xFF6A9FB5),
+  ),
+  'condiments': CategoryVisual(
+    label: 'Condiments',
+    imageUrl:
+        'https://images.unsplash.com/photo-1505253716362-afaea1d3d1af?auto=format&fit=crop&w=900&q=80',
+    icon: Icons.science_outlined,
+    accent: Color(0xFF8C3E36),
+  ),
+  'sweets': CategoryVisual(
+    label: 'Sweets',
+    imageUrl:
+        'https://images.unsplash.com/photo-1582716401301-b2407dc7563d?auto=format&fit=crop&w=900&q=80',
+    icon: Icons.cake_outlined,
+    accent: Color(0xFFD36F8D),
+  ),
+  'general': CategoryVisual(
+    label: 'General',
+    imageUrl:
+        'https://images.unsplash.com/photo-1493770348161-369560ae357d?auto=format&fit=crop&w=900&q=80',
+    icon: Icons.category_outlined,
+    accent: NV.accent,
+  ),
 };
 
 const fallbackCategoryVisual = CategoryVisual(
@@ -148,8 +183,17 @@ const fallbackCategoryVisual = CategoryVisual(
 );
 
 String canonicalCategoryKey(String category) {
-  final normalized = category.toLowerCase();
-  return normalized == 'nuts' ? 'nuts-seeds' : normalized;
+  String normalized = category.toLowerCase().trim();
+  
+  if (normalized == 'nuts' || normalized == 'nuts & seeds' || normalized == 'nuts and seeds') {
+    return 'nuts-seeds';
+  } else if (normalized == 'world cuisine') {
+    return 'world-cuisine';
+  } else if (normalized == 'fast food') {
+    return 'fast-food';
+  }
+  
+  return normalized.replaceAll(RegExp(r'\s+'), '-');
 }
 
 CategoryVisual categoryVisualFor(String category) {

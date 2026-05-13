@@ -1,4 +1,4 @@
-package com.nutrimate.app
+package com.nutrimateapp
 
 import io.flutter.embedding.android.FlutterActivity
 

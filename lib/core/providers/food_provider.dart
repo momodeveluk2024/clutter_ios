@@ -24,12 +24,16 @@ class FoodProvider extends ChangeNotifier {
   bool isLoading = false;
   String? error;
 
+  List<CategorySummary> categories = [];
+
   Future<List<CategorySummary>> fetchCategories() async {
     final response = await _api.get(ApiEndpoints.categories);
     final raw = response.data['categories'] as List? ?? const [];
-    return raw
+    categories = raw
         .map((v) => CategorySummary.fromJson(Map<String, dynamic>.from(v as Map)))
         .toList();
+    notifyListeners();
+    return categories;
   }
 
   Future<List<FoodSummary>> fetchFoods({
@@ -160,6 +164,7 @@ class FoodProvider extends ChangeNotifier {
   Future<FoodDetail> createUserMeal({
     required String name,
     String? brand,
+    required String category,
     required double servingSizeG,
     String? imageUrl,
     String? backgroundColor,
@@ -170,7 +175,7 @@ class FoodProvider extends ChangeNotifier {
       data: {
         'name': name,
         if (brand != null && brand.isNotEmpty) 'brand': brand,
-        'category': 'my_meal',
+        'category': category,
         'serving_size_g': servingSizeG,
         if (imageUrl != null && imageUrl.isNotEmpty) 'image_url': imageUrl,
         if (backgroundColor != null && backgroundColor.isNotEmpty)
@@ -191,6 +196,7 @@ class FoodProvider extends ChangeNotifier {
     required String id,
     String? name,
     String? brand,
+    String? category,
     double? servingSizeG,
     String? imageUrl,
     String? backgroundColor,
@@ -199,6 +205,7 @@ class FoodProvider extends ChangeNotifier {
     final body = <String, dynamic>{};
     if (name != null) body['name'] = name;
     if (brand != null) body['brand'] = brand;
+    if (category != null) body['category'] = category;
     if (servingSizeG != null) body['serving_size_g'] = servingSizeG;
     if (imageUrl != null) body['image_url'] = imageUrl;
     if (backgroundColor != null) body['background_color'] = backgroundColor;

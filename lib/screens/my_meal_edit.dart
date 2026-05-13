@@ -41,6 +41,7 @@ class _MyMealEditScreenState extends State<MyMealEditScreen> {
   final _imageUrl = TextEditingController();
   final _serving = TextEditingController(text: '100');
   String _selectedColor = '';
+  String? _selectedCategory;
   Uint8List? _pickedImageBytes;
   String? _pickedImageFilename;
   String? _pickedImageContentType;
@@ -63,11 +64,22 @@ class _MyMealEditScreenState extends State<MyMealEditScreen> {
       _enabled[n.code] = false;
       _amount[n.code] = TextEditingController();
     }
-    if (_isEdit) {
-      WidgetsBinding.instance.addPostFrameCallback((_) => _loadExisting());
-    } else {
-      _initialized = true;
-    }
+    
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      final provider = context.read<FoodProvider>();
+      if (provider.categories.isEmpty) {
+        await provider.fetchCategories();
+      }
+      if (_isEdit) {
+        await _loadExisting();
+      } else {
+        if (mounted) {
+          setState(() {
+            _initialized = true;
+          });
+        }
+      }
+    });
   }
 
   @override
@@ -90,6 +102,7 @@ class _MyMealEditScreenState extends State<MyMealEditScreen> {
       _existingImageUrl = food.imageUrl;
       _imageUrl.text = food.imageUrl ?? '';
       _selectedColor = food.backgroundColor ?? '';
+      _selectedCategory = food.category;
       for (final n in food.breakdown) {
         if (_amount.containsKey(n.code)) {
           _enabled[n.code] = true;
@@ -150,6 +163,13 @@ class _MyMealEditScreenState extends State<MyMealEditScreen> {
       );
       return;
     }
+    final category = _selectedCategory;
+    if (category == null || category.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please select a category.')),
+      );
+      return;
+    }
     final serving = double.tryParse(_serving.text.trim()) ?? 100;
     final nutrients = _collectNutrients();
     final color = _selectedColor.isEmpty ? null : _selectedColor;
@@ -166,6 +186,7 @@ class _MyMealEditScreenState extends State<MyMealEditScreen> {
         saved = await provider.updateUserMeal(
           id: _mealId!,
           name: name,
+          category: category,
           servingSizeG: serving,
           imageUrl: imageUrl ?? '',
           backgroundColor: color ?? '',
@@ -174,6 +195,7 @@ class _MyMealEditScreenState extends State<MyMealEditScreen> {
       } else {
         saved = await provider.createUserMeal(
           name: name,
+          category: category,
           servingSizeG: serving,
           imageUrl: imageUrl,
           backgroundColor: color,
@@ -427,6 +449,16 @@ class _MyMealEditScreenState extends State<MyMealEditScreen> {
   }
 
   Widget _basicsSection() {
+    final categories = context.watch<FoodProvider>().categories;
+    // ensure the selected category is actually in the list, or null if list is empty
+    if (_selectedCategory != null &&
+        categories.isNotEmpty &&
+        !categories.any((c) => c.slug == _selectedCategory)) {
+      // _selectedCategory is not in the list, but it might be valid backend-side,
+      // or we just preserve it. However, dropdown requires the value to exist or be null.
+      // We will append a dummy category to the list just for display if needed, or null it out.
+    }
+
     return NVCard(
       padding: const EdgeInsets.all(16),
       child: Column(
@@ -439,6 +471,28 @@ class _MyMealEditScreenState extends State<MyMealEditScreen> {
               border: OutlineInputBorder(),
               isDense: true,
             ),
+          ),
+          const SizedBox(height: 10),
+          DropdownButtonFormField<String>(
+            value: _selectedCategory != null && categories.any((c) => c.slug == _selectedCategory)
+                ? _selectedCategory
+                : null,
+            decoration: const InputDecoration(
+              labelText: 'Category',
+              border: OutlineInputBorder(),
+              isDense: true,
+            ),
+            items: categories.map((c) {
+              return DropdownMenuItem(
+                value: c.slug,
+                child: Text(c.name),
+              );
+            }).toList(),
+            onChanged: (val) {
+              setState(() {
+                _selectedCategory = val;
+              });
+            },
           ),
           const SizedBox(height: 10),
           TextField(

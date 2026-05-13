@@ -175,6 +175,7 @@ class _AiMealPhotoScreenState extends State<AiMealPhotoScreen> {
       //       (same call manual add uses, so it ends up in Saved → My Meals).
       final saved = await foods.createUserMeal(
         name: mealName,
+        category: widget.mealType,
         servingSizeG: totalGrams,
         nutrients: nutrients,
       );

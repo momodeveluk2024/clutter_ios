@@ -7,18 +7,34 @@
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:1005767331412:android:2091f8ed00a3794d9827c1",
+        "mobilesdk_app_id": "1:1005767331412:android:88c64e59f902edab9827c1",
         "android_client_info": {
-          "package_name": "com.nutrimate.app"
+          "package_name": "com.nutrimateapp"
         }
       },
       "oauth_client": [
         {
-          "client_id": "1005767331412-qmfqs3g172h47n3f34l8cbgeajbfosr8.apps.googleusercontent.com",
+          "client_id": "1005767331412-cle9pvrhafe0f7jbh1td3didgtv01oss.apps.googleusercontent.com",
           "client_type": 1,
           "android_info": {
-            "package_name": "com.nutrimate.app",
+            "package_name": "com.nutrimateapp",
+            "certificate_hash": "ffaebf804a865e31c8458bb0925bc162c3e2e9e2"
+          }
+        },
+        {
+          "client_id": "1005767331412-obgav2efhfcpcfuk2qak51khs14libub.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.nutrimateapp",
             "certificate_hash": "4faa42b708d95edf908cc1e2d3289d84ec0ed8e2"
+          }
+        },
+        {
+          "client_id": "1005767331412-t0tlm09err91r7er9vasfvr9obsctp78.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.nutrimateapp",
+            "certificate_hash": "1f257128b05d8e144ea25cb8a1b117a04a223730"
           }
         },
         {
@@ -39,10 +55,10 @@
               "client_type": 3
             },
             {
-              "client_id": "1005767331412-slmnqs9mommbnjuhj56kstm9st4acrlf.apps.googleusercontent.com",
+              "client_id": "1005767331412-e1k4ku67qacnj3c779fugvvekqrirfd4.apps.googleusercontent.com",
               "client_type": 2,
               "ios_info": {
-                "bundle_id": "com.nutrimate.app"
+                "bundle_id": "com.nutrimateapp"
               }
             }
           ]
