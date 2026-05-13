@@ -11,6 +11,7 @@ import '../screens/password_reset.dart';
 import '../screens/profile_settings.dart';
 import '../screens/profile_setup.dart';
 import '../screens/search.dart';
+import '../screens/barcode_scan.dart';
 import '../screens/sign_in.dart';
 import '../screens/sign_up.dart';
 import '../screens/splash.dart';
@@ -139,6 +140,10 @@ GoRouter buildRouter(AuthProvider auth) {
         builder: (context, state) => SearchScreen(
           initialCategory: state.uri.queryParameters['category'] ?? '',
         ),
+      ),
+      GoRoute(
+        path: '/app/barcode-scan',
+        builder: (context, state) => const BarcodeScanScreen(),
       ),
       GoRoute(
         path: '/app/explore',

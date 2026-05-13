@@ -116,12 +116,22 @@ class _SearchScreenState extends State<SearchScreen> {
                         size: 18,
                         color: c.textMuted,
                       ),
-                      suffixIcon: IconButton(
-                        icon: Icon(Icons.close, size: 18, color: c.textMuted),
-                        onPressed: () {
-                          _controller.clear();
-                          _onChanged('');
-                        },
+                      suffixIcon: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          IconButton(
+                            icon: const Icon(Icons.qr_code_scanner, size: 20, color: NV.accent),
+                            onPressed: () => context.push('/app/barcode-scan'),
+                          ),
+                          if (_controller.text.isNotEmpty)
+                            IconButton(
+                              icon: Icon(Icons.close, size: 18, color: c.textMuted),
+                              onPressed: () {
+                                _controller.clear();
+                                _onChanged('');
+                              },
+                            ),
+                        ],
                       ),
                       filled: true,
                       fillColor: c.surfaceMuted,

@@ -62,6 +62,7 @@ class ApiEndpoints {
   static const aiChat = '/ai/chat';
 
   static String food(String id) => '/foods/$id';
+  static String foodByBarcode(String barcode) => '/foods/barcode/$barcode';
   static String foodImage(String id) => '/foods/$id/image';
   static String log(String id) => '/logs/$id';
   static String favorite(String id) => '/favorites/$id';

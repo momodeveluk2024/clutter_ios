@@ -117,6 +117,27 @@ class FoodProvider extends ChangeNotifier {
     }
   }
 
+  Future<FoodDetail> getFoodByBarcode(String barcode) async {
+    isLoading = true;
+    error = null;
+    notifyListeners();
+    try {
+      final response = await _api.get(ApiEndpoints.foodByBarcode(barcode));
+      final detail = FoodDetail.fromJson(
+        Map<String, dynamic>.from(response.data as Map),
+      );
+      _putCache(detail.id, detail);
+      selectedFood = detail;
+      return detail;
+    } catch (e) {
+      error = e.toString();
+      rethrow;
+    } finally {
+      isLoading = false;
+      notifyListeners();
+    }
+  }
+
   void _putCache(String id, FoodDetail detail) {
     _detailCache.remove(id); // re-insert at end (most recent)
     _detailCache[id] = detail;
