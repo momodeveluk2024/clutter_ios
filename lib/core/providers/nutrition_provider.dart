@@ -27,9 +27,16 @@ class NutritionProvider extends ChangeNotifier {
   final Map<String, Future<void>> _refreshInFlight = {};
   final Map<String, Future<DailyMealPlan?>> _mealPlanInFlight = {};
 
-  Future<void> refreshDashboard({DateTime? date}) {
+  Future<void> refreshDashboard({DateTime? date, bool force = false}) {
     final target = _dateOnly(date ?? selectedDate);
     final key = _dateString(target);
+
+    // When force is true (after a mutation like createLog / deleteLog), discard
+    // any stale in-flight request so we always hit the server for fresh data.
+    if (force) {
+      _refreshInFlight.remove(key);
+    }
+
     final existing = _refreshInFlight[key];
     if (existing != null) return existing;
     final future = _refreshDashboard(target).whenComplete(() {
@@ -182,7 +189,7 @@ class NutritionProvider extends ChangeNotifier {
       },
     );
     await Future.wait([
-      refreshDashboard(date: date),
+      refreshDashboard(date: date, force: true),
       loadWeek(endDate: date),
     ]);
   }
@@ -191,7 +198,7 @@ class NutritionProvider extends ChangeNotifier {
     final day = date ?? selectedDate;
     await _api.delete(ApiEndpoints.log(id));
     await Future.wait([
-      refreshDashboard(date: day),
+      refreshDashboard(date: day, force: true),
       loadWeek(endDate: day),
     ]);
   }
