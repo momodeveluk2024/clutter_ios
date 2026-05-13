@@ -12,6 +12,7 @@ import '../screens/profile_settings.dart';
 import '../screens/profile_setup.dart';
 import '../screens/search.dart';
 import '../screens/barcode_scan.dart';
+import '../screens/barcode_contribute.dart';
 import '../screens/sign_in.dart';
 import '../screens/sign_up.dart';
 import '../screens/splash.dart';
@@ -144,6 +145,13 @@ GoRouter buildRouter(AuthProvider auth) {
       GoRoute(
         path: '/app/barcode-scan',
         builder: (context, state) => const BarcodeScanScreen(),
+      ),
+      GoRoute(
+        path: '/app/barcode-scan/contribute',
+        builder: (context, state) {
+          final barcode = state.extra as String?;
+          return BarcodeContributeScreen(barcode: barcode ?? '');
+        },
       ),
       GoRoute(
         path: '/app/explore',

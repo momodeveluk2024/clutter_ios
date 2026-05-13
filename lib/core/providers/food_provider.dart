@@ -6,6 +6,13 @@ import '../api/api_endpoints.dart';
 import '../models/category.dart';
 import '../models/food.dart';
 
+class BarcodeNotFoundException implements Exception {
+  final String barcode;
+  BarcodeNotFoundException(this.barcode);
+  @override
+  String toString() => 'BarcodeNotFoundException: $barcode';
+}
+
 class FoodProvider extends ChangeNotifier {
   FoodProvider({required ApiClient api}) : _api = api;
 
@@ -129,6 +136,19 @@ class FoodProvider extends ChangeNotifier {
       _putCache(detail.id, detail);
       selectedFood = detail;
       return detail;
+    } on DioException catch (e) {
+      // Backend returns 404 with {barcode, contribute: true} when all
+      // external APIs missed. Throw a typed exception so the scanner
+      // screen can route to the "Be the first to add!" contribution flow.
+      if (e.response?.statusCode == 404) {
+        final data = e.response?.data;
+        if (data is Map && data['contribute'] == true) {
+          final bc = data['barcode'] as String? ?? barcode;
+          throw BarcodeNotFoundException(bc);
+        }
+      }
+      error = e.toString();
+      rethrow;
     } catch (e) {
       error = e.toString();
       rethrow;
@@ -187,6 +207,7 @@ class FoodProvider extends ChangeNotifier {
     String? brand,
     required String category,
     required double servingSizeG,
+    String? barcode,
     String? imageUrl,
     String? backgroundColor,
     required List<({String code, double amountPer100G})> nutrients,
@@ -198,6 +219,7 @@ class FoodProvider extends ChangeNotifier {
         if (brand != null && brand.isNotEmpty) 'brand': brand,
         'category': category,
         'serving_size_g': servingSizeG,
+        if (barcode != null && barcode.isNotEmpty) 'barcode': barcode,
         if (imageUrl != null && imageUrl.isNotEmpty) 'image_url': imageUrl,
         if (backgroundColor != null && backgroundColor.isNotEmpty)
           'background_color': backgroundColor,

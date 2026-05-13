@@ -1,7 +1,9 @@
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
 
 import 'app_shell.dart';
@@ -85,9 +87,7 @@ class _HomeScreenState extends State<HomeScreen> {
               parent: BouncingScrollPhysics(),
             ),
             slivers: [
-              SliverToBoxAdapter(
-                child: _TopBar(user: user, now: now),
-              ),
+              _TopBar(user: user, now: now),
               SliverPadding(
                 padding: const EdgeInsets.fromLTRB(
                   NVSpace.x5,
@@ -231,60 +231,108 @@ class _TopBar extends StatelessWidget {
     final dateLine = '${_weekdayLong(now)}, ${_monthLong(now)} ${now.day}'
         .toUpperCase();
 
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(
-        NVSpace.x5,
-        NVSpace.x3,
-        NVSpace.x5,
-        NVSpace.x2,
-      ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.center,
-        children: [
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                NVEyebrow(dateLine, color: c.textMuted),
-                const SizedBox(height: 6),
-                Text.rich(
-                  TextSpan(
-                    text: name.isEmpty ? greeting : '$greeting, ',
-                    children: [
-                      if (name.isNotEmpty)
-                        TextSpan(
-                          text: '$name.',
-                          style: const TextStyle(color: NV.accent),
-                        ),
-                    ],
-                  ),
-                  style: TextStyle(
-                    fontSize: 22,
-                    fontWeight: FontWeight.w700,
-                    color: c.text,
-                    letterSpacing: -0.4,
-                    height: 1.15,
-                  ),
-                ),
-              ],
+    return SliverAppBar(
+      pinned: true,
+      floating: true,
+      backgroundColor: c.bg.withOpacity(0.95),
+      elevation: 0,
+      scrolledUnderElevation: 0,
+      toolbarHeight: 64,
+      titleSpacing: 0,
+      title: Padding(
+        padding: const EdgeInsets.only(left: NVSpace.x5),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            NVEyebrow(dateLine, color: c.textMuted),
+            const SizedBox(height: 2),
+            Text.rich(
+              TextSpan(
+                text: name.isEmpty ? greeting : '$greeting, ',
+                children: [
+                  if (name.isNotEmpty)
+                    TextSpan(
+                      text: '$name.',
+                      style: const TextStyle(color: NV.accent),
+                    ),
+                ],
+              ),
+              style: TextStyle(
+                fontSize: 22,
+                fontWeight: FontWeight.w700,
+                color: c.text,
+                letterSpacing: -0.4,
+                height: 1.15,
+              ),
             ),
-          ),
-          const SizedBox(width: NVSpace.x3),
-          UserAvatar(
-            displayName: (user?.displayName as String?) ?? 'User',
-            avatarUrl: user?.avatarUrl as String?,
-            size: 44,
-            onTap: () {
-              final scope = AppShellScope.of(context);
-              if (scope != null) {
-                scope.switchTab(4); // Profile tab
-              } else {
-                context.go('/app?tab=you'); // Fallback
-              }
-            },
-          ),
-        ],
+          ],
+        ),
       ),
+      actions: [
+        NVCircleIconButton(
+          icon: Icons.qr_code_scanner_rounded,
+          onTap: () => context.push('/app/barcode-scan'),
+        ),
+        const SizedBox(width: 8),
+        NVCircleIconButton(
+          icon: Icons.auto_awesome_rounded,
+          background: NV.accent,
+          foreground: Colors.white,
+          onTap: () async {
+            HapticFeedback.selectionClick();
+            final source = await showModalBottomSheet<ImageSource>(
+              context: context,
+              showDragHandle: true,
+              builder: (context) => const _AiPhotoSourceSheet(),
+            );
+            if (source == null) return;
+            try {
+              final picked = await ImagePicker().pickImage(
+                source: source,
+                imageQuality: 88,
+                maxWidth: 2200,
+              );
+              if (picked == null || !context.mounted) return;
+              
+              final now = DateTime.now();
+              final mealType = now.hour < 11 ? 'breakfast' : now.hour < 15 ? 'lunch' : now.hour < 21 ? 'dinner' : 'snack';
+              final dateStr = '${now.year.toString().padLeft(4, '0')}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}';
+
+              context.push(
+                '/app/ai/meal-photo',
+                extra: <String, String>{
+                  'imagePath': picked.path,
+                  'mealType': mealType,
+                  'loggedOn': dateStr,
+                },
+              );
+            } on PlatformException catch (error) {
+              if (!context.mounted) return;
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text(error.message ?? 'Could not open photo picker.'),
+                ),
+              );
+            }
+          },
+        ),
+        const SizedBox(width: NVSpace.x3),
+        UserAvatar(
+          displayName: (user?.displayName as String?) ?? 'User',
+          avatarUrl: user?.avatarUrl as String?,
+          size: 44,
+          onTap: () {
+            final scope = AppShellScope.of(context);
+            if (scope != null) {
+              scope.switchTab(4); // Profile tab
+            } else {
+              context.go('/app?tab=you'); // Fallback
+            }
+          },
+        ),
+        const SizedBox(width: NVSpace.x5),
+      ],
     );
   }
 
@@ -312,6 +360,47 @@ class _TopBar extends StatelessWidget {
     'November',
     'December',
   ][d.month - 1];
+}
+
+class _AiPhotoSourceSheet extends StatelessWidget {
+  const _AiPhotoSourceSheet();
+
+  @override
+  Widget build(BuildContext context) {
+    final c = NVColors.of(context);
+    return SafeArea(
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(
+          NVSpace.x5, NVSpace.x2, NVSpace.x5, NVSpace.x5,
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Text(
+              'Meal photo',
+              style: TextStyle(
+                color: c.text,
+                fontSize: 18,
+                fontWeight: FontWeight.w800,
+              ),
+            ),
+            const SizedBox(height: NVSpace.x4),
+            ListTile(
+              leading: const Icon(Icons.photo_camera_rounded),
+              title: const Text('Camera'),
+              onTap: () => Navigator.of(context).pop(ImageSource.camera),
+            ),
+            ListTile(
+              leading: const Icon(Icons.photo_library_rounded),
+              title: const Text('Gallery'),
+              onTap: () => Navigator.of(context).pop(ImageSource.gallery),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 }
 
 // ═══════════════════════════════════════════════════════════════
