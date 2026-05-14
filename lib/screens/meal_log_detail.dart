@@ -390,12 +390,37 @@ class _ItemRow extends StatelessWidget {
                 ),
                 const SizedBox(width: 10),
                 Expanded(
-                  child: Text(
-                    item.foodName,
-                    style: TextStyle(
-                      fontWeight: FontWeight.w700,
-                      color: c.text,
-                    ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        item.foodName,
+                        style: TextStyle(
+                          fontWeight: FontWeight.w700,
+                          color: c.text,
+                        ),
+                      ),
+                      if (item.hasNutrition)
+                        Text(
+                          '${item.caloriesKcal.round()} kcal · '
+                          'P ${item.proteinG.round()}g · '
+                          'C ${item.carbsG.round()}g · '
+                          'F ${item.fatG.round()}g · '
+                          'Fb ${item.fiberG.round()}g',
+                          style: TextStyle(
+                            fontSize: 11,
+                            color: c.textMuted,
+                          ),
+                        )
+                      else
+                        Text(
+                          'Nutrition data unavailable',
+                          style: const TextStyle(
+                            fontSize: 11,
+                            color: Colors.orangeAccent,
+                          ),
+                        ),
+                    ],
                   ),
                 ),
                 Text(

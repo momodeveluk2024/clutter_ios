@@ -13,6 +13,7 @@ import '../screens/profile_setup.dart';
 import '../screens/search.dart';
 import '../screens/barcode_scan.dart';
 import '../screens/barcode_contribute.dart';
+import '../screens/daily_goals.dart';
 import '../screens/sign_in.dart';
 import '../screens/sign_up.dart';
 import '../screens/splash.dart';
@@ -213,6 +214,10 @@ GoRouter buildRouter(AuthProvider auth) {
       GoRoute(
         path: '/app/profile/goals',
         builder: (context, state) => const ProfileGoalsScreen(),
+      ),
+      GoRoute(
+        path: '/app/profile/daily-goals',
+        builder: (context, state) => const DailyGoalsScreen(),
       ),
       GoRoute(
         path: '/app/profile/body',

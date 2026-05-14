@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import '../../theme.dart';
+import '../../widgets/mascot.dart';
 
 // ═══════════════════════════════════════════════════════════════
 //  DATA MODEL
@@ -12,10 +14,12 @@ class AppTourStep {
     required this.title,
     required this.description,
     this.icon,
+    this.mood = MascotMood.curious,
   });
 
-  /// The GlobalKey attached to the target widget.
-  final GlobalKey key;
+  /// The GlobalKey attached to the target widget. May be null when the
+  /// step is a centered "intro" card with no spotlight target.
+  final GlobalKey? key;
 
   /// Short title displayed in the tooltip.
   final String title;
@@ -25,6 +29,9 @@ class AppTourStep {
 
   /// Optional icon shown beside the title.
   final IconData? icon;
+
+  /// Sprout's mood for this step.
+  final MascotMood mood;
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -37,14 +44,15 @@ class AppTourController {
   static OverlayEntry? _entry;
 
   /// Show the tour overlay above the current [context].
-  /// Provide a list of [steps] whose GlobalKeys are already mounted.
+  /// Steps without a `key` show as centered intro cards.
+  /// Steps with a `key` show as spotlight tooltips on the target.
   static void start(BuildContext context, List<AppTourStep> steps) {
-    // Filter out steps whose keys haven't been mounted yet
-    final valid =
-        steps.where((s) => s.key.currentContext != null).toList();
+    final valid = steps
+        .where((s) => s.key == null || s.key!.currentContext != null)
+        .toList();
     if (valid.isEmpty) return;
 
-    dismiss(); // remove any existing tour
+    dismiss();
 
     _entry = OverlayEntry(
       builder: (_) => _TourOverlay(
@@ -52,7 +60,7 @@ class AppTourController {
         onComplete: dismiss,
       ),
     );
-    Overlay.of(context).insert(_entry!);
+    Overlay.of(context, rootOverlay: true).insert(_entry!);
   }
 
   /// Dismiss any active tour.
@@ -100,6 +108,7 @@ class _TourOverlayState extends State<_TourOverlay>
   }
 
   void _next() {
+    HapticFeedback.selectionClick();
     if (_current < widget.steps.length - 1) {
       _anim.forward(from: 0);
       setState(() => _current++);
@@ -108,10 +117,22 @@ class _TourOverlayState extends State<_TourOverlay>
     }
   }
 
-  void _skip() => widget.onComplete();
+  void _prev() {
+    if (_current == 0) return;
+    HapticFeedback.selectionClick();
+    _anim.forward(from: 0);
+    setState(() => _current--);
+  }
+
+  void _skip() {
+    HapticFeedback.selectionClick();
+    widget.onComplete();
+  }
 
   Rect? _targetRect() {
-    final ctx = widget.steps[_current].key.currentContext;
+    final key = widget.steps[_current].key;
+    if (key == null) return null;
+    final ctx = key.currentContext;
     if (ctx == null) return null;
     final box = ctx.findRenderObject() as RenderBox?;
     if (box == null || !box.hasSize) return null;
@@ -127,17 +148,12 @@ class _TourOverlayState extends State<_TourOverlay>
     final dark = Theme.of(context).brightness == Brightness.dark;
     final c = NVColors(dark);
 
-    // Spotlight padding around the target
     const padding = 12.0;
     const radius = 16.0;
 
-    // Where to place the tooltip: above or below the target
-    final bool placeBelow;
-    if (rect != null) {
-      placeBelow = rect.top > screen.height * 0.5;
-    } else {
-      placeBelow = false;
-    }
+    final bool placeBelow = rect != null && rect.top > screen.height * 0.5;
+
+    final hasTarget = rect != null;
 
     return FadeTransition(
       opacity: _fadeAnim,
@@ -145,42 +161,24 @@ class _TourOverlayState extends State<_TourOverlay>
         color: Colors.transparent,
         child: Stack(
           children: [
-            // ── Dark backdrop with spotlight cutout ──
+            // ── Dark backdrop with optional spotlight cutout ──
             Positioned.fill(
               child: GestureDetector(
                 onTap: _next,
+                behavior: HitTestBehavior.opaque,
                 child: CustomPaint(
                   painter: _SpotlightPainter(
                     targetRect: rect,
                     padding: padding,
                     radius: radius,
-                    opacity: 0.72,
+                    opacity: hasTarget ? 0.72 : 0.78,
                   ),
                 ),
               ),
             ),
 
-            // ── Tooltip card ──
-            if (rect != null)
-              Positioned(
-                left: 20,
-                right: 20,
-                top: placeBelow
-                    ? rect.top - 16 - _tooltipHeight(context)
-                    : rect.bottom + padding + 16,
-                child: _TooltipCard(
-                  step: step,
-                  current: _current,
-                  total: widget.steps.length,
-                  isLast: _current == widget.steps.length - 1,
-                  onNext: _next,
-                  onSkip: _skip,
-                  colors: c,
-                ),
-              ),
-
             // ── Pulsing ring around target ──
-            if (rect != null)
+            if (hasTarget)
               Positioned(
                 left: rect.left - padding,
                 top: rect.top - padding,
@@ -192,15 +190,59 @@ class _TourOverlayState extends State<_TourOverlay>
                   ),
                 ),
               ),
+
+            // ── Tooltip / intro card ──
+            if (hasTarget)
+              AnimatedPositioned(
+                duration: const Duration(milliseconds: 280),
+                curve: Curves.easeOutCubic,
+                left: 16,
+                right: 16,
+                top: placeBelow
+                    ? (rect.top - 16 - 220).clamp(
+                        MediaQuery.paddingOf(context).top + 12, double.infinity)
+                    : rect.bottom + padding + 16,
+                child: _TooltipCard(
+                  step: step,
+                  current: _current,
+                  total: widget.steps.length,
+                  isLast: _current == widget.steps.length - 1,
+                  isFirst: _current == 0,
+                  onNext: _next,
+                  onPrev: _prev,
+                  onSkip: _skip,
+                  colors: c,
+                ),
+              )
+            else
+              Positioned.fill(
+                child: SafeArea(
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 18),
+                    child: Center(
+                      child: ConstrainedBox(
+                        constraints: const BoxConstraints(maxWidth: 460),
+                        child: _TooltipCard(
+                          step: step,
+                          current: _current,
+                          total: widget.steps.length,
+                          isLast: _current == widget.steps.length - 1,
+                          isFirst: _current == 0,
+                          onNext: _next,
+                          onPrev: _prev,
+                          onSkip: _skip,
+                          colors: c,
+                          centered: true,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
           ],
         ),
       ),
     );
-  }
-
-  double _tooltipHeight(BuildContext context) {
-    // Estimate height: title + desc + buttons + padding
-    return 180;
   }
 }
 
@@ -257,155 +299,223 @@ class _TooltipCard extends StatelessWidget {
     required this.current,
     required this.total,
     required this.isLast,
+    required this.isFirst,
     required this.onNext,
+    required this.onPrev,
     required this.onSkip,
     required this.colors,
+    this.centered = false,
   });
 
   final AppTourStep step;
   final int current;
   final int total;
   final bool isLast;
+  final bool isFirst;
   final VoidCallback onNext;
+  final VoidCallback onPrev;
   final VoidCallback onSkip;
   final NVColors colors;
+  final bool centered;
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: colors.surface,
-        borderRadius: BorderRadius.circular(20),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.18),
-            blurRadius: 24,
-            offset: const Offset(0, 8),
+    return GestureDetector(
+      // Stop taps on the card from triggering the backdrop.
+      onTap: () {},
+      child: AnimatedSwitcher(
+        duration: const Duration(milliseconds: 240),
+        transitionBuilder: (child, anim) => FadeTransition(
+          opacity: anim,
+          child: SlideTransition(
+            position: Tween<Offset>(
+              begin: const Offset(0, 0.04),
+              end: Offset.zero,
+            ).animate(anim),
+            child: child,
           ),
-        ],
-      ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Title row with icon
-          Row(
-            children: [
-              if (step.icon != null) ...[
-                Container(
-                  padding: const EdgeInsets.all(8),
-                  decoration: BoxDecoration(
-                    color: NV.accentSoft,
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                  child: Icon(step.icon, size: 20, color: NV.accent),
-                ),
-                const SizedBox(width: 12),
-              ],
-              Expanded(
-                child: Text(
-                  step.title,
-                  style: TextStyle(
-                    fontSize: 17,
-                    fontWeight: FontWeight.w800,
-                    color: colors.text,
-                    letterSpacing: -0.3,
-                    height: 1.2,
-                  ),
-                ),
-              ),
-              // Step counter
-              Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 10,
-                  vertical: 5,
-                ),
-                decoration: BoxDecoration(
-                  color: colors.surfaceMuted,
-                  borderRadius: BorderRadius.circular(20),
-                ),
-                child: Text(
-                  '${current + 1}/$total',
-                  style: TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w700,
-                    color: colors.textMuted,
-                  ),
-                ),
+        ),
+        child: Container(
+          key: ValueKey(current),
+          padding: const EdgeInsets.fromLTRB(18, 16, 18, 14),
+          decoration: BoxDecoration(
+            color: colors.surface,
+            borderRadius: BorderRadius.circular(22),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.22),
+                blurRadius: 32,
+                offset: const Offset(0, 10),
               ),
             ],
           ),
-          const SizedBox(height: 12),
-
-          // Description
-          Text(
-            step.description,
-            style: TextStyle(
-              fontSize: 14,
-              height: 1.5,
-              color: colors.textMuted,
-              fontWeight: FontWeight.w500,
-            ),
-          ),
-          const SizedBox(height: 18),
-
-          // Step dots + buttons
-          Row(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Dot indicators
-              ...List.generate(
-                total,
-                (i) => Container(
-                  width: i == current ? 18 : 7,
-                  height: 7,
-                  margin: const EdgeInsets.only(right: 5),
-                  decoration: BoxDecoration(
-                    color: i == current
-                        ? NV.accent
-                        : colors.border,
-                    borderRadius: BorderRadius.circular(4),
-                  ),
-                ),
-              ),
-              const Spacer(),
-              // Skip
-              if (!isLast)
-                TextButton(
-                  onPressed: onSkip,
-                  style: TextButton.styleFrom(
-                    foregroundColor: colors.textMuted,
-                    textStyle: const TextStyle(
-                      fontSize: 13,
-                      fontWeight: FontWeight.w600,
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Mascot reacts per step
+                  SizedBox(
+                    width: centered ? 92 : 56,
+                    height: centered ? 92 : 56,
+                    child: Mascot(
+                      mood: step.mood,
+                      size: centered ? 92 : 56,
+                      compact: true,
                     ),
                   ),
-                  child: const Text('Skip'),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            if (step.icon != null) ...[
+                              Container(
+                                padding: const EdgeInsets.all(6),
+                                decoration: BoxDecoration(
+                                  color: NV.accentSoft,
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                                child: Icon(step.icon, size: 14, color: NV.accent),
+                              ),
+                              const SizedBox(width: 8),
+                            ],
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 8,
+                                vertical: 3,
+                              ),
+                              decoration: BoxDecoration(
+                                color: colors.surfaceMuted,
+                                borderRadius: BorderRadius.circular(20),
+                              ),
+                              child: Text(
+                                '${current + 1} / $total',
+                                style: TextStyle(
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w800,
+                                  color: colors.textMuted,
+                                  letterSpacing: 0.4,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 6),
+                        Text(
+                          step.title,
+                          style: TextStyle(
+                            fontSize: centered ? 20 : 17,
+                            fontWeight: FontWeight.w800,
+                            color: colors.text,
+                            letterSpacing: -0.3,
+                            height: 1.18,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
+              Text(
+                step.description,
+                style: TextStyle(
+                  fontSize: 14,
+                  height: 1.5,
+                  color: colors.textMuted,
+                  fontWeight: FontWeight.w500,
                 ),
-              const SizedBox(width: 4),
-              // Next / Done
-              FilledButton(
-                onPressed: onNext,
-                style: FilledButton.styleFrom(
-                  backgroundColor: NV.accent,
-                  foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 20,
-                    vertical: 10,
-                  ),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  textStyle: const TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w700,
-                  ),
+              ),
+              const SizedBox(height: 14),
+
+              // Progress bar
+              ClipRRect(
+                borderRadius: BorderRadius.circular(99),
+                child: LinearProgressIndicator(
+                  value: (current + 1) / total,
+                  minHeight: 5,
+                  backgroundColor: colors.border,
+                  valueColor: const AlwaysStoppedAnimation<Color>(NV.accent),
                 ),
-                child: Text(isLast ? 'Got it!' : 'Next'),
+              ),
+              const SizedBox(height: 12),
+
+              Row(
+                children: [
+                  if (!isFirst)
+                    TextButton.icon(
+                      onPressed: onPrev,
+                      icon: Icon(Icons.chevron_left, size: 18, color: colors.textMuted),
+                      label: Text(
+                        'Back',
+                        style: TextStyle(
+                          color: colors.textMuted,
+                          fontSize: 13,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                      style: TextButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+                        minimumSize: Size.zero,
+                        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                      ),
+                    ),
+                  const Spacer(),
+                  if (!isLast)
+                    TextButton(
+                      onPressed: onSkip,
+                      style: TextButton.styleFrom(
+                        foregroundColor: colors.textMuted,
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                        minimumSize: Size.zero,
+                        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                        textStyle: const TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      child: const Text('Skip tour'),
+                    ),
+                  const SizedBox(width: 6),
+                  FilledButton(
+                    onPressed: onNext,
+                    style: FilledButton.styleFrom(
+                      backgroundColor: NV.accent,
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 18,
+                        vertical: 11,
+                      ),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(99),
+                      ),
+                      textStyle: const TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(isLast ? "I'm ready" : 'Next'),
+                        const SizedBox(width: 6),
+                        Icon(
+                          isLast ? Icons.check_rounded : Icons.arrow_forward_rounded,
+                          size: 16,
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
               ),
             ],
           ),
-        ],
+        ),
       ),
     );
   }

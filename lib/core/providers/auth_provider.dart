@@ -7,6 +7,7 @@ import 'package:google_sign_in/google_sign_in.dart';
 import '../api/api_client.dart';
 import '../api/api_endpoints.dart';
 import '../models/user.dart';
+import '../notifications/goal_reminder_scheduler.dart';
 import '../storage/secure_storage.dart';
 
 class AuthProvider extends ChangeNotifier {
@@ -351,6 +352,32 @@ class AuthProvider extends ChangeNotifier {
     });
   }
 
+  /// Persist user-set daily kcal / macro goals on the backend. Any null field
+  /// is left untouched so callers can patch one field at a time. The server
+  /// re-runs the metabolic calculation and applies the overrides before
+  /// returning, so the resulting `metabolicTargets` reflect the new goals.
+  Future<void> setGoals({
+    double? goalKcal,
+    double? proteinG,
+    double? carbsG,
+    double? fatG,
+    double? fiberG,
+  }) async {
+    await _runAuthAction(() async {
+      final response = await _api.patch(
+        ApiEndpoints.meGoals,
+        data: _withoutNulls({
+          'goal_kcal': goalKcal,
+          'protein_g': proteinG,
+          'carbs_g': carbsG,
+          'fat_g': fatG,
+          'fiber_g': fiberG,
+        }),
+      );
+      _user = AppUser.fromJson(Map<String, dynamic>.from(response.data as Map));
+    });
+  }
+
   Future<void> completeOnboarding() async {
     await _runAuthAction(() async {
       final response = await _api.patch(ApiEndpoints.meOnboardingComplete);
@@ -374,6 +401,11 @@ class AuthProvider extends ChangeNotifier {
       _error = e.toString();
       rethrow;
     }
+    // Re-arm the daily goal-progress reminder against the freshly-loaded
+    // targets. Failure here must not break sign-in, so swallow errors.
+    try {
+      await GoalReminderScheduler.scheduleFor(_user?.metabolicTargets);
+    } catch (_) {}
     notifyListeners();
   }
 

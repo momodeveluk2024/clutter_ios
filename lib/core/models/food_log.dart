@@ -5,6 +5,11 @@ class MealLogItem {
     required this.foodName,
     this.imageUrl,
     required this.servingG,
+    this.caloriesKcal = 0,
+    this.proteinG = 0,
+    this.carbsG = 0,
+    this.fatG = 0,
+    this.fiberG = 0,
   });
 
   final String id;
@@ -12,6 +17,15 @@ class MealLogItem {
   final String foodName;
   final String? imageUrl;
   final double servingG;
+  final double caloriesKcal;
+  final double proteinG;
+  final double carbsG;
+  final double fatG;
+  final double fiberG;
+
+  /// True when the backend has no usable nutrition data for the underlying food.
+  bool get hasNutrition =>
+      caloriesKcal > 0 || proteinG > 0 || carbsG > 0 || fatG > 0;
 
   factory MealLogItem.fromJson(Map<String, dynamic> json) {
     return MealLogItem(
@@ -20,6 +34,11 @@ class MealLogItem {
       foodName: json['food_name'] as String? ?? 'Food',
       imageUrl: json['image_url'] as String?,
       servingG: (json['serving_g'] as num?)?.toDouble() ?? 0,
+      caloriesKcal: (json['calories_kcal'] as num?)?.toDouble() ?? 0,
+      proteinG: (json['protein_g'] as num?)?.toDouble() ?? 0,
+      carbsG: (json['carbs_g'] as num?)?.toDouble() ?? 0,
+      fatG: (json['fat_g'] as num?)?.toDouble() ?? 0,
+      fiberG: (json['fiber_g'] as num?)?.toDouble() ?? 0,
     );
   }
 }

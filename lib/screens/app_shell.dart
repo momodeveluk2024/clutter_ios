@@ -6,6 +6,8 @@ import '../core/providers/food_provider.dart';
 import '../core/providers/nutrition_provider.dart';
 import '../core/tour/app_tour.dart';
 import '../core/tour/tour_prefs.dart';
+import '../core/tour/trail_welcome.dart';
+import '../widgets/mascot.dart';
 import '../theme.dart';
 import 'home.dart';
 import 'explore.dart';
@@ -78,74 +80,116 @@ class _AppShellState extends State<AppShell> {
 
   Future<void> _maybeStartTour() async {
     if (widget.startTour) {
-      _runTour();
+      _showTrailWelcome();
       return;
     }
     final completed = await TourPrefs.hasCompletedTour();
     if (!completed && mounted) {
-      // Small delay so the home screen has time to lay out its widgets
-      await Future.delayed(const Duration(milliseconds: 600));
-      if (mounted) _runTour();
+      // Wait until home has laid out, then offer the Trail.
+      await Future.delayed(const Duration(milliseconds: 700));
+      if (mounted) _showTrailWelcome();
     }
   }
 
+  void _showTrailWelcome() {
+    if (!mounted) return;
+    TrailWelcomeOverlay.show(
+      context,
+      onStart: () {
+        // small delay lets the welcome card fade out cleanly
+        Future.delayed(const Duration(milliseconds: 220), () {
+          if (mounted) _runTour();
+        });
+      },
+      onSkip: () {
+        TourPrefs.markTourCompleted();
+      },
+    );
+  }
+
   void _runTour() {
-    final steps = [
+    final steps = <AppTourStep>[
+      // Intro card — no spotlight, centered
+      const AppTourStep(
+        key: null,
+        title: "Quick walk-through",
+        description:
+            "Sprout will point things out as you go. Tap anywhere to keep moving, "
+            "or use the buttons below.",
+        icon: Icons.tour_rounded,
+        mood: MascotMood.waving,
+      ),
       AppTourStep(
         key: HomeScreen.scoreKey,
-        title: 'Your Health Score',
+        title: 'Your daily coverage',
         description:
-            'This ring shows how well your meals cover essential nutrients today. '
-            'Log food to watch it climb!',
+            'This ring is your health score for today — how well your meals '
+            'cover the nutrients your body needs. The score climbs as you log.',
         icon: Icons.donut_large_rounded,
+        mood: MascotMood.sparkle,
       ),
       AppTourStep(
         key: HomeScreen.macroKey,
-        title: 'Macro Overview',
+        title: 'Calories & macros',
         description:
-            'Protein, carbs, fat, and fiber at a glance — '
-            'see how your daily intake stacks up.',
+            'Your personalized kcal target plus protein, carbs, fat and fiber. '
+            'Tuned to your body and your activity level.',
         icon: Icons.dashboard_rounded,
+        mood: MascotMood.cheering,
       ),
       AppTourStep(
         key: HomeScreen.fabKey,
-        title: 'Log a Meal',
+        title: 'Log anything, fast',
         description:
-            'Tap here to search and log any food. '
-            'Your score and macros update instantly.',
+            'This is your action button. Search foods, scan a barcode, snap a photo '
+            'for an AI estimate, or chat with the AI assistant — all from here.',
         icon: Icons.add_rounded,
+        mood: MascotMood.happy,
       ),
       AppTourStep(
         key: AppShell.exploreTabKey,
-        title: 'Explore Foods',
+        title: 'Explore foods & vitamins',
         description:
-            'Browse foods by category, discover vitamins, '
-            'and find what your body needs.',
+            'Browse foods by category and tap any vitamin to learn what it does '
+            'and which foods are richest in it.',
         icon: Icons.explore_rounded,
+        mood: MascotMood.curious,
       ),
       AppTourStep(
         key: AppShell.trackTabKey,
-        title: 'Your Tracker',
+        title: 'Trends & history',
         description:
-            'View daily history, weekly trends, and use '
-            'AI meal photo analysis to log faster.',
+            'See daily history, weekly trends, and your full nutrient breakdown. '
+            'AI meal photo analysis lives here too.',
         icon: Icons.insights_rounded,
+        mood: MascotMood.thinking,
       ),
       AppTourStep(
         key: AppShell.savedTabKey,
-        title: 'Saved Foods',
+        title: 'Saved & custom meals',
         description:
-            'Your favorite foods and custom meals — '
-            'quick access for everyday logging.',
+            'Your favorites and the meals you build yourself — one tap to re-log '
+            'breakfasts and dinners you eat all the time.',
         icon: Icons.favorite_rounded,
+        mood: MascotMood.happy,
       ),
       AppTourStep(
         key: AppShell.profileTabKey,
-        title: 'Your Profile',
+        title: 'You & your goals',
         description:
-            'Manage your goals, diet preferences, '
-            'reminders, and app settings here.',
+            'Update your goals, diet, reminders and units any time. Sprout will '
+            'follow along and re-tune your targets.',
         icon: Icons.person_rounded,
+        mood: MascotMood.waving,
+      ),
+      // Outro card — no spotlight
+      const AppTourStep(
+        key: null,
+        title: "You're all set!",
+        description:
+            "Log your first meal whenever you're ready — Sprout will be cheering you on.",
+        icon: Icons.celebration_rounded,
+        mood: MascotMood.cheering,
       ),
     ];
 

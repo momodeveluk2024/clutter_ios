@@ -191,7 +191,22 @@ class _HomeScreenState extends State<HomeScreen> {
                         children: nutrition.logs.take(4).map((log) {
                           final firstItem = log.items.isEmpty ? null : log.items.first;
                           final title = firstItem?.foodName ?? (log.mealType.isEmpty ? log.mealType : log.mealType[0].toUpperCase() + log.mealType.substring(1));
-                          
+                          // Sum kcal + macros across all items in this log so the
+                          // home row reflects the meal as a whole, not just the
+                          // first food.
+                          final kcal = log.items.fold<double>(0, (s, i) => s + i.caloriesKcal);
+                          final protein = log.items.fold<double>(0, (s, i) => s + i.proteinG);
+                          final carbs = log.items.fold<double>(0, (s, i) => s + i.carbsG);
+                          final fat = log.items.fold<double>(0, (s, i) => s + i.fatG);
+                          final fiber = log.items.fold<double>(0, (s, i) => s + i.fiberG);
+                          final hasMacros = kcal > 0 || protein > 0 || carbs > 0 || fat > 0;
+                          final extraItems = log.items.length > 1
+                              ? '  ·  +${log.items.length - 1} more'
+                              : '';
+                          final subtitleText = hasMacros
+                              ? '${kcal.round()} kcal · P ${protein.round()}g · C ${carbs.round()}g · F ${fat.round()}g · Fb ${fiber.round()}g$extraItems'
+                              : 'Nutrition data unavailable$extraItems';
+
                           return Padding(
                             padding: const EdgeInsets.only(bottom: NVSpace.x2),
                             child: ListTile(
@@ -223,9 +238,15 @@ class _HomeScreenState extends State<HomeScreen> {
                                 title,
                                 style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 15),
                               ),
-                              subtitle: log.items.length > 1
-                                  ? Text('+${log.items.length - 1} more items')
-                                  : null,
+                              subtitle: Text(
+                                subtitleText,
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: hasMacros
+                                      ? NVColors.of(context).textMuted
+                                      : Colors.orangeAccent,
+                                ),
+                              ),
                               trailing: const Icon(Icons.chevron_right),
                               onTap: () => showMealLogDetails(
                                 context,
@@ -1538,6 +1559,11 @@ class _MetabolicTargetsCard extends StatelessWidget {
     final isOver = hasGoal && remaining < 0;
 
     return NVCard(
+      padding: EdgeInsets.zero,
+      child: InkWell(
+        onTap: () => context.push('/app/profile/daily-goals'),
+        borderRadius: BorderRadius.circular(NVRadius.card),
+        child: Padding(
       padding: const EdgeInsets.all(NVSpace.x5),
       child: Row(
         children: [
@@ -1659,6 +1685,8 @@ class _MetabolicTargetsCard extends StatelessWidget {
             ),
           ),
         ],
+      ),
+        ),
       ),
     );
   }

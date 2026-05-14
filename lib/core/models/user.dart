@@ -185,6 +185,7 @@ class MetabolicTargets {
     required this.proteinG,
     required this.carbsG,
     required this.fatG,
+    this.fiberG = 0,
     this.formula = 'mifflin_st_jeor',
     this.goalAdjustment = 0,
   });
@@ -195,6 +196,7 @@ class MetabolicTargets {
   final double proteinG;
   final double carbsG;
   final double fatG;
+  final double fiberG;
   final String formula;
   final double goalAdjustment;
 
@@ -206,6 +208,7 @@ class MetabolicTargets {
       proteinG: (json['protein_g'] as num?)?.toDouble() ?? 0,
       carbsG: (json['carbs_g'] as num?)?.toDouble() ?? 0,
       fatG: (json['fat_g'] as num?)?.toDouble() ?? 0,
+      fiberG: (json['fiber_g'] as num?)?.toDouble() ?? 0,
       formula: json['formula'] as String? ?? 'mifflin_st_jeor',
       goalAdjustment: (json['goal_adjustment'] as num?)?.toDouble() ?? 0,
     );

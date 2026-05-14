@@ -39,6 +39,7 @@ class ApiEndpoints {
   static const meProfile = '/me/profile';
   static const meAvatar = '/me/avatar';
   static const mePreferences = '/me/preferences';
+  static const meGoals = '/me/goals';
   static const meOnboardingComplete = '/me/onboarding/complete';
   static const streak = '/me/streak';
   static const foods = '/foods';

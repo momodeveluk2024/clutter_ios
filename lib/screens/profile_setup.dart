@@ -8,8 +8,10 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 
 import '../core/providers/auth_provider.dart';
+import '../core/tour/tour_prefs.dart';
 import '../theme.dart';
 import '../widgets.dart';
+import '../widgets/mascot.dart';
 
 class ProfileSetupScreen extends StatefulWidget {
   const ProfileSetupScreen({super.key});
@@ -33,7 +35,9 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
         question: 'How do you ',
         questionAccent: 'identify?',
         helper:
-            'This helps us tune iron, calcium and vitamin targets to your body.',
+            'We use this to tune iron, calcium and vitamin targets to your body.',
+        mood: MascotMood.curious,
+        bubble: "Hi! I'm Sprout. Let's set this up together.",
         builder: (context) => _ChoiceGrid(
           options: const [
             _ChoiceOption('female', 'Female', Icons.female),
@@ -54,20 +58,37 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
         question: 'When were you ',
         questionAccent: 'born?',
         helper:
-            'Age changes the daily reference values for most vitamins and minerals.',
+            'Age changes daily reference values for most vitamins and minerals.',
+        mood: MascotMood.thinking,
+        bubble: 'Age tunes your micros — fast bone years vs. steady years.',
         builder: (context) => _DateOfBirthPicker(
           value: _answers.dob,
           onChanged: (value) => setState(() => _answers.dob = value),
         ),
         canContinue: () => _answers.dob != null,
       ),
-
+      _Step(
+        id: 'height',
+        eyebrow: 'Body',
+        question: 'How ',
+        questionAccent: 'tall are you?',
+        helper: 'Height + weight calibrate your daily energy and protein floor.',
+        mood: MascotMood.curious,
+        bubble: 'Used for your BMR — the energy you burn just being you.',
+        builder: (context) => _HeightPicker(
+          value: _answers.heightCm,
+          onChanged: (value) => setState(() => _answers.heightCm = value),
+        ),
+        canContinue: () => _answers.heightCm != null,
+      ),
       _Step(
         id: 'weight',
         eyebrow: 'Body',
         question: 'And your ',
         questionAccent: 'weight?',
         helper: 'You can update this any time from your profile.',
+        mood: MascotMood.curious,
+        bubble: 'Snapshot today — your targets will follow if it changes.',
         builder: (context) => _WeightPicker(
           value: _answers.weightKg,
           onChanged: (value) => setState(() => _answers.weightKg = value),
@@ -81,6 +102,8 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
         questionAccent: 'active are you?',
         helper:
             'Energy targets shift quite a bit between sedentary and very active days.',
+        mood: MascotMood.cheering,
+        bubble: 'Pick what an average week looks like — not your best one.',
         builder: (context) => _ChoiceList(
           options: const [
             _ChoiceOption(
@@ -126,6 +149,8 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
         questionAccent: 'know?',
         helper:
             'Folate, iron and iodine targets shift during pregnancy and postpartum.',
+        mood: MascotMood.happy,
+        bubble: "Totally optional — only what you're comfortable sharing.",
         builder: (context) => _ChoiceList(
           options: const [
             _ChoiceOption(
@@ -166,6 +191,8 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
         questionAccent: 'work on?',
         helper:
             'Pick a few. We will lift the relevant nutrients to the top of your home screen.',
+        mood: MascotMood.sparkle,
+        bubble: 'Tap a few — these become the shortcuts on your home screen.',
         builder: (context) => _MultiChoiceChips(
           options: const [
             _MultiOption('Energy', '⚡'),
@@ -190,6 +217,8 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
         question: 'How do you ',
         questionAccent: 'eat?',
         helper: 'We will surface foods that fit and quietly hide the rest.',
+        mood: MascotMood.happy,
+        bubble: "If you switch later, just update it from your profile.",
         builder: (context) => _ChoiceList(
           options: const [
             _ChoiceOption(
@@ -240,7 +269,9 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
         question: 'Any ',
         questionAccent: 'allergens?',
         helper:
-            'We will warn you on foods that include them. You can skip this.',
+            'We will warn you on foods that include them. Skip if you have none.',
+        mood: MascotMood.thinking,
+        bubble: "I'll keep an eye out so you don't have to read every label.",
         builder: (context) => _MultiChoiceChips(
           options: const [
             _MultiOption('Peanuts', '🥜'),
@@ -267,8 +298,7 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final dark = Theme.of(context).brightness == Brightness.dark;
-    final c = NVColors(dark);
+    final c = NVColors.of(context);
     final visible = _visibleSteps;
     final clampedIndex = _index.clamp(0, visible.length - 1);
     final step = visible[clampedIndex];
@@ -285,9 +315,10 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
               onBack: clampedIndex == 0 ? null : _back,
               onSkip: step.skippable ? _next : null,
             ),
+            _MascotBubble(mood: step.mood, message: step.bubble),
             Expanded(
               child: AnimatedSwitcher(
-                duration: const Duration(milliseconds: 320),
+                duration: const Duration(milliseconds: 360),
                 switchInCurve: Curves.easeOutCubic,
                 switchOutCurve: Curves.easeInCubic,
                 transitionBuilder: (child, animation) {
@@ -384,6 +415,7 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
       await auth.updateProfile(
         sex: _answers.sex,
         dateOfBirth: _answers.dob == null ? null : _formatDate(_answers.dob!),
+        heightCm: _answers.heightCm,
         weightKg: _answers.weightKg,
         activityLevel: _answers.activity,
         pregnancyStatus: _answers.pregnancy,
@@ -394,6 +426,11 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
         allergens: _answers.allergens.toList(),
       );
       await auth.completeOnboarding();
+      // Reset tour so the Trail welcome shows for the new account.
+      await TourPrefs.resetTour();
+      if (!mounted) return;
+      // Show celebratory mascot, then go to the app.
+      await _showCelebration();
       if (!mounted) return;
       context.go('/app');
     } catch (error) {
@@ -406,6 +443,15 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
     }
   }
 
+  Future<void> _showCelebration() async {
+    HapticFeedback.heavyImpact();
+    await showDialog<void>(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) => _CelebrationDialog(),
+    );
+  }
+
   String _formatDate(DateTime value) {
     String pad(int v) => v.toString().padLeft(2, '0');
     return '${value.year}-${pad(value.month)}-${pad(value.day)}';
@@ -415,6 +461,7 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
 class _ProfileAnswers {
   String? sex;
   DateTime? dob;
+  double? heightCm;
   double? weightKg;
   String? activity;
   String? pregnancy;
@@ -432,6 +479,8 @@ class _Step {
     required this.helper,
     required this.builder,
     required this.canContinue,
+    required this.mood,
+    required this.bubble,
     this.isVisible = _alwaysTrue,
     this.skippable = false,
   });
@@ -445,8 +494,144 @@ class _Step {
   final bool Function() canContinue;
   final bool Function() isVisible;
   final bool skippable;
+  final MascotMood mood;
+  final String bubble;
 
   static bool _alwaysTrue() => true;
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  MASCOT BUBBLE — Sprout + speech bubble
+// ═══════════════════════════════════════════════════════════════
+
+class _MascotBubble extends StatelessWidget {
+  const _MascotBubble({required this.mood, required this.message});
+
+  final MascotMood mood;
+  final String message;
+
+  @override
+  Widget build(BuildContext context) {
+    final c = NVColors.of(context);
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(20, 4, 20, 16),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          AnimatedSwitcher(
+            duration: const Duration(milliseconds: 240),
+            switchInCurve: Curves.easeOutBack,
+            transitionBuilder: (child, anim) => ScaleTransition(
+              scale: anim,
+              child: FadeTransition(opacity: anim, child: child),
+            ),
+            child: SizedBox(
+              key: ValueKey('mascot_$mood'),
+              width: 70,
+              height: 70,
+              child: Mascot(mood: mood, size: 70, compact: true),
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: AnimatedSwitcher(
+              duration: const Duration(milliseconds: 260),
+              transitionBuilder: (child, anim) => FadeTransition(
+                opacity: anim,
+                child: SlideTransition(
+                  position: Tween<Offset>(
+                    begin: const Offset(0, 0.15),
+                    end: Offset.zero,
+                  ).animate(anim),
+                  child: child,
+                ),
+              ),
+              child: Container(
+                key: ValueKey(message),
+                padding: const EdgeInsets.fromLTRB(14, 11, 14, 12),
+                decoration: BoxDecoration(
+                  color: NV.accentSoft,
+                  borderRadius: const BorderRadius.only(
+                    topLeft: Radius.circular(6),
+                    topRight: Radius.circular(16),
+                    bottomLeft: Radius.circular(16),
+                    bottomRight: Radius.circular(16),
+                  ),
+                ),
+                child: Text(
+                  message,
+                  style: TextStyle(
+                    color: c.text,
+                    fontSize: 13.5,
+                    fontWeight: FontWeight.w600,
+                    height: 1.35,
+                    letterSpacing: -0.1,
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  CELEBRATION DIALOG (post-finish)
+// ═══════════════════════════════════════════════════════════════
+
+class _CelebrationDialog extends StatefulWidget {
+  @override
+  State<_CelebrationDialog> createState() => _CelebrationDialogState();
+}
+
+class _CelebrationDialogState extends State<_CelebrationDialog> {
+  @override
+  void initState() {
+    super.initState();
+    Future.delayed(const Duration(milliseconds: 1450), () {
+      if (mounted) Navigator.of(context).pop();
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final c = NVColors.of(context);
+    return Dialog(
+      backgroundColor: c.surface,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
+      insetPadding: const EdgeInsets.symmetric(horizontal: 40),
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(24, 28, 24, 24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Mascot(mood: MascotMood.cheering, size: 140),
+            const SizedBox(height: 8),
+            Text(
+              "You're all set!",
+              style: TextStyle(
+                fontSize: 22,
+                fontWeight: FontWeight.w800,
+                color: c.text,
+                letterSpacing: -0.4,
+              ),
+            ),
+            const SizedBox(height: 6),
+            Text(
+              "Let's go meet your dashboard.",
+              style: TextStyle(
+                fontSize: 13.5,
+                color: c.textMuted,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 }
 
 class _Header extends StatelessWidget {
@@ -466,8 +651,7 @@ class _Header extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final dark = Theme.of(context).brightness == Brightness.dark;
-    final c = NVColors(dark);
+    final c = NVColors.of(context);
     return Padding(
       padding: const EdgeInsets.fromLTRB(20, 14, 20, 8),
       child: Column(
@@ -524,7 +708,7 @@ class _Header extends StatelessWidget {
                 child: Padding(
                   padding: EdgeInsets.only(right: i == total - 1 ? 0 : 6),
                   child: AnimatedContainer(
-                    duration: const Duration(milliseconds: 320),
+                    duration: const Duration(milliseconds: 360),
                     curve: Curves.easeOutCubic,
                     height: 6,
                     decoration: BoxDecoration(
@@ -593,6 +777,7 @@ class _Footer extends StatelessWidget {
         label: isSaving ? 'Saving...' : (isLast ? 'Finish setup' : 'Continue'),
         trailingIcon: isLast ? Icons.check : Icons.arrow_forward,
         accent: true,
+        loading: isSaving,
         onPressed: canContinue ? onContinue : null,
       ),
     );
@@ -686,9 +871,7 @@ class _ChoiceGrid extends StatelessWidget {
                       height: 1.2,
                       color: selected
                           ? Colors.white
-                          : NVColors(
-                              Theme.of(context).brightness == Brightness.dark,
-                            ).text,
+                          : NVColors.of(context).text,
                     ),
                   ),
                 ],
@@ -754,10 +937,7 @@ class _ChoiceList extends StatelessWidget {
                           fontWeight: FontWeight.w800,
                           color: selected
                               ? Colors.white
-                              : NVColors(
-                                  Theme.of(context).brightness ==
-                                      Brightness.dark,
-                                ).text,
+                              : NVColors.of(context).text,
                         ),
                       ),
                       if (opt.subtitle != null) ...[
@@ -769,10 +949,7 @@ class _ChoiceList extends StatelessWidget {
                             height: 1.35,
                             color: selected
                                 ? Colors.white.withValues(alpha: 0.78)
-                                : NVColors(
-                                    Theme.of(context).brightness ==
-                                        Brightness.dark,
-                                  ).textMuted,
+                                : NVColors.of(context).textMuted,
                           ),
                         ),
                       ],
@@ -810,8 +987,7 @@ class _MultiChoiceChips extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final dark = Theme.of(context).brightness == Brightness.dark;
-    final c = NVColors(dark);
+    final c = NVColors.of(context);
     return Wrap(
       spacing: 10,
       runSpacing: 10,
@@ -926,8 +1102,7 @@ class _DateOfBirthPicker extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final dark = Theme.of(context).brightness == Brightness.dark;
-    final c = NVColors(dark);
+    final c = NVColors.of(context);
     final hasValue = value != null;
     final formatted = hasValue
         ? '${_monthName(value!.month)} ${value!.day}, ${value!.year}'
@@ -1176,6 +1351,15 @@ class _HeightPickerState extends State<_HeightPicker> {
   late double _value = widget.value ?? 170;
 
   @override
+  void initState() {
+    super.initState();
+    // Ensure parent has a default when user just continues without touching slider.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (widget.value == null) widget.onChanged(_value);
+    });
+  }
+
+  @override
   Widget build(BuildContext context) {
     final cm = _value.round();
     final ft = (cm / 30.48);
@@ -1310,6 +1494,14 @@ class _WeightPickerState extends State<_WeightPicker> {
   late double _value = widget.value ?? 70;
 
   @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (widget.value == null) widget.onChanged(_value);
+    });
+  }
+
+  @override
   Widget build(BuildContext context) {
     final kg = _value.round();
     final lb = (_value * 2.2046).round();
@@ -1414,115 +1606,6 @@ class _WeightPickerState extends State<_WeightPicker> {
               ),
               Text(
                 '180 kg',
-                style: TextStyle(
-                  fontSize: 11,
-                  fontWeight: FontWeight.w600,
-                  color: Colors.white.withValues(alpha: 0.6),
-                ),
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _AgePicker extends StatefulWidget {
-  const _AgePicker({required this.value, required this.onChanged});
-
-  final int? value;
-  final ValueChanged<int> onChanged;
-
-  @override
-  State<_AgePicker> createState() => _AgePickerState();
-}
-
-class _AgePickerState extends State<_AgePicker> {
-  late int _value = widget.value ?? 30;
-
-  @override
-  Widget build(BuildContext context) {
-    return _SelectableTile(
-      selected: true,
-      onTap: () {},
-      padding: const EdgeInsets.all(22),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            'AGE',
-            style: TextStyle(
-              fontSize: 11,
-              fontWeight: FontWeight.w800,
-              letterSpacing: 1.6,
-              color: Colors.white.withValues(alpha: 0.7),
-            ),
-          ),
-          const SizedBox(height: 10),
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.end,
-            children: [
-              Text(
-                '$_value',
-                style: GoogleFonts.instrumentSerif(
-                  fontSize: 76,
-                  fontWeight: FontWeight.w400,
-                  letterSpacing: -2,
-                  height: 1,
-                  color: Colors.white,
-                ),
-              ),
-              const SizedBox(width: 8),
-              Padding(
-                padding: const EdgeInsets.only(bottom: 12),
-                child: Text(
-                  'years',
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.w700,
-                    color: Colors.white.withValues(alpha: 0.8),
-                  ),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 8),
-          SliderTheme(
-            data: SliderTheme.of(context).copyWith(
-              activeTrackColor: Colors.white,
-              inactiveTrackColor: Colors.white.withValues(alpha: 0.22),
-              thumbColor: Colors.white,
-              overlayColor: Colors.white.withValues(alpha: 0.12),
-              trackHeight: 5,
-              thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 12),
-            ),
-            child: Slider(
-              value: _value.toDouble(),
-              min: 16,
-              max: 100,
-              divisions: 84,
-              onChanged: (v) {
-                HapticFeedback.selectionClick();
-                final val = v.round();
-                setState(() => _value = val);
-                widget.onChanged(val);
-              },
-            ),
-          ),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(
-                '16',
-                style: TextStyle(
-                  fontSize: 11,
-                  fontWeight: FontWeight.w600,
-                  color: Colors.white.withValues(alpha: 0.6),
-                ),
-              ),
-              Text(
-                '100',
                 style: TextStyle(
                   fontSize: 11,
                   fontWeight: FontWeight.w600,
