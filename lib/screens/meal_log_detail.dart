@@ -402,7 +402,7 @@ class _ItemRow extends StatelessWidget {
                       ),
                       if (item.hasNutrition)
                         Text(
-                          '${item.caloriesKcal.round()} kcal · '
+                          '${item.displayKcal.round()} kcal · '
                           'P ${item.proteinG.round()}g · '
                           'C ${item.carbsG.round()}g · '
                           'F ${item.fatG.round()}g · '

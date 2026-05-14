@@ -218,21 +218,26 @@ class _TourOverlayState extends State<_TourOverlay>
               Positioned.fill(
                 child: SafeArea(
                   child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 18),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 18,
+                      vertical: 18,
+                    ),
                     child: Center(
-                      child: ConstrainedBox(
-                        constraints: const BoxConstraints(maxWidth: 460),
-                        child: _TooltipCard(
-                          step: step,
-                          current: _current,
-                          total: widget.steps.length,
-                          isLast: _current == widget.steps.length - 1,
-                          isFirst: _current == 0,
-                          onNext: _next,
-                          onPrev: _prev,
-                          onSkip: _skip,
-                          colors: c,
-                          centered: true,
+                      child: SingleChildScrollView(
+                        child: ConstrainedBox(
+                          constraints: const BoxConstraints(maxWidth: 460),
+                          child: _TooltipCard(
+                            step: step,
+                            current: _current,
+                            total: widget.steps.length,
+                            isLast: _current == widget.steps.length - 1,
+                            isFirst: _current == 0,
+                            onNext: _next,
+                            onPrev: _prev,
+                            onSkip: _skip,
+                            colors: c,
+                            centered: true,
+                          ),
                         ),
                       ),
                     ),
@@ -337,100 +342,188 @@ class _TooltipCard extends StatelessWidget {
         ),
         child: Container(
           key: ValueKey(current),
-          padding: const EdgeInsets.fromLTRB(18, 16, 18, 14),
+          padding: EdgeInsets.fromLTRB(
+            centered ? 22 : 18,
+            centered ? 22 : 16,
+            centered ? 22 : 18,
+            14,
+          ),
           decoration: BoxDecoration(
             color: colors.surface,
-            borderRadius: BorderRadius.circular(22),
+            borderRadius: BorderRadius.circular(centered ? 26 : 22),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withValues(alpha: 0.22),
-                blurRadius: 32,
-                offset: const Offset(0, 10),
+                color: Colors.black.withValues(alpha: 0.26),
+                blurRadius: 40,
+                offset: const Offset(0, 14),
               ),
             ],
           ),
           child: Column(
             mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
+            crossAxisAlignment: centered
+                ? CrossAxisAlignment.center
+                : CrossAxisAlignment.start,
             children: [
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // Mascot reacts per step
-                  SizedBox(
-                    width: centered ? 92 : 56,
-                    height: centered ? 92 : 56,
-                    child: Mascot(
-                      mood: step.mood,
-                      size: centered ? 92 : 56,
-                      compact: true,
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          children: [
-                            if (step.icon != null) ...[
-                              Container(
-                                padding: const EdgeInsets.all(6),
-                                decoration: BoxDecoration(
-                                  color: NV.accentSoft,
-                                  borderRadius: BorderRadius.circular(8),
-                                ),
-                                child: Icon(step.icon, size: 14, color: NV.accent),
-                              ),
-                              const SizedBox(width: 8),
-                            ],
-                            Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 8,
-                                vertical: 3,
-                              ),
-                              decoration: BoxDecoration(
-                                color: colors.surfaceMuted,
-                                borderRadius: BorderRadius.circular(20),
-                              ),
-                              child: Text(
-                                '${current + 1} / $total',
-                                style: TextStyle(
-                                  fontSize: 11,
-                                  fontWeight: FontWeight.w800,
-                                  color: colors.textMuted,
-                                  letterSpacing: 0.4,
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 6),
-                        Text(
-                          step.title,
-                          style: TextStyle(
-                            fontSize: centered ? 20 : 17,
-                            fontWeight: FontWeight.w800,
-                            color: colors.text,
-                            letterSpacing: -0.3,
-                            height: 1.18,
-                          ),
-                        ),
+              if (centered) ...[
+                // ── Hero intro-card layout ────────────────────
+                Container(
+                  width: 132,
+                  height: 132,
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                      colors: [
+                        NV.accent.withValues(alpha: 0.16),
+                        NV.accentSoft.withValues(alpha: 0.30),
                       ],
                     ),
+                    shape: BoxShape.circle,
                   ),
-                ],
-              ),
-              const SizedBox(height: 12),
-              Text(
-                step.description,
-                style: TextStyle(
-                  fontSize: 14,
-                  height: 1.5,
-                  color: colors.textMuted,
-                  fontWeight: FontWeight.w500,
+                  child: Center(
+                    child: Mascot(mood: step.mood, size: 118, compact: true),
+                  ),
                 ),
-              ),
+                const SizedBox(height: 14),
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    if (step.icon != null) ...[
+                      Container(
+                        padding: const EdgeInsets.all(6),
+                        decoration: BoxDecoration(
+                          color: NV.accentSoft,
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Icon(step.icon, size: 14, color: NV.accent),
+                      ),
+                      const SizedBox(width: 8),
+                    ],
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 10,
+                        vertical: 4,
+                      ),
+                      decoration: BoxDecoration(
+                        color: colors.surfaceMuted,
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                      child: Text(
+                        '${current + 1} / $total',
+                        style: TextStyle(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w800,
+                          color: colors.textMuted,
+                          letterSpacing: 0.6,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 10),
+                Text(
+                  step.title,
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontSize: 22,
+                    fontWeight: FontWeight.w800,
+                    color: colors.text,
+                    letterSpacing: -0.4,
+                    height: 1.16,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  step.description,
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontSize: 14,
+                    height: 1.5,
+                    color: colors.textMuted,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ] else ...[
+                // ── Compact spotlight-tooltip layout ──────────
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    SizedBox(
+                      width: 56,
+                      height: 56,
+                      child: Mascot(mood: step.mood, size: 56, compact: true),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              if (step.icon != null) ...[
+                                Container(
+                                  padding: const EdgeInsets.all(6),
+                                  decoration: BoxDecoration(
+                                    color: NV.accentSoft,
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
+                                  child: Icon(
+                                    step.icon,
+                                    size: 14,
+                                    color: NV.accent,
+                                  ),
+                                ),
+                                const SizedBox(width: 8),
+                              ],
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 8,
+                                  vertical: 3,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: colors.surfaceMuted,
+                                  borderRadius: BorderRadius.circular(20),
+                                ),
+                                child: Text(
+                                  '${current + 1} / $total',
+                                  style: TextStyle(
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.w800,
+                                    color: colors.textMuted,
+                                    letterSpacing: 0.4,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 6),
+                          Text(
+                            step.title,
+                            style: TextStyle(
+                              fontSize: 17,
+                              fontWeight: FontWeight.w800,
+                              color: colors.text,
+                              letterSpacing: -0.3,
+                              height: 1.18,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                Text(
+                  step.description,
+                  style: TextStyle(
+                    fontSize: 14,
+                    height: 1.5,
+                    color: colors.textMuted,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ],
               const SizedBox(height: 14),
 
               // Progress bar

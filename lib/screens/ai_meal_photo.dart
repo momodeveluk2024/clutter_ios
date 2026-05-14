@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 
@@ -11,6 +12,7 @@ import '../core/providers/nutrition_provider.dart';
 import '../theme.dart';
 import '../widgets.dart';
 import '../widgets/log_success_toast.dart';
+import '../widgets/mascot.dart';
 
 class AiMealPhotoScreen extends StatefulWidget {
   const AiMealPhotoScreen({
@@ -210,13 +212,26 @@ class _AiMealPhotoScreenState extends State<AiMealPhotoScreen> {
 
       if (!mounted) return;
       final itemCount = estimate.items.length;
+      // Show the actual kcal + macros that just got added so the user can see
+      // the delta on their day, not just "saved".
+      final fallbackKcal = totalProtein * 4 + totalCarbs * 4 + totalFat * 9;
+      final shownKcal = totalCalories > 0 ? totalCalories : fallbackKcal;
+      final parts = <String>[
+        if (shownKcal > 0) '+${shownKcal.round()} kcal',
+        if (totalProtein > 0) 'P ${totalProtein.round()}g',
+        if (totalCarbs > 0) 'C ${totalCarbs.round()}g',
+        if (totalFat > 0) 'F ${totalFat.round()}g',
+      ];
+      final macroLine = parts.isEmpty
+          ? 'Saved to ${_humanizeMeal(widget.mealType)} & My Meals'
+          : '${parts.join(' · ')}  ·  ${_humanizeMeal(widget.mealType)}';
       context.go('/app/tracker');
       LogSuccessToast.show(
         context,
         title: itemCount <= 1
             ? 'Meal logged · $mealName'
             : 'Meal logged · $itemCount items',
-        subtitle: 'Saved to ${_humanizeMeal(widget.mealType)} & My Meals',
+        subtitle: macroLine,
       );
     } catch (e) {
       messenger.showSnackBar(
@@ -257,42 +272,77 @@ class _AiMealPhotoScreenState extends State<AiMealPhotoScreen> {
             NVSpace.x10,
           ),
           children: [
-            ClipRRect(
-              borderRadius: BorderRadius.circular(NVRadius.card),
-              child: Image.file(
-                File(widget.imagePath),
-                height: 240,
-                width: double.infinity,
-                fit: BoxFit.cover,
-              ),
+            _MascotBubble(
+              mood: ai.isAnalyzing
+                  ? MascotMood.thinking
+                  : estimate == null
+                      ? MascotMood.curious
+                      : MascotMood.sparkle,
+              message: ai.isAnalyzing
+                  ? "Scanning your plate… spotting foods and estimating portions."
+                  : estimate == null
+                      ? "Tap Analyze and I'll guess every item — you can edit before saving."
+                      : "Here's what I see. Tweak grams or swap items, then save.",
+            ),
+            const SizedBox(height: NVSpace.x3),
+            _ScanFrame(
+              imagePath: widget.imagePath,
+              analyzing: ai.isAnalyzing,
+              hasEstimate: estimate != null,
             ),
             const SizedBox(height: NVSpace.x4),
             if (estimate == null) ...[
+              _HelperNote(
+                icon: Icons.tips_and_updates_outlined,
+                text:
+                    "Best results: tilt camera 30–45°, fill the frame with the plate, decent lighting. "
+                    "Add a hint below if there's a tricky item.",
+              ),
+              const SizedBox(height: NVSpace.x3),
               TextField(
                 controller: _questionController,
                 minLines: 1,
                 maxLines: 3,
-                decoration: const InputDecoration(
-                  labelText: 'Question',
-                  hintText: 'Example: estimate protein and rice portion',
+                decoration: InputDecoration(
+                  labelText: 'Hint for the AI (optional)',
+                  hintText: 'e.g. "the white stuff is jasmine rice, ~1 cup"',
+                  filled: true,
+                  fillColor: c.surface,
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(14),
+                    borderSide: BorderSide(color: c.border),
+                  ),
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(14),
+                    borderSide: BorderSide(color: c.border),
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(14),
+                    borderSide: const BorderSide(color: NV.accent, width: 1.6),
+                  ),
                 ),
               ),
               const SizedBox(height: NVSpace.x4),
-              FilledButton.icon(
-                onPressed: ai.isAnalyzing ? null : _analyze,
-                icon: ai.isAnalyzing
-                    ? const SizedBox(
-                        width: 18,
-                        height: 18,
-                        child: CircularProgressIndicator(strokeWidth: 2),
-                      )
-                    : const Icon(Icons.auto_awesome_rounded),
-                label: Text(ai.isAnalyzing ? 'Analyzing' : 'Analyze meal'),
+              NVPrimaryButton(
+                label: ai.isAnalyzing ? 'Analyzing…' : 'Analyze meal',
+                trailingIcon: ai.isAnalyzing
+                    ? null
+                    : Icons.auto_awesome_rounded,
+                loading: ai.isAnalyzing,
+                accent: true,
+                onPressed: ai.isAnalyzing
+                    ? null
+                    : () {
+                        HapticFeedback.mediumImpact();
+                        _analyze();
+                      },
               ),
               const SizedBox(height: NVSpace.x3),
-              Text(
-                'The result is an estimate. Review portions before saving.',
-                style: TextStyle(color: c.textMuted, fontSize: 12),
+              Center(
+                child: Text(
+                  'The result is an estimate. Review portions before saving.',
+                  style: TextStyle(color: c.textMuted, fontSize: 12),
+                ),
               ),
             ] else ...[
               _EstimateSummary(estimate: estimate),
@@ -686,6 +736,286 @@ class _InfoBlock extends StatelessWidget {
             (value) => Padding(
               padding: const EdgeInsets.only(bottom: 4),
               child: Text(value, style: TextStyle(color: c.textMuted)),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  MASCOT BUBBLE — animated speech bubble that reacts to state
+// ═══════════════════════════════════════════════════════════════
+
+class _MascotBubble extends StatelessWidget {
+  const _MascotBubble({required this.mood, required this.message});
+  final MascotMood mood;
+  final String message;
+
+  @override
+  Widget build(BuildContext context) {
+    final c = NVColors.of(context);
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.center,
+      children: [
+        AnimatedSwitcher(
+          duration: const Duration(milliseconds: 240),
+          switchInCurve: Curves.easeOutBack,
+          transitionBuilder: (child, anim) =>
+              ScaleTransition(scale: anim, child: child),
+          child: SizedBox(
+            key: ValueKey('mscot_$mood'),
+            width: 64,
+            height: 64,
+            child: Mascot(mood: mood, size: 64, compact: true),
+          ),
+        ),
+        const SizedBox(width: 10),
+        Expanded(
+          child: AnimatedSwitcher(
+            duration: const Duration(milliseconds: 280),
+            child: Container(
+              key: ValueKey(message),
+              padding: const EdgeInsets.fromLTRB(14, 11, 14, 12),
+              decoration: BoxDecoration(
+                color: NV.accentSoft,
+                borderRadius: const BorderRadius.only(
+                  topLeft: Radius.circular(6),
+                  topRight: Radius.circular(16),
+                  bottomLeft: Radius.circular(16),
+                  bottomRight: Radius.circular(16),
+                ),
+              ),
+              child: Text(
+                message,
+                style: TextStyle(
+                  color: c.text,
+                  fontSize: 13.5,
+                  fontWeight: FontWeight.w600,
+                  height: 1.35,
+                  letterSpacing: -0.1,
+                ),
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  SCAN FRAME — animated scanning beam during analysis,
+//  sparkle chip when an estimate arrives.
+// ═══════════════════════════════════════════════════════════════
+
+class _ScanFrame extends StatefulWidget {
+  const _ScanFrame({
+    required this.imagePath,
+    required this.analyzing,
+    required this.hasEstimate,
+  });
+
+  final String imagePath;
+  final bool analyzing;
+  final bool hasEstimate;
+
+  @override
+  State<_ScanFrame> createState() => _ScanFrameState();
+}
+
+class _ScanFrameState extends State<_ScanFrame>
+    with TickerProviderStateMixin {
+  late final AnimationController _beam = AnimationController(
+    vsync: this,
+    duration: const Duration(milliseconds: 1600),
+  );
+  late final AnimationController _reveal = AnimationController(
+    vsync: this,
+    duration: const Duration(milliseconds: 420),
+    value: widget.hasEstimate ? 1 : 0,
+  );
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.analyzing) _beam.repeat();
+  }
+
+  @override
+  void didUpdateWidget(covariant _ScanFrame old) {
+    super.didUpdateWidget(old);
+    if (widget.analyzing && !_beam.isAnimating) {
+      _beam.repeat();
+    } else if (!widget.analyzing && _beam.isAnimating) {
+      _beam.stop();
+      _beam.value = 0;
+    }
+    if (widget.hasEstimate && _reveal.value < 1) {
+      _reveal.forward(from: 0);
+    } else if (!widget.hasEstimate && _reveal.value > 0) {
+      _reveal.reverse();
+    }
+  }
+
+  @override
+  void dispose() {
+    _beam.dispose();
+    _reveal.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(NVRadius.card),
+      child: Stack(
+        children: [
+          Image.file(
+            File(widget.imagePath),
+            height: 260,
+            width: double.infinity,
+            fit: BoxFit.cover,
+          ),
+          Positioned.fill(
+            child: IgnorePointer(
+              child: DecoratedBox(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    colors: [
+                      Colors.black.withValues(alpha: 0.28),
+                      Colors.transparent,
+                      Colors.black.withValues(alpha: 0.18),
+                    ],
+                    stops: const [0.0, 0.5, 1.0],
+                  ),
+                ),
+              ),
+            ),
+          ),
+          if (widget.analyzing)
+            Positioned.fill(
+              child: IgnorePointer(
+                child: AnimatedBuilder(
+                  animation: _beam,
+                  builder: (_, _) {
+                    return CustomPaint(
+                      painter: _BeamPainter(progress: _beam.value),
+                    );
+                  },
+                ),
+              ),
+            ),
+          if (widget.hasEstimate)
+            Positioned(
+              left: 12,
+              top: 12,
+              child: FadeTransition(
+                opacity: _reveal,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 5,
+                  ),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withValues(alpha: 0.92),
+                    borderRadius: BorderRadius.circular(99),
+                  ),
+                  child: const Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        Icons.auto_awesome_rounded,
+                        size: 12,
+                        color: NV.accentDeep,
+                      ),
+                      SizedBox(width: 5),
+                      Text(
+                        'AI estimate ready',
+                        style: TextStyle(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w800,
+                          color: NV.accentDeep,
+                          letterSpacing: -0.1,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+}
+
+class _BeamPainter extends CustomPainter {
+  _BeamPainter({required this.progress});
+  final double progress;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final y = size.height * progress;
+    final beamRect = Rect.fromLTWH(0, y - 28, size.width, 56);
+    final beamPaint = Paint()
+      ..shader = LinearGradient(
+        begin: Alignment.topCenter,
+        end: Alignment.bottomCenter,
+        colors: [
+          Colors.transparent,
+          NV.accent.withValues(alpha: 0.55),
+          Colors.transparent,
+        ],
+      ).createShader(beamRect);
+    canvas.drawRect(beamRect, beamPaint);
+
+    final linePaint = Paint()
+      ..color = NV.accent.withValues(alpha: 0.85)
+      ..strokeWidth = 1.5;
+    canvas.drawLine(Offset(0, y), Offset(size.width, y), linePaint);
+  }
+
+  @override
+  bool shouldRepaint(covariant _BeamPainter old) => old.progress != progress;
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  HELPER NOTE — soft accent-tinted info box
+// ═══════════════════════════════════════════════════════════════
+
+class _HelperNote extends StatelessWidget {
+  const _HelperNote({required this.icon, required this.text});
+  final IconData icon;
+  final String text;
+
+  @override
+  Widget build(BuildContext context) {
+    final c = NVColors.of(context);
+    return Container(
+      padding: const EdgeInsets.fromLTRB(12, 10, 12, 10),
+      decoration: BoxDecoration(
+        color: NV.accent.withValues(alpha: 0.06),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: NV.accent.withValues(alpha: 0.18)),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(icon, size: 16, color: NV.accent),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              text,
+              style: TextStyle(
+                fontSize: 12.5,
+                height: 1.4,
+                color: c.text,
+                fontWeight: FontWeight.w500,
+              ),
             ),
           ),
         ],

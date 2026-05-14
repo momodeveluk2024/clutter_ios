@@ -130,20 +130,50 @@ class _AppShellState extends State<AppShell> {
       ),
       AppTourStep(
         key: HomeScreen.macroKey,
-        title: 'Calories & macros',
+        title: 'Calories & macros, tuned to you',
         description:
-            'Your personalized kcal target plus protein, carbs, fat and fiber. '
-            'Tuned to your body and your activity level.',
+            'Your kcal target is computed from your BMR + activity (your true TDEE). '
+            'Protein, carbs, fat and fiber update live as you log.',
         icon: Icons.dashboard_rounded,
         mood: MascotMood.cheering,
       ),
       AppTourStep(
         key: HomeScreen.fabKey,
-        title: 'Log anything, fast',
+        title: 'The + button does everything',
         description:
-            'This is your action button. Search foods, scan a barcode, snap a photo '
-            'for an AI estimate, or chat with the AI assistant — all from here.',
+            'Search foods, scan a barcode, snap your plate, or chat with the AI '
+            'assistant — all from this one button.',
         icon: Icons.add_rounded,
+        mood: MascotMood.happy,
+      ),
+      // ── Feature spotlight: AI meal scan ─────────────────────
+      const AppTourStep(
+        key: null,
+        title: 'AI meal photo scan',
+        description:
+            'Snap your plate and Sprout identifies the foods, estimates portions, '
+            'and fills in kcal + micros in seconds — no typing.',
+        icon: Icons.center_focus_strong_rounded,
+        mood: MascotMood.sparkle,
+      ),
+      // ── Feature spotlight: Barcode scan ─────────────────────
+      const AppTourStep(
+        key: null,
+        title: 'Lightning barcode scan',
+        description:
+            'Point at any package — we pull nutrition from Open Food Facts + USDA. '
+            'Logs the full vitamin & mineral profile, not just calories.',
+        icon: Icons.qr_code_scanner_rounded,
+        mood: MascotMood.curious,
+      ),
+      // ── Feature spotlight: AI chat ──────────────────────────
+      const AppTourStep(
+        key: null,
+        title: 'Ask Sprout anything',
+        description:
+            '“How much iron is in spinach?”  “Build a 30g-protein lunch.” '
+            'Real answers grounded in real data — and one tap to log them.',
+        icon: Icons.auto_awesome_rounded,
         mood: MascotMood.happy,
       ),
       AppTourStep(
@@ -157,10 +187,10 @@ class _AppShellState extends State<AppShell> {
       ),
       AppTourStep(
         key: AppShell.trackTabKey,
-        title: 'Trends & history',
+        title: 'Trends, history & coverage',
         description:
-            'See daily history, weekly trends, and your full nutrient breakdown. '
-            'AI meal photo analysis lives here too.',
+            'Daily, weekly, and monthly views. Watch your vitamin coverage climb '
+            'over time and spot the micros you miss most.',
         icon: Icons.insights_rounded,
         mood: MascotMood.thinking,
       ),

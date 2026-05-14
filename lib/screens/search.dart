@@ -401,17 +401,60 @@ class _FoodResult extends StatelessWidget {
                     style: TextStyle(fontSize: 12, color: c.textMuted),
                   ),
                   const SizedBox(height: 6),
-                  Row(
-                    children: food.nutrients
-                        .take(4)
-                        .map(
-                          (h) => Padding(
-                            padding: const EdgeInsets.only(right: 4),
-                            child: VitaminChip(code: h, size: 20),
-                          ),
-                        )
-                        .toList(),
-                  ),
+                  Builder(builder: (_) {
+                    final macroCodes = const {
+                      'Calories',
+                      'Protein',
+                      'Carbs',
+                      'Fat',
+                      'Fiber',
+                    };
+                    final missingMacros = !food.nutrients.any(macroCodes.contains);
+                    if (missingMacros) {
+                      return Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 3,
+                        ),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFFFFBEB),
+                          borderRadius: BorderRadius.circular(99),
+                          border: Border.all(color: const Color(0xFFFCD34D)),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            const Icon(
+                              Icons.error_outline,
+                              size: 11,
+                              color: Color(0xFFB45309),
+                            ),
+                            const SizedBox(width: 4),
+                            Text(
+                              'Missing nutrition data',
+                              style: TextStyle(
+                                fontSize: 10.5,
+                                fontWeight: FontWeight.w800,
+                                color: const Color(0xFFB45309),
+                                letterSpacing: 0.2,
+                              ),
+                            ),
+                          ],
+                        ),
+                      );
+                    }
+                    return Row(
+                      children: food.nutrients
+                          .take(4)
+                          .map(
+                            (h) => Padding(
+                              padding: const EdgeInsets.only(right: 4),
+                              child: VitaminChip(code: h, size: 20),
+                            ),
+                          )
+                          .toList(),
+                    );
+                  }),
                 ],
               ),
             ),

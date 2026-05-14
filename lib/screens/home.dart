@@ -194,18 +194,18 @@ class _HomeScreenState extends State<HomeScreen> {
                           // Sum kcal + macros across all items in this log so the
                           // home row reflects the meal as a whole, not just the
                           // first food.
-                          final kcal = log.items.fold<double>(0, (s, i) => s + i.caloriesKcal);
+                          final kcal = log.items.fold<double>(0, (s, i) => s + i.displayKcal);
                           final protein = log.items.fold<double>(0, (s, i) => s + i.proteinG);
                           final carbs = log.items.fold<double>(0, (s, i) => s + i.carbsG);
                           final fat = log.items.fold<double>(0, (s, i) => s + i.fatG);
                           final fiber = log.items.fold<double>(0, (s, i) => s + i.fiberG);
-                          final hasMacros = kcal > 0 || protein > 0 || carbs > 0 || fat > 0;
+                          final hasMacros = kcal > 0 || protein > 0 || carbs > 0 || fat > 0 || fiber > 0;
                           final extraItems = log.items.length > 1
                               ? '  ·  +${log.items.length - 1} more'
                               : '';
                           final subtitleText = hasMacros
                               ? '${kcal.round()} kcal · P ${protein.round()}g · C ${carbs.round()}g · F ${fat.round()}g · Fb ${fiber.round()}g$extraItems'
-                              : 'Nutrition data unavailable$extraItems';
+                              : 'Missing nutrition data · open the food to add it$extraItems';
 
                           return Padding(
                             padding: const EdgeInsets.only(bottom: NVSpace.x2),

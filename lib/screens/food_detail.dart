@@ -1,11 +1,13 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 
 import '../core/api/api_endpoints.dart';
 import '../core/models/food.dart';
 import '../core/nutrition/overage_warning.dart';
+import '../core/providers/auth_provider.dart';
 import '../core/providers/food_provider.dart';
 import '../core/providers/nutrition_provider.dart';
 import '../theme.dart';
@@ -249,6 +251,8 @@ class _FoodDetailBody extends StatelessWidget {
                 ),
               ],
               const SizedBox(height: NVSpace.x4),
+              _MacrosPanel(food: food),
+              const SizedBox(height: NVSpace.x3),
               NVCard(
                 padding: const EdgeInsets.symmetric(
                   vertical: 14,
@@ -460,6 +464,8 @@ class _FoodDetailBody extends StatelessWidget {
                   _showLogSheet(context, food);
                 },
               ),
+              const SizedBox(height: 10),
+              _SaveToMyMealsButton(food: food),
               const SizedBox(height: 8),
             ],
           ),
@@ -484,10 +490,35 @@ class _FoodDetailBody extends StatelessWidget {
     );
     if (!context.mounted || result == null) return;
 
+    // Per-serving kcal + macros so the user can see exactly what the log adds.
+    double per100(String code) {
+      for (final n in food.breakdown) {
+        if (n.code == code) return n.amountPer100G;
+      }
+      return 0;
+    }
+
+    final factor = result.servingG / 100.0;
+    final p = per100('Protein') * factor;
+    final cg = per100('Carbs') * factor;
+    final f = per100('Fat') * factor;
+    final storedKcal = per100('Calories') * factor;
+    final kcal = storedKcal > 0 ? storedKcal : (p * 4 + cg * 4 + f * 9);
+
+    final parts = <String>[
+      if (kcal > 0) '+${kcal.round()} kcal',
+      if (p > 0) 'P ${p.round()}g',
+      if (cg > 0) 'C ${cg.round()}g',
+      if (f > 0) 'F ${f.round()}g',
+    ];
+    final macroLine = parts.isEmpty
+        ? '${result.servingG.round()}g · ${_humanize(result.mealType)}'
+        : '${parts.join(' · ')}  ·  ${result.servingG.round()}g';
+
     LogSuccessToast.show(
       context,
       title: 'Logged ${food.name}',
-      subtitle: '${result.servingG.round()}g · ${_humanize(result.mealType)}',
+      subtitle: macroLine,
       imageUrl: food.imageUrl,
     );
   }
@@ -498,6 +529,167 @@ class _LogFoodResult {
 
   final double servingG;
   final String mealType;
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  MACROS PANEL — calories + P/C/F/Fiber at a glance
+// ═══════════════════════════════════════════════════════════════
+
+class _MacrosPanel extends StatelessWidget {
+  const _MacrosPanel({required this.food});
+  final FoodDetail food;
+
+  double _per100(String code) {
+    for (final n in food.breakdown) {
+      if (n.code == code) return n.amountPer100G;
+    }
+    return 0;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final c = NVColors.of(context);
+    final servingG = food.servingSizeG;
+    final p100 = _per100('Protein');
+    final c100 = _per100('Carbs');
+    final f100 = _per100('Fat');
+    final fb100 = _per100('Fiber');
+    final stored100 = _per100('Calories');
+    final kcal100 = stored100 > 0 ? stored100 : (p100 * 4 + c100 * 4 + f100 * 9);
+
+    double perServing(double per100g) => per100g * servingG / 100.0;
+    final kcal = perServing(kcal100);
+    final p = perServing(p100);
+    final cg = perServing(c100);
+    final f = perServing(f100);
+    final fb = perServing(fb100);
+
+    final hasAny =
+        kcal > 0 || p > 0 || cg > 0 || f > 0 || fb > 0;
+    if (!hasAny) return const SizedBox.shrink();
+
+    final unit = _servingUnit(food.category);
+    return NVCard(
+      padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Text(
+                'Per ${servingG.toStringAsFixed(0)}$unit serving',
+                style: TextStyle(
+                  fontSize: 11,
+                  fontWeight: FontWeight.w800,
+                  letterSpacing: 1.4,
+                  color: c.textMuted,
+                ),
+              ),
+              const Spacer(),
+              Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                decoration: BoxDecoration(
+                  color: NV.accent.withValues(alpha: 0.10),
+                  borderRadius: BorderRadius.circular(99),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Icon(
+                      Icons.local_fire_department_rounded,
+                      size: 14,
+                      color: NV.accent,
+                    ),
+                    const SizedBox(width: 4),
+                    Text(
+                      '${kcal.round()} kcal',
+                      style: const TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w800,
+                        color: NV.accent,
+                        letterSpacing: -0.2,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              Expanded(child: _MacroCell(label: 'Protein', value: p, unit: 'g', color: Color(0xFF2F7D4A))),
+              Expanded(child: _MacroCell(label: 'Carbs', value: cg, unit: 'g', color: Color(0xFFB07A1A))),
+              Expanded(child: _MacroCell(label: 'Fat', value: f, unit: 'g', color: Color(0xFF6B4A8A))),
+              Expanded(child: _MacroCell(label: 'Fiber', value: fb, unit: 'g', color: Color(0xFF3A6B88))),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _MacroCell extends StatelessWidget {
+  const _MacroCell({
+    required this.label,
+    required this.value,
+    required this.unit,
+    required this.color,
+  });
+
+  final String label;
+  final double value;
+  final String unit;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
+    final c = NVColors.of(context);
+    final formatted = value >= 10
+        ? value.toStringAsFixed(0)
+        : value.toStringAsFixed(1);
+    return Column(
+      children: [
+        RichText(
+          text: TextSpan(
+            children: [
+              TextSpan(
+                text: formatted,
+                style: nvNumber(18, color: c.text, weight: FontWeight.w700),
+              ),
+              TextSpan(
+                text: unit,
+                style: TextStyle(
+                  fontSize: 11,
+                  fontWeight: FontWeight.w700,
+                  color: c.textMuted,
+                ),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 4),
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+          decoration: BoxDecoration(
+            color: color.withValues(alpha: 0.10),
+            borderRadius: BorderRadius.circular(99),
+          ),
+          child: Text(
+            label,
+            style: TextStyle(
+              fontSize: 10.5,
+              fontWeight: FontWeight.w800,
+              color: color,
+              letterSpacing: 0.4,
+            ),
+          ),
+        ),
+      ],
+    );
+  }
 }
 
 class _Metric extends StatelessWidget {
@@ -1438,5 +1630,118 @@ class _DrinkChip extends StatelessWidget {
         ),
       ),
     );
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  SAVE TO MY MEALS — clones the food into the user's library so
+//  they can edit nutrients (especially useful for OFF/FatSecret
+//  barcode-resolved foods which have no owner).
+// ═══════════════════════════════════════════════════════════════
+
+class _SaveToMyMealsButton extends StatefulWidget {
+  const _SaveToMyMealsButton({required this.food});
+  final FoodDetail food;
+
+  @override
+  State<_SaveToMyMealsButton> createState() => _SaveToMyMealsButtonState();
+}
+
+class _SaveToMyMealsButtonState extends State<_SaveToMyMealsButton> {
+  bool _saving = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final c = NVColors.of(context);
+    final currentUserId = context.watch<AuthProvider>().user?.id;
+    final alreadyOwned = widget.food.ownerUserId != null &&
+        currentUserId != null &&
+        widget.food.ownerUserId == currentUserId;
+
+    if (alreadyOwned) {
+      // Already in My Meals — surface a direct edit shortcut instead.
+      return OutlinedButton.icon(
+        onPressed: () => context.push('/app/my-meal/${widget.food.id}'),
+        icon: const Icon(Icons.edit_rounded, size: 18),
+        label: const Text('Edit in My Meals'),
+        style: OutlinedButton.styleFrom(
+          foregroundColor: NV.accent,
+          side: BorderSide(color: NV.accent.withValues(alpha: 0.4)),
+          padding: const EdgeInsets.symmetric(vertical: 14),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(14),
+          ),
+        ),
+      );
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        OutlinedButton.icon(
+          onPressed: _saving ? null : _clone,
+          icon: _saving
+              ? const SizedBox(
+                  width: 16,
+                  height: 16,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                )
+              : const Icon(Icons.bookmark_add_outlined, size: 18),
+          label: Text(_saving ? 'Saving…' : 'Save to My Meals (editable)'),
+          style: OutlinedButton.styleFrom(
+            foregroundColor: NV.accent,
+            side: BorderSide(color: NV.accent.withValues(alpha: 0.4)),
+            padding: const EdgeInsets.symmetric(vertical: 14),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(14),
+            ),
+          ),
+        ),
+        const SizedBox(height: 6),
+        Text(
+          "Makes a personal copy you can edit. Useful for barcode scans where the numbers are off.",
+          textAlign: TextAlign.center,
+          style: TextStyle(
+            fontSize: 11.5,
+            color: c.textMuted,
+            fontWeight: FontWeight.w500,
+            height: 1.35,
+          ),
+        ),
+      ],
+    );
+  }
+
+  Future<void> _clone() async {
+    HapticFeedback.selectionClick();
+    setState(() => _saving = true);
+    try {
+      final foods = context.read<FoodProvider>();
+      final nutrients = <({String code, double amountPer100G})>[];
+      for (final n in widget.food.breakdown) {
+        if (n.amountPer100G > 0) {
+          nutrients.add((code: n.code, amountPer100G: n.amountPer100G));
+        }
+      }
+      final saved = await foods.createUserMeal(
+        name: widget.food.name,
+        brand: widget.food.brand,
+        category: widget.food.category,
+        servingSizeG: widget.food.servingSizeG,
+        imageUrl: widget.food.imageUrl,
+        backgroundColor: widget.food.backgroundColor,
+        nutrients: nutrients,
+      );
+      if (!mounted) return;
+      HapticFeedback.mediumImpact();
+      context.push('/app/my-meal/${saved.id}');
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Could not save: $e')),
+      );
+    } finally {
+      if (mounted) setState(() => _saving = false);
+    }
   }
 }

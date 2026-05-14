@@ -12,9 +12,9 @@ import '../../widgets/mascot.dart';
 ///   • [onStart]   — user wants the guided spotlight tour
 ///   • [onSkip]    — user dismisses; we mark the tour completed
 ///
-/// This screen previews the headline features added in the latest
-/// release: AI scan (meal photo), barcode scan, kcal & macro tracking,
-/// AI chat assistant, and personalized vitamin coverage.
+/// Previews the headline features added in the latest release:
+/// personalized kcal & macros, AI meal scan, barcode scan,
+/// AI nutrition chat, and live vitamin coverage.
 class TrailWelcomeOverlay {
   TrailWelcomeOverlay._();
 
@@ -48,6 +48,57 @@ class TrailWelcomeOverlay {
   }
 }
 
+class _TrailFeature {
+  const _TrailFeature({
+    required this.icon,
+    required this.title,
+    required this.description,
+    required this.color,
+  });
+  final IconData icon;
+  final String title;
+  final String description;
+  final Color color;
+}
+
+final List<_TrailFeature> _features = [
+  _TrailFeature(
+    icon: Icons.donut_large_rounded,
+    title: 'Personalized kcal & macros',
+    description:
+        'Targets tuned from your BMR, TDEE and activity. Protein, carbs, fat and fiber tracked live as you log.',
+    color: NV.accent,
+  ),
+  const _TrailFeature(
+    icon: Icons.center_focus_strong_rounded,
+    title: 'AI meal photo scan',
+    description:
+        'Snap your plate. Sprout identifies the foods, estimates portions, and fills in kcal + micros in seconds.',
+    color: Color(0xFFB07A1A),
+  ),
+  const _TrailFeature(
+    icon: Icons.qr_code_scanner_rounded,
+    title: 'Lightning barcode scan',
+    description:
+        'Point at any package — we pull nutrition from Open Food Facts + USDA. Works on millions of products.',
+    color: Color(0xFF3A6B88),
+  ),
+  const _TrailFeature(
+    icon: Icons.auto_awesome_rounded,
+    title: 'AI nutrition chat',
+    description:
+        '“How much iron is in this?” “Build me a 30g-protein lunch.” Ask anything — answers grounded in real data.',
+    color: Color(0xFF6B4A8A),
+  ),
+  const _TrailFeature(
+    icon: Icons.spa_outlined,
+    title: 'Live vitamin coverage',
+    description:
+        'See exactly which vitamins and minerals your day is missing — and which foods would close the gap.',
+    color: Color(0xFF1F5C36),
+  ),
+];
+
 class _TrailWelcomeScreen extends StatefulWidget {
   const _TrailWelcomeScreen({required this.onStart, required this.onSkip});
   final VoidCallback onStart;
@@ -61,20 +112,15 @@ class _TrailWelcomeScreenState extends State<_TrailWelcomeScreen>
     with SingleTickerProviderStateMixin {
   late final AnimationController _ctrl;
   late final Animation<double> _fade;
-  late final Animation<Offset> _slide;
 
   @override
   void initState() {
     super.initState();
     _ctrl = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 480),
+      duration: const Duration(milliseconds: 720),
     );
     _fade = CurvedAnimation(parent: _ctrl, curve: Curves.easeOutCubic);
-    _slide = Tween<Offset>(
-      begin: const Offset(0, 0.06),
-      end: Offset.zero,
-    ).animate(_fade);
     _ctrl.forward();
   }
 
@@ -89,126 +135,102 @@ class _TrailWelcomeScreenState extends State<_TrailWelcomeScreen>
     final c = NVColors.of(context);
     final media = MediaQuery.of(context);
     return Material(
-      color: Colors.black.withValues(alpha: 0.55),
+      color: Colors.black.withValues(alpha: 0.58),
       child: FadeTransition(
         opacity: _fade,
         child: Center(
-          child: SlideTransition(
-            position: _slide,
-            child: Padding(
-              padding: EdgeInsets.fromLTRB(
-                20,
-                media.padding.top + 16,
-                20,
-                media.padding.bottom + 16,
-              ),
-              child: Container(
-                constraints: const BoxConstraints(maxWidth: 460),
-                decoration: BoxDecoration(
-                  color: c.surface,
-                  borderRadius: BorderRadius.circular(28),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.32),
-                      blurRadius: 40,
-                      offset: const Offset(0, 12),
-                    ),
-                  ],
-                ),
-                child: SingleChildScrollView(
-                  padding: const EdgeInsets.fromLTRB(22, 24, 22, 22),
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      // ── Mascot greeting ──
-                      const Mascot(mood: MascotMood.waving, size: 130),
-                      const SizedBox(height: 6),
-                      Text(
-                        "Hey, I'm Sprout!",
-                        style: GoogleFonts.fraunces(
-                          fontSize: 26,
-                          fontWeight: FontWeight.w600,
-                          color: c.text,
-                          letterSpacing: -0.6,
-                          height: 1.1,
-                        ),
-                      ),
-                      const SizedBox(height: 6),
-                      Text(
-                        "Want a quick tour of what's new?",
-                        textAlign: TextAlign.center,
-                        style: TextStyle(
-                          fontSize: 14.5,
-                          color: c.textMuted,
-                          fontWeight: FontWeight.w500,
-                          height: 1.4,
-                        ),
-                      ),
-                      const SizedBox(height: 20),
-
-                      // ── Feature highlights ──
-                      _FeatureRow(
-                        icon: Icons.donut_large_rounded,
-                        title: 'Daily kcal & macros',
-                        description:
-                            'Personalized energy + protein, carbs, fat, fiber.',
-                        color: NV.accent,
-                      ),
-                      _FeatureRow(
-                        icon: Icons.center_focus_strong_rounded,
-                        title: 'AI meal scan',
-                        description:
-                            'Snap your plate — Sprout estimates what is on it.',
-                        color: const Color(0xFF8A6010),
-                      ),
-                      _FeatureRow(
-                        icon: Icons.qr_code_scanner_rounded,
-                        title: 'Barcode scan',
-                        description: 'Packaged foods log in under a second.',
-                        color: const Color(0xFF3A6B88),
-                      ),
-                      _FeatureRow(
-                        icon: Icons.auto_awesome_rounded,
-                        title: 'AI nutrition chat',
-                        description: 'Ask anything about a food — instant answers.',
-                        color: const Color(0xFF6B4A8A),
-                      ),
-                      _FeatureRow(
-                        icon: Icons.spa_outlined,
-                        title: 'Vitamin coverage',
-                        description:
-                            'See which micros your meals cover today, in real time.',
-                        color: const Color(0xFF1F5C36),
-                      ),
-
-                      const SizedBox(height: 20),
-
-                      // ── Actions ──
-                      NVPrimaryButton(
-                        label: 'Start the tour',
-                        trailingIcon: Icons.arrow_forward_rounded,
-                        accent: true,
-                        onPressed: () {
-                          HapticFeedback.mediumImpact();
-                          widget.onStart();
-                        },
-                      ),
-                      const SizedBox(height: 8),
-                      TextButton(
-                        onPressed: () {
-                          HapticFeedback.selectionClick();
-                          widget.onSkip();
-                        },
-                        style: TextButton.styleFrom(
-                          foregroundColor: c.textMuted,
-                          textStyle: const TextStyle(
-                            fontSize: 13.5,
-                            fontWeight: FontWeight.w700,
-                          ),
-                        ),
-                        child: const Text('Skip for now'),
+          child: Padding(
+            padding: EdgeInsets.fromLTRB(
+              18,
+              media.padding.top + 14,
+              18,
+              media.padding.bottom + 14,
+            ),
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 460),
+              child: AnimatedBuilder(
+                animation: _fade,
+                builder: (_, child) {
+                  final v = _fade.value;
+                  return Transform.translate(
+                    offset: Offset(0, (1 - v) * 24),
+                    child: Transform.scale(scale: 0.96 + 0.04 * v, child: child),
+                  );
+                },
+                child: DecoratedBox(
+                  decoration: BoxDecoration(
+                    color: c.surface,
+                    borderRadius: BorderRadius.circular(30),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.36),
+                        blurRadius: 48,
+                        offset: const Offset(0, 14),
                       ),
                     ],
+                  ),
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(30),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        _HeroHeader(),
+                        Flexible(
+                          child: SingleChildScrollView(
+                            padding: const EdgeInsets.fromLTRB(20, 6, 20, 18),
+                            child: Column(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                for (int i = 0; i < _features.length; i++)
+                                  _StaggeredEntry(
+                                    delay: 220 + i * 90,
+                                    parent: _ctrl,
+                                    child: _FeatureRow(
+                                      icon: _features[i].icon,
+                                      title: _features[i].title,
+                                      description: _features[i].description,
+                                      color: _features[i].color,
+                                    ),
+                                  ),
+                                const SizedBox(height: 14),
+                                _StaggeredEntry(
+                                  delay: 220 + _features.length * 90 + 40,
+                                  parent: _ctrl,
+                                  child: NVPrimaryButton(
+                                    label: 'Start the tour',
+                                    trailingIcon: Icons.arrow_forward_rounded,
+                                    accent: true,
+                                    onPressed: () {
+                                      HapticFeedback.mediumImpact();
+                                      widget.onStart();
+                                    },
+                                  ),
+                                ),
+                                const SizedBox(height: 4),
+                                _StaggeredEntry(
+                                  delay: 220 + _features.length * 90 + 90,
+                                  parent: _ctrl,
+                                  child: TextButton(
+                                    onPressed: () {
+                                      HapticFeedback.selectionClick();
+                                      widget.onSkip();
+                                    },
+                                    style: TextButton.styleFrom(
+                                      foregroundColor: c.textMuted,
+                                      textStyle: const TextStyle(
+                                        fontSize: 13.5,
+                                        fontWeight: FontWeight.w700,
+                                      ),
+                                    ),
+                                    child: const Text('Skip for now'),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
               ),
@@ -219,6 +241,96 @@ class _TrailWelcomeScreenState extends State<_TrailWelcomeScreen>
     );
   }
 }
+
+// ═══════════════════════════════════════════════════════════════
+//  HERO HEADER — gradient backdrop + mascot + headline
+// ═══════════════════════════════════════════════════════════════
+
+class _HeroHeader extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    final c = NVColors.of(context);
+    return Container(
+      padding: const EdgeInsets.fromLTRB(20, 22, 20, 14),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            NV.accent.withValues(alpha: 0.16),
+            NV.accentSoft.withValues(alpha: 0.30),
+            c.surface,
+          ],
+          stops: const [0.0, 0.45, 1.0],
+        ),
+      ),
+      child: Column(
+        children: [
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+            decoration: BoxDecoration(
+              color: NV.accent.withValues(alpha: 0.14),
+              borderRadius: BorderRadius.circular(99),
+            ),
+            child: Text(
+              'WHAT\'S NEW',
+              style: TextStyle(
+                fontSize: 10.5,
+                fontWeight: FontWeight.w800,
+                color: NV.accentDeep,
+                letterSpacing: 1.8,
+              ),
+            ),
+          ),
+          const SizedBox(height: 10),
+          const Mascot(mood: MascotMood.waving, size: 118),
+          const SizedBox(height: 4),
+          RichText(
+            textAlign: TextAlign.center,
+            text: TextSpan(
+              style: GoogleFonts.fraunces(
+                fontSize: 26,
+                fontWeight: FontWeight.w600,
+                color: c.text,
+                letterSpacing: -0.6,
+                height: 1.12,
+              ),
+              children: [
+                const TextSpan(text: "Hey, I'm "),
+                TextSpan(
+                  text: 'Sprout',
+                  style: GoogleFonts.instrumentSerif(
+                    fontStyle: FontStyle.italic,
+                    fontWeight: FontWeight.w500,
+                    fontSize: 30,
+                    color: NV.accent,
+                  ),
+                ),
+                const TextSpan(text: '.'),
+              ],
+            ),
+          ),
+          const SizedBox(height: 6),
+          Text(
+            "Want a 60-second tour of what's new in Nutrimate?",
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              fontSize: 14,
+              color: c.textMuted,
+              fontWeight: FontWeight.w500,
+              height: 1.4,
+            ),
+          ),
+          const SizedBox(height: 12),
+        ],
+      ),
+    );
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  FEATURE ROW
+// ═══════════════════════════════════════════════════════════════
 
 class _FeatureRow extends StatelessWidget {
   const _FeatureRow({
@@ -242,13 +354,21 @@ class _FeatureRow extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Container(
-            width: 40,
-            height: 40,
+            width: 42,
+            height: 42,
             decoration: BoxDecoration(
-              color: color.withValues(alpha: 0.12),
-              borderRadius: BorderRadius.circular(12),
+              gradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [
+                  color.withValues(alpha: 0.18),
+                  color.withValues(alpha: 0.08),
+                ],
+              ),
+              borderRadius: BorderRadius.circular(13),
+              border: Border.all(color: color.withValues(alpha: 0.22)),
             ),
-            child: Icon(icon, size: 20, color: color),
+            child: Icon(icon, size: 21, color: color),
           ),
           const SizedBox(width: 12),
           Expanded(
@@ -264,14 +384,14 @@ class _FeatureRow extends StatelessWidget {
                     letterSpacing: -0.2,
                   ),
                 ),
-                const SizedBox(height: 2),
+                const SizedBox(height: 3),
                 Text(
                   description,
                   style: TextStyle(
                     fontSize: 12.5,
                     color: c.textMuted,
                     fontWeight: FontWeight.w500,
-                    height: 1.35,
+                    height: 1.4,
                   ),
                 ),
               ],
@@ -279,6 +399,44 @@ class _FeatureRow extends StatelessWidget {
           ),
         ],
       ),
+    );
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  STAGGERED ENTRY — fade + slide based on a parent controller
+// ═══════════════════════════════════════════════════════════════
+
+class _StaggeredEntry extends StatelessWidget {
+  const _StaggeredEntry({
+    required this.delay,
+    required this.parent,
+    required this.child,
+  });
+  final int delay;
+  final AnimationController parent;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: parent,
+      builder: (_, c) {
+        final totalMs = parent.duration!.inMilliseconds;
+        final localT = (((parent.value * totalMs) - delay) / 320).clamp(
+          0.0,
+          1.0,
+        );
+        final eased = Curves.easeOutCubic.transform(localT);
+        return Opacity(
+          opacity: eased,
+          child: Transform.translate(
+            offset: Offset(0, (1 - eased) * 14),
+            child: c,
+          ),
+        );
+      },
+      child: child,
     );
   }
 }

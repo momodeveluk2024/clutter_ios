@@ -25,7 +25,16 @@ class MealLogItem {
 
   /// True when the backend has no usable nutrition data for the underlying food.
   bool get hasNutrition =>
-      caloriesKcal > 0 || proteinG > 0 || carbsG > 0 || fatG > 0;
+      caloriesKcal > 0 || proteinG > 0 || carbsG > 0 || fatG > 0 || fiberG > 0;
+
+  /// Kcal as the backend sent it, or — when stored kcal is missing — an
+  /// Atwater estimate from the macros (P*4 + C*4 + F*9). Lets the UI show a
+  /// number when only macros are available.
+  double get displayKcal {
+    if (caloriesKcal > 0) return caloriesKcal;
+    final estimate = proteinG * 4 + carbsG * 4 + fatG * 9;
+    return estimate > 0 ? estimate : 0;
+  }
 
   factory MealLogItem.fromJson(Map<String, dynamic> json) {
     return MealLogItem(

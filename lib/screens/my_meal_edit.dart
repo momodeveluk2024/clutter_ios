@@ -285,6 +285,24 @@ class _MyMealEditScreenState extends State<MyMealEditScreen> {
               child: ListView(
                 padding: const EdgeInsets.all(20),
                 children: [
+                  _LivePreviewCard(
+                    name: _name.text.trim().isEmpty
+                        ? (_isEdit ? 'Your meal' : 'New meal')
+                        : _name.text.trim(),
+                    serving: double.tryParse(_serving.text.trim()) ?? 100,
+                    kcal:
+                        double.tryParse(_amount['Calories']?.text ?? '') ?? 0,
+                    protein:
+                        double.tryParse(_amount['Protein']?.text ?? '') ?? 0,
+                    carbs:
+                        double.tryParse(_amount['Carbs']?.text ?? '') ?? 0,
+                    fat: double.tryParse(_amount['Fat']?.text ?? '') ?? 0,
+                    fiber:
+                        double.tryParse(_amount['Fiber']?.text ?? '') ?? 0,
+                  ),
+                  const SizedBox(height: 14),
+                  const _MealHelperNote(),
+                  const SizedBox(height: 16),
                   _photoSection(),
                   const SizedBox(height: 16),
                   _colorPaletteSection(),
@@ -466,6 +484,7 @@ class _MyMealEditScreenState extends State<MyMealEditScreen> {
         children: [
           TextField(
             controller: _name,
+            onChanged: (_) => setState(() {}),
             decoration: const InputDecoration(
               labelText: 'Meal name',
               border: OutlineInputBorder(),
@@ -552,6 +571,7 @@ class _MyMealEditScreenState extends State<MyMealEditScreen> {
                   decimal: true,
                 ),
                 textAlign: TextAlign.right,
+                onChanged: (_) => setState(() {}),
                 decoration: const InputDecoration(
                   hintText: '0',
                   isDense: true,
@@ -620,4 +640,257 @@ Color? _parseHex(String? hex) {
     radix: 16,
   );
   return value == null ? null : Color(value);
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  LIVE PREVIEW CARD — meal summary that updates as the user types
+// ═══════════════════════════════════════════════════════════════
+
+class _LivePreviewCard extends StatelessWidget {
+  const _LivePreviewCard({
+    required this.name,
+    required this.serving,
+    required this.kcal,
+    required this.protein,
+    required this.carbs,
+    required this.fat,
+    required this.fiber,
+  });
+
+  final String name;
+  final double serving;
+  final double kcal;
+  final double protein;
+  final double carbs;
+  final double fat;
+  final double fiber;
+
+  @override
+  Widget build(BuildContext context) {
+    final c = NVColors.of(context);
+    // Per-100g values from the form; show per-serving in the preview.
+    final factor = serving / 100.0;
+    final displayKcal =
+        kcal > 0 ? kcal : (protein * 4 + carbs * 4 + fat * 9);
+    final perKcal = displayKcal * factor;
+    final perP = protein * factor;
+    final perC = carbs * factor;
+    final perF = fat * factor;
+    final perFb = fiber * factor;
+
+    return Container(
+      padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            NV.accentSoft.withValues(alpha: 0.45),
+            c.surface,
+          ],
+        ),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: NV.accent.withValues(alpha: 0.18)),
+        boxShadow: [
+          BoxShadow(
+            color: NV.accent.withValues(alpha: 0.08),
+            blurRadius: 18,
+            offset: const Offset(0, 6),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                decoration: BoxDecoration(
+                  color: NV.accent.withValues(alpha: 0.14),
+                  borderRadius: BorderRadius.circular(99),
+                ),
+                child: const Text(
+                  'LIVE PREVIEW',
+                  style: TextStyle(
+                    fontSize: 10,
+                    fontWeight: FontWeight.w800,
+                    color: NV.accentDeep,
+                    letterSpacing: 1.4,
+                  ),
+                ),
+              ),
+              const Spacer(),
+              Text(
+                '${serving.round()} g serving',
+                style: TextStyle(
+                  fontSize: 11,
+                  fontWeight: FontWeight.w700,
+                  color: c.textMuted,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          Text(
+            name,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: TextStyle(
+              fontSize: 17,
+              fontWeight: FontWeight.w800,
+              color: c.text,
+              letterSpacing: -0.3,
+            ),
+          ),
+          const SizedBox(height: 10),
+          AnimatedSwitcher(
+            duration: const Duration(milliseconds: 220),
+            child: Row(
+              key: ValueKey('${perKcal.round()}_${perP.round()}'),
+              children: [
+                _PreviewMacro(
+                  label: 'kcal',
+                  value: perKcal,
+                  color: NV.accent,
+                  unit: '',
+                ),
+                _PreviewMacro(
+                  label: 'P',
+                  value: perP,
+                  color: const Color(0xFF2F7D4A),
+                  unit: 'g',
+                ),
+                _PreviewMacro(
+                  label: 'C',
+                  value: perC,
+                  color: const Color(0xFFB07A1A),
+                  unit: 'g',
+                ),
+                _PreviewMacro(
+                  label: 'F',
+                  value: perF,
+                  color: const Color(0xFF6B4A8A),
+                  unit: 'g',
+                ),
+                _PreviewMacro(
+                  label: 'Fb',
+                  value: perFb,
+                  color: const Color(0xFF3A6B88),
+                  unit: 'g',
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _PreviewMacro extends StatelessWidget {
+  const _PreviewMacro({
+    required this.label,
+    required this.value,
+    required this.color,
+    required this.unit,
+  });
+  final String label;
+  final double value;
+  final Color color;
+  final String unit;
+
+  @override
+  Widget build(BuildContext context) {
+    final c = NVColors.of(context);
+    final formatted = value >= 10
+        ? value.toStringAsFixed(0)
+        : value.toStringAsFixed(1);
+    return Expanded(
+      child: Column(
+        children: [
+          RichText(
+            text: TextSpan(
+              children: [
+                TextSpan(
+                  text: formatted,
+                  style: nvNumber(16, color: c.text, weight: FontWeight.w800),
+                ),
+                if (unit.isNotEmpty)
+                  TextSpan(
+                    text: unit,
+                    style: TextStyle(
+                      fontSize: 10,
+                      fontWeight: FontWeight.w800,
+                      color: c.textMuted,
+                    ),
+                  ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 4),
+          Container(
+            padding:
+                const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+            decoration: BoxDecoration(
+              color: color.withValues(alpha: 0.10),
+              borderRadius: BorderRadius.circular(99),
+            ),
+            child: Text(
+              label,
+              style: TextStyle(
+                fontSize: 10,
+                fontWeight: FontWeight.w800,
+                color: color,
+                letterSpacing: 0.4,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  HELPER NOTE
+// ═══════════════════════════════════════════════════════════════
+
+class _MealHelperNote extends StatelessWidget {
+  const _MealHelperNote();
+
+  @override
+  Widget build(BuildContext context) {
+    final c = NVColors.of(context);
+    return Container(
+      padding: const EdgeInsets.fromLTRB(12, 10, 12, 10),
+      decoration: BoxDecoration(
+        color: NV.accent.withValues(alpha: 0.06),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: NV.accent.withValues(alpha: 0.18)),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Icon(Icons.tips_and_updates_outlined,
+              size: 16, color: NV.accent),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              "Enter values per 100 g — we'll scale to your serving size every "
+              "time you log this. Leave kcal blank and we'll compute it from "
+              "your macros (4·4·9).",
+              style: TextStyle(
+                fontSize: 12.5,
+                height: 1.4,
+                color: c.text,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 }
