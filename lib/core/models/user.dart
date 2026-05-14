@@ -22,6 +22,7 @@ class AppUser {
     this.preferences = const {},
     this.onboardingCompletedAt,
     this.needsOnboarding = false,
+    this.metabolicTargets,
   });
 
   final String id;
@@ -44,6 +45,7 @@ class AppUser {
   final Map<String, dynamic> preferences;
   final DateTime? onboardingCompletedAt;
   final bool needsOnboarding;
+  final MetabolicTargets? metabolicTargets;
 
   bool get isEmailVerified => emailVerifiedAt != null;
   String get appearance => preferences['appearance'] as String? ?? 'light';
@@ -106,6 +108,10 @@ class AppUser {
           ? null
           : DateTime.tryParse(json['onboarding_completed_at'] as String),
       needsOnboarding: json['needs_onboarding'] as bool? ?? false,
+      metabolicTargets: json['metabolic_targets'] is Map
+          ? MetabolicTargets.fromJson(
+              Map<String, dynamic>.from(json['metabolic_targets'] as Map))
+          : null,
       emailVerifiedAt: json['email_verified_at'] == null
           ? null
           : DateTime.tryParse(json['email_verified_at'] as String),
@@ -166,5 +172,55 @@ class AppUser {
         return null;
       }
     }
+  }
+}
+
+/// Server-computed daily energy and macronutrient targets.
+/// Derived from the Mifflin-St Jeor BMR equation on the backend.
+class MetabolicTargets {
+  const MetabolicTargets({
+    required this.bmrKcal,
+    required this.tdeeKcal,
+    required this.goalKcal,
+    required this.proteinG,
+    required this.carbsG,
+    required this.fatG,
+    this.formula = 'mifflin_st_jeor',
+    this.goalAdjustment = 0,
+  });
+
+  final double bmrKcal;
+  final double tdeeKcal;
+  final double goalKcal;
+  final double proteinG;
+  final double carbsG;
+  final double fatG;
+  final String formula;
+  final double goalAdjustment;
+
+  factory MetabolicTargets.fromJson(Map<String, dynamic> json) {
+    return MetabolicTargets(
+      bmrKcal: (json['bmr_kcal'] as num?)?.toDouble() ?? 0,
+      tdeeKcal: (json['tdee_kcal'] as num?)?.toDouble() ?? 0,
+      goalKcal: (json['goal_kcal'] as num?)?.toDouble() ?? 0,
+      proteinG: (json['protein_g'] as num?)?.toDouble() ?? 0,
+      carbsG: (json['carbs_g'] as num?)?.toDouble() ?? 0,
+      fatG: (json['fat_g'] as num?)?.toDouble() ?? 0,
+      formula: json['formula'] as String? ?? 'mifflin_st_jeor',
+      goalAdjustment: (json['goal_adjustment'] as num?)?.toDouble() ?? 0,
+    );
+  }
+
+  /// Whether the user is in a caloric deficit (losing weight).
+  bool get isDeficit => goalAdjustment < 0;
+
+  /// Whether the user is in a caloric surplus (gaining weight/muscle).
+  bool get isSurplus => goalAdjustment > 0;
+
+  /// Human-readable goal description.
+  String get goalLabel {
+    if (isDeficit) return 'Lose weight';
+    if (isSurplus) return 'Gain weight';
+    return 'Maintain weight';
   }
 }

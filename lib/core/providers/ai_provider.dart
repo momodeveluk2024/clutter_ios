@@ -4,6 +4,9 @@ import 'package:flutter/foundation.dart';
 import '../api/api_client.dart';
 import '../api/api_endpoints.dart';
 import '../models/ai.dart';
+import '../notifications/notification_channels.dart';
+import '../notifications/notification_service.dart';
+import '../../services/live_island_service.dart';
 
 class AiProvider extends ChangeNotifier {
   AiProvider({required ApiClient api}) : _api = api;
@@ -55,6 +58,17 @@ class AiProvider extends ChangeNotifier {
         'unit_system': unitSystem,
         if (question.trim().isNotEmpty) 'question': question.trim(),
       });
+      
+      LiveIslandService().startIsland();
+      NotificationService.instance.showProgressNotification(
+        id: 999,
+        channelId: NVChannels.aiInsights,
+        title: 'Analyzing Meal',
+        body: 'Extracting nutrients...',
+        progress: 0,
+        maxProgress: 100,
+      );
+
       final response = await _api.postMultipart(
         ApiEndpoints.aiMealPhotoAnalyze,
         data,
@@ -70,6 +84,8 @@ class AiProvider extends ChangeNotifier {
       error = e.toString();
       rethrow;
     } finally {
+      LiveIslandService().stopIsland();
+      NotificationService.instance.cancel(999);
       isAnalyzing = false;
       notifyListeners();
     }

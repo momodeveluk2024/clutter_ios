@@ -29,27 +29,27 @@ class _OnboardingScreenState extends State<OnboardingScreen>
       iconData: Icons.restaurant_menu_rounded,
     ),
     _Step(
+      titleStart: 'Scan it.\nLog it. ',
+      titleAccent: 'Fast.',
+      body:
+          'Instantly log your packaged foods using our lightning-fast barcode scanner.',
+      asset: 'assets/onboarding/slide_2.png',
+      iconData: Icons.document_scanner_rounded,
+    ),
+    _Step(
+      titleStart: 'Describe your\nmeal to ',
+      titleAccent: 'AI.',
+      body:
+          'Just tell our AI assistant what you ate. We automatically calculate your exact nutrients.',
+      asset: 'assets/onboarding/slide_3.png',
+      iconData: Icons.auto_awesome_rounded,
+    ),
+    _Step(
       titleStart: 'Targets ',
       titleAccent: 'tailored',
       titleEnd: '\nto your body.',
       body:
-          'Tell us a little about yourself and Nutrimate sets your daily targets — no calorie counting.',
-      asset: 'assets/onboarding/slide_2.png',
-      iconData: Icons.tune_rounded,
-    ),
-    _Step(
-      titleStart: 'Log a meal\nin ',
-      titleAccent: 'seconds.',
-      body:
-          'Search a food, log a meal, done. Nutrimate fills in the nutrients automatically.',
-      asset: 'assets/onboarding/slide_3.png',
-      iconData: Icons.bolt_rounded,
-    ),
-    _Step(
-      titleStart: 'Spot your\ngaps ',
-      titleAccent: 'early.',
-      body:
-          'A daily coverage score shows what your body is missing — and what to eat tomorrow to fix it.',
+          'A daily coverage score shows what your body is missing — and what to eat to fix it.',
       asset: 'assets/onboarding/slide_4.png',
       iconData: Icons.insights_rounded,
     ),

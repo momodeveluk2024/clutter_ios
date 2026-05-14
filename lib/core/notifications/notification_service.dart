@@ -248,6 +248,36 @@ class NotificationService {
     );
   }
 
+  /// Show an ongoing progress notification.
+  Future<void> showProgressNotification({
+    required int id,
+    required String channelId,
+    required String title,
+    required String body,
+    required int progress,
+    required int maxProgress,
+  }) async {
+    await _plugin.show(
+      id: id,
+      title: title,
+      body: body,
+      notificationDetails: NotificationDetails(
+        android: AndroidNotificationDetails(
+          channelId,
+          _channelName(channelId),
+          channelShowBadge: false,
+          importance: Importance.low,
+          priority: Priority.low,
+          onlyAlertOnce: true,
+          showProgress: true,
+          maxProgress: maxProgress,
+          progress: progress,
+          ongoing: true,
+        ),
+      ),
+    );
+  }
+
   /// Cancel a specific notification.
   Future<void> cancel(int id) => _plugin.cancel(id: id);
 

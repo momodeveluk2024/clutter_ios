@@ -11,11 +11,13 @@ import 'app_shell.dart';
 import '../core/models/food_log.dart';
 import '../core/models/nutrient_reference.dart';
 import '../core/models/nutrition.dart';
+import '../core/models/user.dart';
 import '../core/providers/auth_provider.dart';
 import '../core/providers/nutrition_provider.dart';
 import '../theme.dart';
 import '../widgets.dart';
 import '../widgets/nv_loader.dart';
+import '../widgets/meal_card.dart';
 import 'meal_log_detail.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -112,9 +114,19 @@ class _HomeScreenState extends State<HomeScreen> {
                       ),
                     ),
                     const SizedBox(height: NVSpace.x6),
+                    if (user?.metabolicTargets != null)
+                      _MetabolicTargetsCard(
+                        targets: user!.metabolicTargets!,
+                        todayKcal: _totalKcalFromTotals(totals),
+                      ),
+                    if (user?.metabolicTargets != null)
+                      const SizedBox(height: NVSpace.x4),
                     KeyedSubtree(
                       key: HomeScreen.macroKey,
-                      child: _MacroBentoRow(totals: totals),
+                      child: _MacroBentoRow(
+                        totals: totals,
+                        targets: user?.metabolicTargets,
+                      ),
                     ),
                     const SizedBox(height: NVSpace.x8),
                     if (nutrition.dailyMealPlan?.hasItems ?? false) ...[
@@ -176,16 +188,19 @@ class _HomeScreenState extends State<HomeScreen> {
                     if (nutrition.logs.isEmpty)
                       _EmptyMealsCard()
                     else
-                      ...nutrition.logs
-                          .take(3)
-                          .map(
-                            (log) => Padding(
-                              padding: const EdgeInsets.only(
-                                bottom: NVSpace.x2,
-                              ),
-                              child: _MealRow(log: log),
-                            ),
-                          ),
+                      LayoutBuilder(
+                        builder: (context, constraints) {
+                          final cardWidth = (constraints.maxWidth - NVSpace.x3) / 2;
+                          return Wrap(
+                            spacing: NVSpace.x3,
+                            runSpacing: NVSpace.x3,
+                            children: nutrition.logs
+                                .take(4)
+                                .map((log) => MealImageCard(log: log, width: cardWidth))
+                                .toList(),
+                          );
+                        },
+                      ),
                     const SizedBox(height: NVSpace.x8),
                     const NVSectionHeader(
                       eyebrow: 'Coverage',
@@ -821,13 +836,15 @@ class _MiniStat extends StatelessWidget {
 // ═══════════════════════════════════════════════════════════════
 
 class _MacroBentoRow extends StatelessWidget {
-  const _MacroBentoRow({required this.totals});
+  const _MacroBentoRow({required this.totals, this.targets});
   final DayNutrientTotals? totals;
+  final MetabolicTargets? targets;
 
   @override
   Widget build(BuildContext context) {
     final macros = const ['Protein', 'Carbs', 'Fat'];
     final macroPercents = <String, double>{};
+    final macroAmounts = <String, double>{};
     for (final m in macros) {
       final t = totals?.nutrients.firstWhere(
         (n) => n.code == m,
@@ -835,7 +852,15 @@ class _MacroBentoRow extends StatelessWidget {
             const NutrientTotal(code: '', name: '', unit: '', amount: 0),
       );
       macroPercents[m] = t?.driPercent ?? 0;
+      macroAmounts[m] = t?.amount ?? 0;
     }
+
+    // Target grams from metabolic targets (if available).
+    final targetGrams = <String, double?>{
+      'Protein': targets?.proteinG,
+      'Carbs': targets?.carbsG,
+      'Fat': targets?.fatG,
+    };
 
     return Row(
       children: [
@@ -844,6 +869,8 @@ class _MacroBentoRow extends StatelessWidget {
             child: _MacroTile(
               code: macros[i],
               pct: macroPercents[macros[i]] ?? 0,
+              amount: macroAmounts[macros[i]] ?? 0,
+              targetG: targetGrams[macros[i]],
             ),
           ),
           if (i < macros.length - 1) const SizedBox(width: NVSpace.x3),
@@ -854,16 +881,31 @@ class _MacroBentoRow extends StatelessWidget {
 }
 
 class _MacroTile extends StatelessWidget {
-  const _MacroTile({required this.code, required this.pct});
+  const _MacroTile({
+    required this.code,
+    required this.pct,
+    this.amount = 0,
+    this.targetG,
+  });
   final String code;
   final double pct;
+  final double amount;
+  final double? targetG;
 
   @override
   Widget build(BuildContext context) {
     final c = NVColors.of(context);
     final hue = vitaminColors[code]!;
-    final pctLabel = '${pct.round()}%';
-    final shortLabel = code; // Protein / Carbs / Fat — already friendly
+    final shortLabel = code;
+
+    // If we have a metabolic target, show progress towards that.
+    final hasTarget = targetG != null && targetG! > 0;
+    final goalPct = hasTarget ? (amount / targetG! * 100).clamp(0, 200) : pct;
+    final pctLabel = '${goalPct.round()}%';
+    final amountLabel = hasTarget
+        ? '${amount.round()}g / ${targetG!.round()}g'
+        : '${amount.round()}g';
+
     return NVCard(
       padding: const EdgeInsets.all(NVSpace.x4),
       onTap: () => context.push('/app/vitamin/$code'),
@@ -893,9 +935,18 @@ class _MacroTile extends StatelessWidget {
           ),
           const SizedBox(height: NVSpace.x3),
           Text(pctLabel, style: nvNumber(22, color: c.text)),
+          const SizedBox(height: 2),
+          Text(
+            amountLabel,
+            style: TextStyle(
+              fontSize: 10,
+              fontWeight: FontWeight.w500,
+              color: c.textMuted,
+            ),
+          ),
           const SizedBox(height: NVSpace.x2),
           BarProgress(
-            pct: (pct / 100).clamp(0.0, 1.0),
+            pct: (goalPct / 100).clamp(0.0, 1.0),
             color: hue.fill,
             height: 4,
           ),
@@ -1295,108 +1346,7 @@ class _EmptyMealsCard extends StatelessWidget {
 //  MEAL ROW — clean tappable list row, no card chrome
 // ═══════════════════════════════════════════════════════════════
 
-class _MealRow extends StatelessWidget {
-  const _MealRow({required this.log});
-  final MealLog log;
 
-  @override
-  Widget build(BuildContext context) {
-    final c = NVColors.of(context);
-    final itemText = log.items
-        .map((i) => i.foodName)
-        .where((n) => n.trim().isNotEmpty)
-        .join(' · ');
-    final firstItem = log.items.isEmpty ? null : log.items.first;
-    final time = _formatTime(log);
-    return NVCard(
-      onTap: () => showMealLogDetails(
-        context,
-        log,
-        date: DateTime.tryParse(log.loggedOn),
-      ),
-      padding: const EdgeInsets.all(NVSpace.x3),
-      child: Row(
-        children: [
-          FoodPhoto(
-            label: firstItem?.foodName ?? log.mealType,
-            imageUrl: firstItem?.imageUrl,
-            width: 52,
-            height: 52,
-            radius: NVRadius.cardSm,
-            tone: 'cool',
-          ),
-          const SizedBox(width: NVSpace.x3),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    Text(
-                      _titleCase(log.mealType),
-                      style: TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w700,
-                        color: c.text,
-                        letterSpacing: -0.1,
-                      ),
-                    ),
-                    if (time != null) ...[
-                      const SizedBox(width: 6),
-                      Container(
-                        width: 3,
-                        height: 3,
-                        decoration: BoxDecoration(
-                          color: c.textMuted,
-                          shape: BoxShape.circle,
-                        ),
-                      ),
-                      const SizedBox(width: 6),
-                      Text(
-                        time,
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: c.textMuted,
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
-                    ],
-                  ],
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  itemText.isEmpty ? 'No items' : itemText,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: c.textMuted,
-                    height: 1.35,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          Icon(Icons.chevron_right_rounded, size: 20, color: c.textMuted),
-        ],
-      ),
-    );
-  }
-
-  String? _formatTime(MealLog log) {
-    final d = DateTime.tryParse(log.loggedOn);
-    if (d == null) return null;
-    final h = d.hour;
-    final m = d.minute.toString().padLeft(2, '0');
-    if (h == 0 && d.minute == 0) return null;
-    final ampm = h >= 12 ? 'PM' : 'AM';
-    final h12 = h == 0 ? 12 : (h > 12 ? h - 12 : h);
-    return '$h12:$m $ampm';
-  }
-
-  String _titleCase(String v) =>
-      v.isEmpty ? v : v[0].toUpperCase() + v.substring(1);
-}
 
 // ═══════════════════════════════════════════════════════════════
 //  NUTRIENT GAPS (horizontal scroll)
@@ -1511,6 +1461,204 @@ class _NutrientGapCard extends StatelessWidget {
           ],
         ),
       ),
+    );
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  METABOLIC TARGETS CARD
+// ═══════════════════════════════════════════════════════════════
+
+/// Extracts today's total consumed kcal from the nutrient totals.
+double _totalKcalFromTotals(DayNutrientTotals? totals) {
+  if (totals == null) return 0;
+  final energy = totals.nutrients.where((n) =>
+      n.code == 'Energy' || n.code == 'Calories' || n.code == 'kcal');
+  if (energy.isNotEmpty) return energy.first.amount;
+  // Fallback: sum macros × kcal/g.
+  double sum = 0;
+  for (final n in totals.nutrients) {
+    if (n.code == 'Protein') sum += n.amount * 4;
+    if (n.code == 'Carbs') sum += n.amount * 4;
+    if (n.code == 'Fat') sum += n.amount * 9;
+  }
+  return sum;
+}
+
+class _MetabolicTargetsCard extends StatelessWidget {
+  const _MetabolicTargetsCard({
+    required this.targets,
+    required this.todayKcal,
+  });
+  final MetabolicTargets targets;
+  final double todayKcal;
+
+  @override
+  Widget build(BuildContext context) {
+    final c = NVColors.of(context);
+    final goal = targets.goalKcal;
+    final pct = goal > 0 ? (todayKcal / goal).clamp(0.0, 1.5) : 0.0;
+    final remaining = (goal - todayKcal).round();
+    final isOver = remaining < 0;
+
+    return NVCard(
+      padding: const EdgeInsets.all(NVSpace.x5),
+      child: Row(
+        children: [
+          // Circular calorie progress
+          SizedBox(
+            width: 72,
+            height: 72,
+            child: Stack(
+              alignment: Alignment.center,
+              children: [
+                SizedBox.expand(
+                  child: CircularProgressIndicator(
+                    value: pct.clamp(0.0, 1.0).toDouble(),
+                    strokeWidth: 6,
+                    strokeCap: StrokeCap.round,
+                    backgroundColor: c.border,
+                    valueColor: AlwaysStoppedAnimation(
+                      isOver ? Colors.redAccent : NV.accent,
+                    ),
+                  ),
+                ),
+                Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      Icons.local_fire_department_rounded,
+                      size: 18,
+                      color: isOver ? Colors.redAccent : NV.accent,
+                    ),
+                    Text(
+                      '${(pct * 100).round()}%',
+                      style: nvNumber(14, color: c.text),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: NVSpace.x5),
+          // Labels
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Text(
+                      '${todayKcal.round()}',
+                      style: nvNumber(24, color: c.text),
+                    ),
+                    Text(
+                      ' / ${goal.round()} kcal',
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w500,
+                        color: c.textMuted,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  isOver
+                      ? '${(-remaining)} kcal over target'
+                      : '$remaining kcal remaining',
+                  style: TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                    color: isOver ? Colors.redAccent : NV.accent,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Row(
+                  children: [
+                    _GoalStat(
+                      label: 'BMR',
+                      value: '${targets.bmrKcal.round()}',
+                      color: c.textMuted,
+                    ),
+                    const SizedBox(width: NVSpace.x3),
+                    _GoalStat(
+                      label: 'TDEE',
+                      value: '${targets.tdeeKcal.round()}',
+                      color: c.textMuted,
+                    ),
+                    const SizedBox(width: NVSpace.x3),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 6,
+                        vertical: 2,
+                      ),
+                      decoration: BoxDecoration(
+                        color: (targets.isDeficit
+                                ? Colors.orangeAccent
+                                : targets.isSurplus
+                                    ? Colors.greenAccent
+                                    : NV.accent)
+                            .withOpacity(0.15),
+                        borderRadius: BorderRadius.circular(4),
+                      ),
+                      child: Text(
+                        targets.goalLabel,
+                        style: TextStyle(
+                          fontSize: 10,
+                          fontWeight: FontWeight.w700,
+                          color: targets.isDeficit
+                              ? Colors.deepOrange
+                              : targets.isSurplus
+                                  ? Colors.green
+                                  : NV.accent,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _GoalStat extends StatelessWidget {
+  const _GoalStat({
+    required this.label,
+    required this.value,
+    required this.color,
+  });
+  final String label;
+  final String value;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          label,
+          style: TextStyle(
+            fontSize: 9,
+            fontWeight: FontWeight.w600,
+            color: color.withOpacity(0.7),
+            letterSpacing: 0.5,
+          ),
+        ),
+        Text(
+          value,
+          style: TextStyle(
+            fontSize: 12,
+            fontWeight: FontWeight.w700,
+            color: color,
+          ),
+        ),
+      ],
     );
   }
 }

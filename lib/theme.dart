@@ -171,7 +171,7 @@ class NVTheme {
   static ThemeData light() => _build(brightness: Brightness.light);
   static ThemeData dark() => _build(brightness: Brightness.dark);
 
-  static ThemeData _build({required Brightness brightness}) {
+  static ThemeData _build({required Brightness brightness, ColorScheme? dynamicScheme}) {
     final dark = brightness == Brightness.dark;
     final tc = dark ? NV.textDark : NV.text;
     final mc = dark ? NV.textMutedDark : NV.textMuted;
@@ -183,31 +183,17 @@ class NVTheme {
       _baseTextTheme(tc, mc),
     );
 
-    final scheme = ColorScheme(
+    final scheme = dynamicScheme ?? ColorScheme.fromSeed(
+      seedColor: NV.accent,
       brightness: brightness,
       primary: NV.accent,
       onPrimary: Colors.white,
-      primaryContainer: dark ? NV.accent.withValues(alpha: 0.22) : NV.accentSoft,
-      onPrimaryContainer: dark ? NV.textDark : NV.accentDeep,
       secondary: NV.sage,
       onSecondary: Colors.white,
-      secondaryContainer: dark ? NV.sage.withValues(alpha: 0.22) : NV.sageSoft,
-      onSecondaryContainer: dark ? NV.textDark : NV.sage,
       error: NV.err,
       onError: Colors.white,
-      errorContainer: NV.errSoft,
-      onErrorContainer: NV.err,
       surface: surface,
       onSurface: tc,
-      surfaceContainerHighest: dark ? NV.surfaceMutedDark : NV.surfaceMuted,
-      onSurfaceVariant: mc,
-      outline: dark ? NV.borderDark : NV.borderStrong,
-      outlineVariant: border,
-      shadow: Colors.black,
-      scrim: Colors.black,
-      inverseSurface: dark ? NV.surface : NV.surfaceInk,
-      onInverseSurface: dark ? NV.text : NV.textDark,
-      inversePrimary: NV.accent,
     );
 
     return ThemeData(
