@@ -38,8 +38,11 @@ class _DailyGoalsScreenState extends State<DailyGoalsScreen> {
   String? _error;
   String? _activePreset;
 
-  static const _kcalMin = 1000.0;
-  static const _kcalMax = 5000.0;
+  // Allow the full physiological range so users can model extreme cuts,
+  // young children, professional athletes, or a calorie target of 0 if they
+  // explicitly want to clear it.
+  static const _kcalMin = 0.0;
+  static const _kcalMax = 10000.0;
 
   @override
   void initState() {
@@ -85,6 +88,10 @@ class _DailyGoalsScreenState extends State<DailyGoalsScreen> {
                       setState(() {
                         _kcal = v;
                         _activePreset = null;
+                        // Auto-rebalance macros to the standard 30/40/30
+                        // split + USDA fiber so the numbers below the slider
+                        // track the new kcal target instead of going stale.
+                        _autoBalanceMacros();
                       });
                     },
                   ),
@@ -281,7 +288,16 @@ class _DailyGoalsScreenState extends State<DailyGoalsScreen> {
       await GoalReminderScheduler.scheduleFor(auth.user?.metabolicTargets);
       if (!mounted) return;
       HapticFeedback.heavyImpact();
-      context.pop();
+      // context.pop() is a no-op when the route was pushed via context.go()
+      // (no parent in the stack). Try pop first; if that didn't change the
+      // top route, fall back to the app home so the user definitely lands
+      // somewhere other than this screen.
+      final router = GoRouter.of(context);
+      if (router.canPop()) {
+        router.pop();
+      } else {
+        router.go('/app');
+      }
     } catch (e) {
       if (mounted) setState(() => _error = 'Could not save goals. $e');
     } finally {

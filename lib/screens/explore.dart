@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import '../core/models/category.dart';
-import '../core/models/food.dart';
 import '../core/models/nutrient_reference.dart';
 import '../core/models/visual_catalog.dart';
 import '../core/providers/food_provider.dart';
@@ -17,7 +16,6 @@ class ExploreScreen extends StatefulWidget {
 }
 
 class _ExploreScreenState extends State<ExploreScreen> {
-  List<FoodSummary> _foods = [];
   Map<String, CategorySummary> _apiCategories = const {};
   bool _loading = true;
   String? _error;
@@ -37,19 +35,14 @@ class _ExploreScreenState extends State<ExploreScreen> {
     });
     try {
       final provider = context.read<FoodProvider>();
-      final foodsFuture = provider.fetchFoods(limit: 500);
-      // Categories are admin-curated metadata; a transient failure here
-      // shouldn't blank out the Explore tab, so fall back to an empty map
-      // and let visual_catalog.dart provide the hardcoded defaults.
-      final categoriesFuture = provider.fetchCategories().catchError(
-        (_) => <CategorySummary>[],
-      );
-      final results = await Future.wait([foodsFuture, categoriesFuture]);
+      // Only categories needed — we use the server-supplied `foodCount`
+      // (which reflects the full 8000+ catalog) instead of counting client-
+      // side. Counting client-side would require downloading every food on
+      // every Explore open; with pagination at 30/page that's no longer
+      // viable, and even at limit=500 we under-counted by ~94%.
+      final categories = await provider.fetchCategories();
       if (!mounted) return;
-      final foods = results[0] as List<FoodSummary>;
-      final categories = results[1] as List<CategorySummary>;
       setState(() {
-        _foods = foods;
         _apiCategories = {for (final c in categories) c.slug: c};
         _loading = false;
       });
@@ -66,30 +59,22 @@ class _ExploreScreenState extends State<ExploreScreen> {
   Widget build(BuildContext context) {
     final dark = Theme.of(context).brightness == Brightness.dark;
     final c = NVColors(dark);
-    final categories = <String, int>{};
-    for (final food in _foods) {
-      final category = canonicalCategoryKey(food.category);
-      categories.update(category, (value) => value + 1, ifAbsent: () => 1);
-    }
-    final cats =
-        categories.entries
-            .map((entry) => _CategoryCount(entry.key, entry.value, _apiCategories[entry.key]))
-            .toList()
-          ..sort((a, b) {
-            // Admin-curated displayOrder wins; orphan slugs (no API row)
-            // sink below the curated ones and then break ties by count.
-            final aHas = a.apiCategory != null;
-            final bHas = b.apiCategory != null;
-            if (aHas != bHas) return aHas ? -1 : 1;
-            if (aHas && bHas) {
-              final byOrder = a.apiCategory!.displayOrder
-                  .compareTo(b.apiCategory!.displayOrder);
-              if (byOrder != 0) return byOrder;
-            }
-            final byCount = b.count.compareTo(a.count);
-            if (byCount != 0) return byCount;
-            return _resolveLabel(a).compareTo(_resolveLabel(b));
-          });
+    // Build the displayed list from the server-supplied categories.
+    // foodCount comes from a Postgres COUNT(*) per slug, so it reflects
+    // the full 8000+ catalog — no client-side iteration needed.
+    final cats = _apiCategories.values
+        .where((c) => c.foodCount > 0)
+        .map((c) => _CategoryCount(c.slug, c.foodCount, c))
+        .toList()
+      ..sort((a, b) {
+        final byOrder = a.apiCategory!.displayOrder
+            .compareTo(b.apiCategory!.displayOrder);
+        if (byOrder != 0) return byOrder;
+        final byCount = b.count.compareTo(a.count);
+        if (byCount != 0) return byCount;
+        return _resolveLabel(a).compareTo(_resolveLabel(b));
+      });
+    final totalFoodCount = cats.fold<int>(0, (s, c) => s + c.count);
 
     return SafeArea(
       child: Column(
@@ -116,7 +101,7 @@ class _ExploreScreenState extends State<ExploreScreen> {
                       Text(
                         _loading
                             ? 'Loading catalog'
-                            : '${_foods.length} foods across ${cats.length} categories',
+                            : '$totalFoodCount foods across ${cats.length} categories',
                         style: TextStyle(fontSize: 14, color: c.textMuted),
                       ),
                     ],
