@@ -50,7 +50,7 @@ class _BarcodeScanScreenState extends State<BarcodeScanScreen> {
       final detail = await context.read<FoodProvider>().getFoodByBarcode(raw);
       if (!mounted) return;
       // Navigate to the food detail screen
-      context.go('/app/food/${detail.id}');
+      context.push('/app/food/${detail.id}');
     } on BarcodeNotFoundException catch (e) {
       if (!mounted) return;
       context.push('/app/barcode-scan/contribute', extra: e.barcode);

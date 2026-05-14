@@ -82,9 +82,13 @@ class _FoodDetailBody extends StatelessWidget {
     final provider = context.watch<FoodProvider>();
     final isFavorite = provider.isFavorite(food.id);
     final isReferenceProfile = food.source.contains('percent Daily Value');
-    final canLog = food.breakdown.any(
+    // Allow logging for any food that has at least one nutrient entry OR comes from an external source
+    final hasNutrientData = food.breakdown.any(
       (n) => n.amountPer100G > 0 || (n.driPercent ?? 0) > 0,
     );
+    final isExternalSource = const {'openfoodfacts', 'fatsecret', 'seed'}
+        .contains(food.source.toLowerCase());
+    final canLog = hasNutrientData || isExternalSource || food.breakdown.isNotEmpty;
     final isFastFood = food.isUnhealthy;
 
     return CustomScrollView(
@@ -209,7 +213,7 @@ class _FoodDetailBody extends StatelessWidget {
               Text(
                 isReferenceProfile
                     ? 'Nutrient profile · % Daily Value'
-                    : '${food.servingSizeG.toStringAsFixed(0)}g serving · ${food.category}',
+                    : '${food.servingSizeG.toStringAsFixed(0)}${_servingUnit(food.category)} serving${food.brand != null ? ' · ${food.brand}' : ''} · ${food.category}',
                 style: TextStyle(
                   fontSize: 13,
                   color: c.textMuted,
@@ -255,7 +259,7 @@ class _FoodDetailBody extends StatelessWidget {
                   children: [
                     _Metric(
                       value: food.servingSizeG.toStringAsFixed(0),
-                      label: 'grams',
+                      label: _servingUnit(food.category) == 'ml' ? 'millilitres' : 'grams',
                     ),
                     _Metric(
                       value: '${food.breakdown.length}',
@@ -438,33 +442,23 @@ class _FoodDetailBody extends StatelessWidget {
                     style: TextStyle(fontSize: 11, color: c.textMuted),
                   ),
                 ),
-              if (!canLog)
+              if (!hasNutrientData && !isExternalSource)
                 Padding(
                   padding: const EdgeInsets.only(top: 4, left: 4),
                   child: Text(
-                    'Logging is limited until raw USDA nutrient amounts are added for this food.',
+                    'Limited nutrient data available for this food.',
                     style: TextStyle(fontSize: 11, color: c.textMuted),
                   ),
                 ),
               const SizedBox(height: NVSpace.x4),
               NVPrimaryButton(
-                label: canLog ? 'Log this food' : 'Reference profile only',
-                leadingIcon: canLog
-                    ? Icons.add_rounded
-                    : Icons.info_outline_rounded,
-                accent: canLog,
-                onPressed: canLog
-                    ? () {
-                        HapticFeedback.mediumImpact();
-                        _showLogSheet(context, food);
-                      }
-                    : () => ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text(
-                            'Raw USDA amounts are needed before logging this food.',
-                          ),
-                        ),
-                      ),
+                label: 'Log this food',
+                leadingIcon: Icons.add_rounded,
+                accent: true,
+                onPressed: () {
+                  HapticFeedback.mediumImpact();
+                  _showLogSheet(context, food);
+                },
               ),
               const SizedBox(height: 8),
             ],
@@ -581,19 +575,37 @@ class _NutrientRow extends StatelessWidget {
                       ),
                     ),
                     const SizedBox(width: 8),
-                    Text(
-                      nutrient.driPercent == null
-                          ? '—'
-                          : '${nutrient.driPercent!.round()}%',
-                      style: nvNumber(
-                        13,
-                        color: pct >= 1
-                            ? isLimit
-                                ? const Color(0xFFEF4444)
-                                : hue.fill
-                            : c.textMuted,
-                        weight: FontWeight.w700,
-                      ),
+                    Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        // Show the actual amount per 100g
+                        if (nutrient.amountPer100G > 0)
+                          Padding(
+                            padding: const EdgeInsets.only(right: 6),
+                            child: Text(
+                              _formatAmount(nutrient.amountPer100G, nutrient.unit),
+                              style: nvNumber(
+                                11,
+                                color: c.textMuted,
+                                weight: FontWeight.w500,
+                              ),
+                            ),
+                          ),
+                        Text(
+                          nutrient.driPercent == null
+                              ? '—'
+                              : '${nutrient.driPercent!.round()}%',
+                          style: nvNumber(
+                            13,
+                            color: pct >= 1
+                                ? isLimit
+                                    ? const Color(0xFFEF4444)
+                                    : hue.fill
+                                : c.textMuted,
+                            weight: FontWeight.w700,
+                          ),
+                        ),
+                      ],
                     ),
                   ],
                 ),
@@ -917,10 +929,10 @@ class _LogFoodSheetState extends State<_LogFoodSheet> {
     final delta = projectedScore - currentScore;
 
     String label;
-    if (delta > 0.5) {
-      label = '+${delta.round()}% estimated';
-    } else if (delta < -0.5) {
-      label = '${delta.round()}% estimated';
+    if (delta > 0.1) {
+      label = '+${delta.toStringAsFixed(1)}% estimated';
+    } else if (delta < -0.1) {
+      label = '${delta.toStringAsFixed(1)}% estimated';
     } else {
       label = 'No score change expected';
     }
@@ -933,8 +945,8 @@ class _LogFoodSheetState extends State<_LogFoodSheet> {
     final c = NVColors.of(context);
     final impact = _scoreImpact();
     final delta = impact.projected - impact.current;
-    final isPositive = delta > 0.5;
-    final isNegative = delta < -0.5;
+    final isPositive = delta > 0.1;
+    final isNegative = delta < -0.1;
 
     return SafeArea(
       child: SingleChildScrollView(
@@ -1279,6 +1291,33 @@ String _humanize(String value) {
       .where((part) => part.isNotEmpty)
       .map((part) => '${part[0].toUpperCase()}${part.substring(1)}')
       .join(' ');
+}
+
+/// Returns 'ml' for liquid categories, 'g' for everything else.
+String _servingUnit(String category) {
+  const liquidCategories = {
+    'drinks',
+    'beverages',
+    'juice',
+    'milk',
+    'water',
+    'smoothies',
+    'soda',
+    'tea',
+    'coffee',
+    'sugary-drinks',
+  };
+  return liquidCategories.contains(category.toLowerCase()) ? 'ml' : 'g';
+}
+
+/// Formats a nutrient amount with its unit, e.g. "42.5g", "150kcal", "0.8mg".
+String _formatAmount(double amount, String unit) {
+  final formatted = amount >= 10
+      ? amount.toStringAsFixed(0)
+      : amount >= 1
+          ? amount.toStringAsFixed(1)
+          : amount.toStringAsFixed(2);
+  return '$formatted$unit';
 }
 
 String _dateLabel(DateTime date) {
