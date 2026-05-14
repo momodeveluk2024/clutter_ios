@@ -17,7 +17,6 @@ import '../core/providers/nutrition_provider.dart';
 import '../theme.dart';
 import '../widgets.dart';
 import '../widgets/nv_loader.dart';
-import '../widgets/meal_card.dart';
 import 'meal_log_detail.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -180,7 +179,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       trailing: nutrition.logs.isEmpty
                           ? null
                           : TextButton(
-                              onPressed: () => context.push('/app/tracker'),
+                              onPressed: () => context.go('/app/tracker'),
                               child: const Text('History'),
                             ),
                     ),
@@ -188,18 +187,54 @@ class _HomeScreenState extends State<HomeScreen> {
                     if (nutrition.logs.isEmpty)
                       _EmptyMealsCard()
                     else
-                      LayoutBuilder(
-                        builder: (context, constraints) {
-                          final cardWidth = (constraints.maxWidth - NVSpace.x3) / 2;
-                          return Wrap(
-                            spacing: NVSpace.x3,
-                            runSpacing: NVSpace.x3,
-                            children: nutrition.logs
-                                .take(4)
-                                .map((log) => MealImageCard(log: log, width: cardWidth))
-                                .toList(),
+                      Column(
+                        children: nutrition.logs.take(4).map((log) {
+                          final firstItem = log.items.isEmpty ? null : log.items.first;
+                          final title = firstItem?.foodName ?? (log.mealType.isEmpty ? log.mealType : log.mealType[0].toUpperCase() + log.mealType.substring(1));
+                          
+                          return Padding(
+                            padding: const EdgeInsets.only(bottom: NVSpace.x2),
+                            child: ListTile(
+                              contentPadding: const EdgeInsets.symmetric(horizontal: NVSpace.x3, vertical: NVSpace.x2),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(NVRadius.card),
+                                side: BorderSide(color: NVColors.of(context).border),
+                              ),
+                              leading: firstItem?.imageUrl != null
+                                  ? ClipRRect(
+                                      borderRadius: BorderRadius.circular(8),
+                                      child: Image.network(
+                                        firstItem!.imageUrl!,
+                                        width: 48,
+                                        height: 48,
+                                        fit: BoxFit.cover,
+                                      ),
+                                    )
+                                  : Container(
+                                      width: 48,
+                                      height: 48,
+                                      decoration: BoxDecoration(
+                                        color: NVColors.of(context).surfaceMuted,
+                                        borderRadius: BorderRadius.circular(8),
+                                      ),
+                                      child: Icon(Icons.fastfood, size: 24, color: NVColors.of(context).textMuted),
+                                    ),
+                              title: Text(
+                                title,
+                                style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 15),
+                              ),
+                              subtitle: log.items.length > 1
+                                  ? Text('+${log.items.length - 1} more items')
+                                  : null,
+                              trailing: const Icon(Icons.chevron_right),
+                              onTap: () => showMealLogDetails(
+                                context,
+                                log,
+                                date: DateTime.tryParse(log.loggedOn),
+                              ),
+                            ),
                           );
-                        },
+                        }).toList(),
                       ),
                     const SizedBox(height: NVSpace.x8),
                     const NVSectionHeader(
@@ -249,7 +284,7 @@ class _TopBar extends StatelessWidget {
     return SliverAppBar(
       pinned: true,
       floating: true,
-      backgroundColor: c.bg.withOpacity(0.95),
+      backgroundColor: c.bg.withValues(alpha: 0.95),
       elevation: 0,
       scrolledUnderElevation: 0,
       toolbarHeight: 64,
@@ -1297,7 +1332,7 @@ class _AllRecommendationsSheet extends StatelessWidget {
                   NVSpace.x5, 0, NVSpace.x5, NVSpace.x6,
                 ),
                 itemCount: recommendations.length,
-                separatorBuilder: (_, __) =>
+                separatorBuilder: (context, index) =>
                     const SizedBox(height: NVSpace.x3),
                 itemBuilder: (context, index) {
                   final rec = recommendations[index];
@@ -1497,9 +1532,10 @@ class _MetabolicTargetsCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final c = NVColors.of(context);
     final goal = targets.goalKcal;
-    final pct = goal > 0 ? (todayKcal / goal).clamp(0.0, 1.5) : 0.0;
-    final remaining = (goal - todayKcal).round();
-    final isOver = remaining < 0;
+    final hasGoal = goal > 0;
+    final pct = hasGoal ? (todayKcal / goal).clamp(0.0, 1.5) : 1.0;
+    final remaining = hasGoal ? (goal - todayKcal).round() : 0;
+    final isOver = hasGoal && remaining < 0;
 
     return NVCard(
       padding: const EdgeInsets.all(NVSpace.x5),
@@ -1514,7 +1550,7 @@ class _MetabolicTargetsCard extends StatelessWidget {
               children: [
                 SizedBox.expand(
                   child: CircularProgressIndicator(
-                    value: pct.clamp(0.0, 1.0).toDouble(),
+                    value: hasGoal ? pct.clamp(0.0, 1.0).toDouble() : 1.0,
                     strokeWidth: 6,
                     strokeCap: StrokeCap.round,
                     backgroundColor: c.border,
@@ -1532,7 +1568,7 @@ class _MetabolicTargetsCard extends StatelessWidget {
                       color: isOver ? Colors.redAccent : NV.accent,
                     ),
                     Text(
-                      '${(pct * 100).round()}%',
+                      hasGoal ? '${(pct * 100).round()}%' : '---',
                       style: nvNumber(14, color: c.text),
                     ),
                   ],
@@ -1553,7 +1589,7 @@ class _MetabolicTargetsCard extends StatelessWidget {
                       style: nvNumber(24, color: c.text),
                     ),
                     Text(
-                      ' / ${goal.round()} kcal',
+                      hasGoal ? ' / ${goal.round()} kcal' : ' kcal logged',
                       style: TextStyle(
                         fontSize: 14,
                         fontWeight: FontWeight.w500,
@@ -1564,13 +1600,15 @@ class _MetabolicTargetsCard extends StatelessWidget {
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  isOver
-                      ? '${(-remaining)} kcal over target'
-                      : '$remaining kcal remaining',
+                  !hasGoal
+                      ? 'No daily goal set'
+                      : isOver
+                          ? '${(-remaining)} kcal over target'
+                          : '$remaining kcal remaining',
                   style: TextStyle(
                     fontSize: 13,
                     fontWeight: FontWeight.w600,
-                    color: isOver ? Colors.redAccent : NV.accent,
+                    color: !hasGoal ? c.textMuted : isOver ? Colors.redAccent : NV.accent,
                   ),
                 ),
                 const SizedBox(height: 4),
@@ -1599,7 +1637,7 @@ class _MetabolicTargetsCard extends StatelessWidget {
                                 : targets.isSurplus
                                     ? Colors.greenAccent
                                     : NV.accent)
-                            .withOpacity(0.15),
+                            .withValues(alpha: 0.15),
                         borderRadius: BorderRadius.circular(4),
                       ),
                       child: Text(
@@ -1646,7 +1684,7 @@ class _GoalStat extends StatelessWidget {
           style: TextStyle(
             fontSize: 9,
             fontWeight: FontWeight.w600,
-            color: color.withOpacity(0.7),
+            color: color.withValues(alpha: 0.7),
             letterSpacing: 0.5,
           ),
         ),
