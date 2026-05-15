@@ -262,8 +262,8 @@ class _FoodDetailBody extends StatelessWidget {
                   mainAxisAlignment: MainAxisAlignment.spaceAround,
                   children: [
                     _Metric(
-                      value: food.servingSizeG.toStringAsFixed(0),
-                      label: _servingUnit(food.category) == 'ml' ? 'millilitres' : 'grams',
+                      value: '${food.servingSizeG.toStringAsFixed(0)} ${_servingUnit(food.category)}',
+                      label: 'per serving',
                     ),
                     _Metric(
                       value: '${food.breakdown.length}',
@@ -408,14 +408,29 @@ class _FoodDetailBody extends StatelessWidget {
               }),
               Padding(
                 padding: const EdgeInsets.only(left: 4, bottom: 10),
-                child: Text(
-                  'Nutrient breakdown',
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w700,
-                    letterSpacing: -0.3,
-                    color: c.text,
-                  ),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.baseline,
+                  textBaseline: TextBaseline.alphabetic,
+                  children: [
+                    Text(
+                      'Nutrient breakdown',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w700,
+                        letterSpacing: -0.3,
+                        color: c.text,
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Text(
+                      'per 100${_servingUnit(food.category)}',
+                      style: TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w600,
+                        color: c.textMuted,
+                      ),
+                    ),
+                  ],
                 ),
               ),
               NVCard(
@@ -841,7 +856,11 @@ class _LogFoodSheet extends StatefulWidget {
 
 class _LogFoodSheetState extends State<_LogFoodSheet> {
   String _mealType = 'breakfast';
-  double _servingG = 100;
+  late double _servingG = () {
+    final s = widget.food.servingSizeG;
+    if (s.isFinite && s > 0) return s.clamp(1.0, 1000.0);
+    return 100.0;
+  }();
   DateTime _loggedOn = DateTime.now();
   String? _pairedDrink;
   int _drinkQuantity = 1;
@@ -1295,10 +1314,10 @@ class _LogFoodSheetState extends State<_LogFoodSheet> {
                 trackHeight: 3,
               ),
               child: Slider(
-                value: _servingG,
-                min: 10,
-                max: 500,
-                divisions: 49,
+                value: _servingG.clamp(1.0, 1000.0),
+                min: 1,
+                max: 1000,
+                divisions: 999,
                 label: '${_servingG.round()}g',
                 onChanged: (value) => setState(() => _servingG = value),
               ),
