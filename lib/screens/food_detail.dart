@@ -528,9 +528,10 @@ class _FoodDetailBody extends StatelessWidget {
       if (cg > 0) 'C ${cg.round()}g',
       if (f > 0) 'F ${f.round()}g',
     ];
+    final servingUnit = _servingUnit(food.category);
     final macroLine = parts.isEmpty
-        ? '${result.servingG.round()}g · ${_humanize(result.mealType)}'
-        : '${parts.join(' · ')}  ·  ${result.servingG.round()}g';
+        ? '${result.servingG.round()}$servingUnit · ${_humanize(result.mealType)}'
+        : '${parts.join(' · ')}  ·  ${result.servingG.round()}$servingUnit';
 
     LogSuccessToast.show(
       context,
@@ -1302,7 +1303,7 @@ class _LogFoodSheetState extends State<_LogFoodSheet> {
               children: [
                 NVEyebrow('Serving', color: c.textMuted),
                 Text(
-                  '${_servingG.round()} g',
+                  '${_servingG.round()} ${_servingUnit(widget.food.category)}',
                   style: nvNumber(15, color: c.text, weight: FontWeight.w700),
                 ),
               ],
@@ -1320,7 +1321,7 @@ class _LogFoodSheetState extends State<_LogFoodSheet> {
                 min: 1,
                 max: 1000,
                 divisions: 999,
-                label: '${_servingG.round()}g',
+                label: '${_servingG.round()}${_servingUnit(widget.food.category)}',
                 onChanged: (value) => setState(() => _servingG = value),
               ),
             ),

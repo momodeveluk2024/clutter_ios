@@ -299,6 +299,7 @@ class _MyMealEditScreenState extends State<MyMealEditScreen> {
                     fat: double.tryParse(_amount['Fat']?.text ?? '') ?? 0,
                     fiber:
                         double.tryParse(_amount['Fiber']?.text ?? '') ?? 0,
+                    category: _selectedCategory,
                   ),
                   const SizedBox(height: 14),
                   const _MealHelperNote(),
@@ -655,6 +656,7 @@ class _LivePreviewCard extends StatelessWidget {
     required this.carbs,
     required this.fat,
     required this.fiber,
+    this.category,
   });
 
   final String name;
@@ -664,6 +666,7 @@ class _LivePreviewCard extends StatelessWidget {
   final double carbs;
   final double fat;
   final double fiber;
+  final String? category;
 
   @override
   Widget build(BuildContext context) {
@@ -723,7 +726,7 @@ class _LivePreviewCard extends StatelessWidget {
               ),
               const Spacer(),
               Text(
-                '${serving.round()} g serving',
+                '${serving.round()} ${_servingUnitForCategory(category ?? '')} serving',
                 style: TextStyle(
                   fontSize: 11,
                   fontWeight: FontWeight.w700,
@@ -893,4 +896,21 @@ class _MealHelperNote extends StatelessWidget {
       ),
     );
   }
+}
+
+
+String _servingUnitForCategory(String category) {
+  const liquid = {
+    'drinks',
+    'beverages',
+    'juice',
+    'milk',
+    'water',
+    'smoothies',
+    'soda',
+    'tea',
+    'coffee',
+    'sugary-drinks',
+  };
+  return liquid.contains(category.toLowerCase()) ? 'ml' : 'g';
 }

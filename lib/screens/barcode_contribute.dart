@@ -96,7 +96,8 @@ class _BarcodeContributeScreenState extends State<BarcodeContributeScreen> {
       }
     }
     if (macroSum > 100) {
-      return 'Protein + Carbs + Fat cannot exceed 100g per 100g';
+      final unit = _servingUnitForCategory(_selectedCategory ?? '');
+      return 'Protein + Carbs + Fat cannot exceed 100g per 100$unit';
     }
     return null;
   }
@@ -225,6 +226,8 @@ class _BarcodeContributeScreenState extends State<BarcodeContributeScreen> {
                           macros: _macros,
                           enabled: _enabled,
                           amount: _amount,
+                          servingUnit:
+                              _servingUnitForCategory(_selectedCategory ?? ''),
                           onToggle: (code, on) {
                             HapticFeedback.selectionClick();
                             setState(() => _enabled[code] = on);
@@ -448,6 +451,7 @@ class _BasicsStep extends StatelessWidget {
   Widget build(BuildContext context) {
     final c = NVColors.of(context);
     final categories = context.watch<FoodProvider>().categories;
+    final unit = _servingUnitForCategory(selectedCategory ?? '');
     return SingleChildScrollView(
       padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
       child: Column(
@@ -522,7 +526,7 @@ class _BasicsStep extends StatelessWidget {
           const SizedBox(height: 18),
           _SoftTextField(
             controller: serving,
-            label: 'Serving size (grams)',
+            label: 'Serving size (${unit == 'ml' ? 'millilitres' : 'grams'})',
             hint: '100',
             icon: Icons.scale_outlined,
             keyboardType: const TextInputType.numberWithOptions(decimal: true),
@@ -531,7 +535,7 @@ class _BasicsStep extends StatelessWidget {
           _HelperNote(
             icon: Icons.lightbulb_outline_rounded,
             text:
-                'Enter values per 100g on the next step. We use these to compute your kcal + macros every time you log this food.',
+                'Enter values per 100$unit on the next step. We use these to compute your kcal + macros every time you log this food.',
           ),
         ],
       ),
@@ -548,6 +552,7 @@ class _NutrientsStep extends StatelessWidget {
     required this.macros,
     required this.enabled,
     required this.amount,
+    required this.servingUnit,
     required this.onToggle,
     required this.onChange,
     required this.onBump,
@@ -556,6 +561,7 @@ class _NutrientsStep extends StatelessWidget {
   final List<String> macros;
   final Map<String, bool> enabled;
   final Map<String, TextEditingController> amount;
+  final String servingUnit;
   final void Function(String code, bool on) onToggle;
   final VoidCallback onChange;
   final void Function(String code, double delta) onBump;
@@ -578,7 +584,7 @@ class _NutrientsStep extends StatelessWidget {
           _HelperNote(
             icon: Icons.info_outline_rounded,
             text:
-                "Tap the nutrients shown on the label, then type how much per 100 g. Skip anything you can't read.",
+                "Tap the nutrients shown on the label, then type how much per 100 $servingUnit. Skip anything you can't read.",
           ),
           const SizedBox(height: 14),
           Row(
@@ -621,6 +627,7 @@ class _NutrientsStep extends StatelessWidget {
               code: code,
               enabled: enabled[code] ?? false,
               controller: amount[code],
+              servingUnit: servingUnit,
               onToggle: (on) => onToggle(code, on),
               onChange: onChange,
               onBump: (delta) => onBump(code, delta),
@@ -643,6 +650,7 @@ class _NutrientsStep extends StatelessWidget {
               code: code,
               enabled: enabled[code] ?? false,
               controller: amount[code],
+              servingUnit: servingUnit,
               onToggle: (on) => onToggle(code, on),
               onChange: onChange,
               onBump: (delta) => onBump(code, delta),
@@ -659,6 +667,7 @@ class _NutrientTile extends StatelessWidget {
     required this.code,
     required this.enabled,
     required this.controller,
+    required this.servingUnit,
     required this.onToggle,
     required this.onChange,
     required this.onBump,
@@ -668,6 +677,7 @@ class _NutrientTile extends StatelessWidget {
   final String code;
   final bool enabled;
   final TextEditingController? controller;
+  final String servingUnit;
   final ValueChanged<bool> onToggle;
   final VoidCallback onChange;
   final ValueChanged<double> onBump;
@@ -738,7 +748,7 @@ class _NutrientTile extends StatelessWidget {
                     ),
                   ),
                   Text(
-                    'per 100 g · ${ref.unit}',
+                    'per 100 $servingUnit · ${ref.unit}',
                     style: TextStyle(
                       fontSize: 11,
                       color: c.textMuted,
@@ -1004,6 +1014,24 @@ class _HelperNote extends StatelessWidget {
 // ═══════════════════════════════════════════════════════════════
 //  SUBMITTED DIALOG — mascot celebrates + explains admin review
 // ═══════════════════════════════════════════════════════════════
+
+/// Returns 'ml' for liquid/drink categories, 'g' for everything else.
+/// Mirrors _servingUnit in food_detail.dart and suggest_food_edit.dart.
+String _servingUnitForCategory(String category) {
+  const liquid = {
+    'drinks',
+    'beverages',
+    'juice',
+    'milk',
+    'water',
+    'smoothies',
+    'soda',
+    'tea',
+    'coffee',
+    'sugary-drinks',
+  };
+  return liquid.contains(category.toLowerCase()) ? 'ml' : 'g';
+}
 
 class _SubmittedDialog extends StatelessWidget {
   const _SubmittedDialog();

@@ -397,7 +397,7 @@ class _FoodResult extends StatelessWidget {
                   ),
                   const SizedBox(height: 2),
                   Text(
-                    '${food.category} - ${food.servingSizeG.toStringAsFixed(0)}g serving',
+                    '${food.category} - ${food.servingSizeG.toStringAsFixed(0)}${_servingUnitForCategory(food.category)} serving',
                     style: TextStyle(fontSize: 12, color: c.textMuted),
                   ),
                   const SizedBox(height: 6),
@@ -518,4 +518,21 @@ class _MessageCard extends StatelessWidget {
       ),
     );
   }
+}
+
+
+String _servingUnitForCategory(String category) {
+  const liquid = {
+    'drinks',
+    'beverages',
+    'juice',
+    'milk',
+    'water',
+    'smoothies',
+    'soda',
+    'tea',
+    'coffee',
+    'sugary-drinks',
+  };
+  return liquid.contains(category.toLowerCase()) ? 'ml' : 'g';
 }

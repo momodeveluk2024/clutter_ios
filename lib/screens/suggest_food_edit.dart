@@ -205,7 +205,7 @@ class _SuggestFoodEditScreenState extends State<SuggestFoodEditScreen> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        _Label('Serving size (g)'),
+                        _Label('Serving size (${_servingUnit(_category)})'),
                         const SizedBox(height: 6),
                         _Field(
                           controller: _serving,
@@ -345,6 +345,24 @@ class _Field extends StatelessWidget {
       ),
     );
   }
+}
+
+/// Returns 'ml' for liquid categories, 'g' for everything else. Mirrors the
+/// helper in food_detail.dart — kept duplicated to avoid an import cycle.
+String _servingUnit(String category) {
+  const liquidCategories = {
+    'drinks',
+    'beverages',
+    'juice',
+    'milk',
+    'water',
+    'smoothies',
+    'soda',
+    'tea',
+    'coffee',
+    'sugary-drinks',
+  };
+  return liquidCategories.contains(category.toLowerCase()) ? 'ml' : 'g';
 }
 
 class _SubmittedDialog extends StatelessWidget {
