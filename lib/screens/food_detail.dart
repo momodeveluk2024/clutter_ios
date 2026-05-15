@@ -1132,10 +1132,69 @@ class _LogFoodSheetState extends State<_LogFoodSheet> {
     return (current: currentScore, projected: projectedScore, label: label);
   }
 
+  /// Computes the estimated kcal change if the user logs this serving.
+  ({double current, double projected, double delta}) _kcalImpact() {
+    final nutrition = context.read<NutritionProvider>();
+    final totals = nutrition.todayTotals;
+
+    double current = 0;
+    if (totals != null) {
+      for (final n in totals.nutrients) {
+        if (n.code == 'Energy' || n.code == 'Calories' || n.code == 'kcal') {
+          current = n.amount;
+          break;
+        }
+      }
+    }
+
+    // Calories from this food at the chosen serving.
+    double foodKcal = 0;
+    for (final n in widget.food.breakdown) {
+      if (n.code == 'Energy' || n.code == 'Calories' || n.code == 'kcal') {
+        foodKcal = n.amountPer100G * (_servingG / 100);
+        break;
+      }
+    }
+    // Fallback to Atwater factors when the catalog row lacks a kcal entry.
+    if (foodKcal == 0) {
+      for (final n in widget.food.breakdown) {
+        final amt = n.amountPer100G * (_servingG / 100);
+        if (n.code == 'Protein') foodKcal += amt * 4;
+        if (n.code == 'Carbs') foodKcal += amt * 4;
+        if (n.code == 'Fat') foodKcal += amt * 9;
+      }
+    }
+
+    // Add paired drink kcal (matches the macros table used in _scoreImpact).
+    double drinkKcal = 0;
+    if (_pairedDrink != null) {
+      const drinkCalsPer100ml = {
+        'Water': 0.0,
+        'Tea': 1.0,
+        'Coffee': 2.0,
+        'Juice': 45.0,
+        'Milk': 61.0,
+        'Coca-Cola': 42.0,
+        'Pepsi': 41.0,
+        'Fanta': 48.0,
+        'Sprite': 40.0,
+        'Energy drink': 45.0,
+        'Smoothie': 55.0,
+        'Lemonade': 40.0,
+      };
+      final per100 = drinkCalsPer100ml[_pairedDrink] ?? 0;
+      drinkKcal = per100 * (330.0 / 100) * _drinkQuantity;
+    }
+
+    final delta = foodKcal + drinkKcal;
+    return (current: current, projected: current + delta, delta: delta);
+  }
+
   @override
   Widget build(BuildContext context) {
     final c = NVColors.of(context);
     final impact = _scoreImpact();
+    final kcalImpact = _kcalImpact();
     final delta = impact.projected - impact.current;
     final isPositive = delta > 0.1;
     final isNegative = delta < -0.1;
@@ -1408,44 +1467,84 @@ class _LogFoodSheetState extends State<_LogFoodSheet> {
                           : c.border,
                 ),
               ),
-              child: Row(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  Icon(
-                    isNegative
-                        ? Icons.trending_down_rounded
-                        : isPositive
-                            ? Icons.trending_up_rounded
-                            : Icons.trending_flat_rounded,
-                    size: 18,
-                    color: isNegative
-                        ? const Color(0xFFEF4444)
-                        : isPositive
-                            ? NV.accent
-                            : c.textMuted,
-                  ),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: Text(
-                      impact.label,
-                      style: TextStyle(
-                        fontSize: 13,
-                        fontWeight: FontWeight.w600,
+                  Row(
+                    children: [
+                      Icon(
+                        isNegative
+                            ? Icons.trending_down_rounded
+                            : isPositive
+                                ? Icons.trending_up_rounded
+                                : Icons.trending_flat_rounded,
+                        size: 18,
                         color: isNegative
-                            ? const Color(0xFFDC2626)
+                            ? const Color(0xFFEF4444)
                             : isPositive
                                 ? NV.accent
                                 : c.textMuted,
                       ),
-                    ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          impact.label,
+                          style: TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w600,
+                            color: isNegative
+                                ? const Color(0xFFDC2626)
+                                : isPositive
+                                    ? NV.accent
+                                    : c.textMuted,
+                          ),
+                        ),
+                      ),
+                      Text(
+                        '${impact.current.round()}% → ${impact.projected.round()}%',
+                        style: nvNumber(
+                          12,
+                          color: c.textMuted,
+                          weight: FontWeight.w600,
+                        ),
+                      ),
+                    ],
                   ),
-                  Text(
-                    '${impact.current.round()}% → ${impact.projected.round()}%',
-                    style: nvNumber(
-                      12,
-                      color: c.textMuted,
-                      weight: FontWeight.w600,
+                  if (kcalImpact.delta.abs() >= 1) ...[
+                    const SizedBox(height: 8),
+                    Row(
+                      children: [
+                        Icon(
+                          Icons.local_fire_department_rounded,
+                          size: 18,
+                          color: kcalImpact.delta > 0
+                              ? const Color(0xFFEA580C)
+                              : c.textMuted,
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            '${kcalImpact.delta > 0 ? '+' : ''}${kcalImpact.delta.round()} kcal estimated',
+                            style: TextStyle(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w600,
+                              color: kcalImpact.delta > 0
+                                  ? const Color(0xFFC2410C)
+                                  : c.textMuted,
+                            ),
+                          ),
+                        ),
+                        Text(
+                          '${kcalImpact.current.round()} → ${kcalImpact.projected.round()} kcal',
+                          style: nvNumber(
+                            12,
+                            color: c.textMuted,
+                            weight: FontWeight.w600,
+                          ),
+                        ),
+                      ],
                     ),
-                  ),
+                  ],
                 ],
               ),
             ),
