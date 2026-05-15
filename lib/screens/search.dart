@@ -20,13 +20,21 @@ class SearchScreen extends StatefulWidget {
 }
 
 class _SearchScreenState extends State<SearchScreen> {
+  static const int _pageSize = 30;
+
   final _controller = TextEditingController();
+  final _scroll = ScrollController();
   Timer? _debounce;
   int _tab = 0;
   late String _category = widget.initialCategory;
   List<FoodSummary> _foods = [];
   bool _isLoading = false;
   String? _error;
+
+  // Pagination state.
+  int _page = 1; // 1-indexed
+  int _total = 0;
+  bool _hasMore = false;
 
   @override
   void initState() {
@@ -40,29 +48,42 @@ class _SearchScreenState extends State<SearchScreen> {
   void dispose() {
     _debounce?.cancel();
     _controller.dispose();
+    _scroll.dispose();
     super.dispose();
   }
 
   void _onChanged(String value) {
     _debounce?.cancel();
     _debounce = Timer(const Duration(milliseconds: 300), () {
-      _loadFoods();
+      // New query → restart at page 1.
+      _loadFoods(page: 1);
     });
   }
 
-  Future<void> _loadFoods() async {
+  Future<void> _loadFoods({int? page}) async {
+    final targetPage = page ?? _page;
     setState(() {
       _isLoading = true;
       _error = null;
     });
     try {
-      final foods = await context.read<FoodProvider>().fetchFoods(
+      final result = await context.read<FoodProvider>().fetchFoodsPage(
         query: _controller.text.trim(),
         category: _category,
-        limit: 500,
+        limit: _pageSize,
+        offset: (targetPage - 1) * _pageSize,
       );
       if (!mounted) return;
-      setState(() => _foods = foods);
+      setState(() {
+        _foods = result.foods;
+        _page = targetPage;
+        _total = result.total;
+        _hasMore = result.hasMore;
+      });
+      // Snap back to the top when paging.
+      if (_scroll.hasClients) {
+        _scroll.jumpTo(0);
+      }
     } catch (e) {
       if (!mounted) return;
       setState(() => _error = e.toString());
@@ -70,6 +91,9 @@ class _SearchScreenState extends State<SearchScreen> {
       if (mounted) setState(() => _isLoading = false);
     }
   }
+
+  int get _totalPages =>
+      _total <= 0 ? 1 : ((_total + _pageSize - 1) ~/ _pageSize);
 
   @override
   Widget build(BuildContext context) {
@@ -193,8 +217,7 @@ class _SearchScreenState extends State<SearchScreen> {
     );
   }
 
-  /// Uses ListView.builder for O(visible) rendering instead of O(n).
-  /// With 500 foods this eliminates the big initial-frame jank.
+  /// Renders 30 foods per page with Next/Previous controls below the list.
   Widget _buildFoodList() {
     if (_error != null) {
       return ListView(
@@ -216,15 +239,35 @@ class _SearchScreenState extends State<SearchScreen> {
         ],
       );
     }
-    // +1 for the header row
+    // header + foods + pager
     return ListView.builder(
+      controller: _scroll,
       padding: const EdgeInsets.fromLTRB(20, 4, 20, 16),
-      itemCount: _foods.length + 1,
+      itemCount: _foods.length + 2,
       itemBuilder: (context, index) {
         if (index == 0) {
+          final start = (_page - 1) * _pageSize + 1;
+          final end = start + _foods.length - 1;
           return Padding(
             padding: const EdgeInsets.fromLTRB(4, 10, 4, 8),
-            child: SectionLabel('${_foods.length} results'),
+            child: SectionLabel(
+              _total > 0
+                  ? '$start–$end of $_total results'
+                  : '${_foods.length} results',
+            ),
+          );
+        }
+        if (index == _foods.length + 1) {
+          return _Pager(
+            page: _page,
+            totalPages: _totalPages,
+            hasMore: _hasMore,
+            onPrev: _page > 1
+                ? () => _loadFoods(page: _page - 1)
+                : null,
+            onNext: _hasMore
+                ? () => _loadFoods(page: _page + 1)
+                : null,
           );
         }
         return Padding(
@@ -489,6 +532,115 @@ class _LoadingList extends StatelessWidget {
         (_) => const Padding(
           padding: EdgeInsets.only(bottom: 8),
           child: PhotoPlaceholder(label: 'loading', height: 76, radius: 16),
+        ),
+      ),
+    );
+  }
+}
+
+class _Pager extends StatelessWidget {
+  const _Pager({
+    required this.page,
+    required this.totalPages,
+    required this.hasMore,
+    required this.onPrev,
+    required this.onNext,
+  });
+
+  final int page;
+  final int totalPages;
+  final bool hasMore;
+  final VoidCallback? onPrev;
+  final VoidCallback? onNext;
+
+  @override
+  Widget build(BuildContext context) {
+    final dark = Theme.of(context).brightness == Brightness.dark;
+    final c = NVColors(dark);
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(0, 14, 0, 8),
+      child: Row(
+        children: [
+          _PagerButton(
+            label: 'Previous',
+            icon: Icons.chevron_left,
+            iconLeading: true,
+            onTap: onPrev,
+            colors: c,
+          ),
+          Expanded(
+            child: Center(
+              child: Text(
+                'Page $page of $totalPages',
+                style: TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w700,
+                  color: c.textMuted,
+                ),
+              ),
+            ),
+          ),
+          _PagerButton(
+            label: 'Next',
+            icon: Icons.chevron_right,
+            iconLeading: false,
+            onTap: onNext,
+            colors: c,
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _PagerButton extends StatelessWidget {
+  const _PagerButton({
+    required this.label,
+    required this.icon,
+    required this.iconLeading,
+    required this.onTap,
+    required this.colors,
+  });
+
+  final String label;
+  final IconData icon;
+  final bool iconLeading;
+  final VoidCallback? onTap;
+  final NVColors colors;
+
+  @override
+  Widget build(BuildContext context) {
+    final enabled = onTap != null;
+    final fg = enabled ? NV.accent : colors.textMuted.withValues(alpha: 0.5);
+    final bg = enabled
+        ? NV.accentSoft
+        : colors.surfaceMuted.withValues(alpha: 0.6);
+    final iconWidget = Icon(icon, size: 18, color: fg);
+    final textWidget = Text(
+      label,
+      style: TextStyle(
+        fontSize: 13,
+        fontWeight: FontWeight.w700,
+        color: fg,
+      ),
+    );
+    return Opacity(
+      opacity: enabled ? 1 : 0.55,
+      child: Material(
+        color: bg,
+        borderRadius: BorderRadius.circular(99),
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(99),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: iconLeading
+                  ? [iconWidget, const SizedBox(width: 4), textWidget]
+                  : [textWidget, const SizedBox(width: 4), iconWidget],
+            ),
+          ),
         ),
       ),
     );

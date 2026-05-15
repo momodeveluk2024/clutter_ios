@@ -161,17 +161,80 @@ class _TourOverlayState extends State<_TourOverlay>
         color: Colors.transparent,
         child: Stack(
           children: [
-            // ── Dark backdrop with optional spotlight cutout ──
+            // ── Invisible full-screen tap target — tap anywhere to advance.
+            // No dim backdrop: the user can still see the underlying UI, so
+            // they're never stuck on a black screen if the tooltip card
+            // fails to render for any reason.
             Positioned.fill(
               child: GestureDetector(
                 onTap: _next,
                 behavior: HitTestBehavior.opaque,
-                child: CustomPaint(
-                  painter: _SpotlightPainter(
-                    targetRect: rect,
-                    padding: padding,
-                    radius: radius,
-                    opacity: hasTarget ? 0.72 : 0.78,
+                child: const SizedBox.expand(),
+              ),
+            ),
+
+            // ── Always-visible escape hatch (top-right X) ──
+            Positioned(
+              top: MediaQuery.paddingOf(context).top + 8,
+              right: 12,
+              child: Material(
+                color: NV.accent,
+                shape: const CircleBorder(),
+                elevation: 6,
+                shadowColor: Colors.black.withValues(alpha: 0.4),
+                child: InkWell(
+                  customBorder: const CircleBorder(),
+                  onTap: _skip,
+                  child: const Padding(
+                    padding: EdgeInsets.all(9),
+                    child: Icon(
+                      Icons.close_rounded,
+                      size: 22,
+                      color: Colors.white,
+                    ),
+                  ),
+                ),
+              ),
+            ),
+
+            // ── "Tap anywhere to continue" hint pinned to the bottom.
+            // Without the dim backdrop the user might not realize the screen
+            // is in tour mode — this makes the interaction discoverable.
+            Positioned(
+              left: 0,
+              right: 0,
+              bottom: MediaQuery.paddingOf(context).bottom + 12,
+              child: IgnorePointer(
+                child: Center(
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 14,
+                      vertical: 7,
+                    ),
+                    decoration: BoxDecoration(
+                      color: Colors.black.withValues(alpha: 0.72),
+                      borderRadius: BorderRadius.circular(99),
+                    ),
+                    child: const Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          Icons.touch_app_rounded,
+                          size: 14,
+                          color: Colors.white,
+                        ),
+                        SizedBox(width: 6),
+                        Text(
+                          'Tap anywhere to continue',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 12,
+                            fontWeight: FontWeight.w700,
+                            letterSpacing: 0.2,
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
               ),
@@ -249,49 +312,6 @@ class _TourOverlayState extends State<_TourOverlay>
       ),
     );
   }
-}
-
-// ═══════════════════════════════════════════════════════════════
-//  SPOTLIGHT PAINTER — dark overlay with a cutout hole
-// ═══════════════════════════════════════════════════════════════
-
-class _SpotlightPainter extends CustomPainter {
-  _SpotlightPainter({
-    required this.targetRect,
-    required this.padding,
-    required this.radius,
-    required this.opacity,
-  });
-
-  final Rect? targetRect;
-  final double padding;
-  final double radius;
-  final double opacity;
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final paint = Paint()..color = Colors.black.withValues(alpha: opacity);
-
-    if (targetRect == null) {
-      canvas.drawRect(Offset.zero & size, paint);
-      return;
-    }
-
-    final spotlight = RRect.fromRectAndRadius(
-      targetRect!.inflate(padding),
-      Radius.circular(radius),
-    );
-
-    final fullPath = Path()..addRect(Offset.zero & size);
-    final cutoutPath = Path()..addRRect(spotlight);
-    final combined = Path.combine(PathOperation.difference, fullPath, cutoutPath);
-
-    canvas.drawPath(combined, paint);
-  }
-
-  @override
-  bool shouldRepaint(covariant _SpotlightPainter old) =>
-      old.targetRect != targetRect || old.opacity != opacity;
 }
 
 // ═══════════════════════════════════════════════════════════════

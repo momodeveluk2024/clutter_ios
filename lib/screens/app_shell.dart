@@ -93,11 +93,15 @@ class _AppShellState extends State<AppShell> {
 
   void _showTrailWelcome() {
     if (!mounted) return;
+    // Make sure no tour overlay is still around from a prior session/route.
+    AppTourController.dismiss();
     TrailWelcomeOverlay.show(
       context,
       onStart: () {
-        // small delay lets the welcome card fade out cleanly
-        Future.delayed(const Duration(milliseconds: 220), () {
+        // Hand off directly on the next frame — a longer gap was leaving
+        // the home screen briefly interactive and producing a "stuck"
+        // feeling when the tour overlay returned.
+        WidgetsBinding.instance.addPostFrameCallback((_) {
           if (mounted) _runTour();
         });
       },
@@ -223,6 +227,9 @@ class _AppShellState extends State<AppShell> {
       ),
     ];
 
+    // Belt-and-braces: ensure the welcome overlay is gone before we open
+    // the tour, so we never end up with two backdrops stacked.
+    TrailWelcomeOverlay.dismiss();
     AppTourController.start(context, steps);
     TourPrefs.markTourCompleted();
   }

@@ -31,9 +31,7 @@ const _enableDevicePreview = bool.fromEnvironment('ENABLE_DEVICE_PREVIEW');
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await Firebase.initializeApp(
-    options: DefaultFirebaseOptions.currentPlatform,
-  );
+  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
 
   // Crashlytics: collect Dart errors in release; mirror to console in debug.
   // Must run after Firebase.initializeApp.
@@ -149,7 +147,7 @@ class _NutrimateAppState extends State<NutrimateApp> {
       if (route != null && route.trim().isNotEmpty) {
         _router.go(route);
       }
-      
+
       final api = ApiClient(tokenStorage: const SecureTokenStorage());
       VersionCheckService(api).checkVersion(context);
     });

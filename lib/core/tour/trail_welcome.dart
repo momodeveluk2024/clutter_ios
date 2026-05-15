@@ -116,9 +116,12 @@ class _TrailWelcomeScreenState extends State<_TrailWelcomeScreen>
   @override
   void initState() {
     super.initState();
+    // Duration must cover the longest staggered delay plus its 320 ms fade
+    // window, otherwise late entries (Start/Skip buttons) never reach
+    // full opacity — that made the CTA look disabled.
     _ctrl = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 720),
+      duration: const Duration(milliseconds: 1500),
     );
     _fade = CurvedAnimation(parent: _ctrl, curve: Curves.easeOutCubic);
     _ctrl.forward();
@@ -428,11 +431,16 @@ class _StaggeredEntry extends StatelessWidget {
           1.0,
         );
         final eased = Curves.easeOutCubic.transform(localT);
-        return Opacity(
-          opacity: eased,
-          child: Transform.translate(
-            offset: Offset(0, (1 - eased) * 14),
-            child: c,
+        // Block hits on barely-visible entries so users can't accidentally
+        // fire the action behind a control that hasn't faded in yet.
+        return IgnorePointer(
+          ignoring: eased < 0.5,
+          child: Opacity(
+            opacity: eased,
+            child: Transform.translate(
+              offset: Offset(0, (1 - eased) * 14),
+              child: c,
+            ),
           ),
         );
       },

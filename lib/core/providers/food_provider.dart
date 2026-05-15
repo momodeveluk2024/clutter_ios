@@ -49,6 +49,24 @@ class FoodProvider extends ChangeNotifier {
     String nutrient = '',
     int limit = 50,
   }) async {
+    final page = await fetchFoodsPage(
+      query: query,
+      category: category,
+      nutrient: nutrient,
+      limit: limit,
+    );
+    return page.foods;
+  }
+
+  /// Paginated foods fetch. Returns the page items plus total count and
+  /// has_more flag so callers can render Next/Previous controls.
+  Future<FoodsPage> fetchFoodsPage({
+    String query = '',
+    String category = '',
+    String nutrient = '',
+    int limit = 30,
+    int offset = 0,
+  }) async {
     final response = await _api.get(
       ApiEndpoints.foods,
       query: _foodQuery(
@@ -56,16 +74,27 @@ class FoodProvider extends ChangeNotifier {
         category: category,
         nutrient: nutrient,
         limit: limit,
+        offset: offset,
       ),
     );
-    
-    final results = (response.data['foods'] as List? ?? const [])
+
+    final data = Map<String, dynamic>.from(response.data as Map);
+    final results = (data['foods'] as List? ?? const [])
         .map((v) => FoodSummary.fromJson(Map<String, dynamic>.from(v as Map)))
         .toList();
-        
-    // Filter out duplicates by name
+
+    // Drop dupes by name within this page (backend can return both a
+    // user food and a USDA food with the same name).
     final seen = <String>{};
-    return results.where((f) => seen.add(f.name.toLowerCase())).toList();
+    final unique = results.where((f) => seen.add(f.name.toLowerCase())).toList();
+
+    return FoodsPage(
+      foods: unique,
+      total: (data['total'] as num?)?.toInt() ?? unique.length,
+      limit: (data['limit'] as num?)?.toInt() ?? limit,
+      offset: (data['offset'] as num?)?.toInt() ?? offset,
+      hasMore: data['has_more'] as bool? ?? false,
+    );
   }
 
   Future<List<FoodSummary>> searchFoods({
@@ -337,12 +366,30 @@ class FoodProvider extends ChangeNotifier {
     required String category,
     required String nutrient,
     required int limit,
+    int offset = 0,
   }) {
     return {
       if (query.isNotEmpty) 'q': query,
       if (category.isNotEmpty) 'category': category,
       if (nutrient.isNotEmpty) 'nutrient': nutrient,
       'limit': limit,
+      if (offset > 0) 'offset': offset,
     };
   }
+}
+
+class FoodsPage {
+  const FoodsPage({
+    required this.foods,
+    required this.total,
+    required this.limit,
+    required this.offset,
+    required this.hasMore,
+  });
+
+  final List<FoodSummary> foods;
+  final int total;
+  final int limit;
+  final int offset;
+  final bool hasMore;
 }
