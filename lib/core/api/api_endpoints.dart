@@ -65,6 +65,7 @@ class ApiEndpoints {
   static String food(String id) => '/foods/$id';
   static String foodByBarcode(String barcode) => '/foods/barcode/$barcode';
   static String foodImage(String id) => '/foods/$id/image';
+  static String foodSuggest(String id) => '/foods/$id/suggest';
   static String log(String id) => '/logs/$id';
   static String favorite(String id) => '/favorites/$id';
   static String reminder(String id) => '/reminders/$id';

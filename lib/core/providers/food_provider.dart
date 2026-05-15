@@ -235,6 +235,35 @@ class FoodProvider extends ChangeNotifier {
     return detail;
   }
 
+  /// Submits a user-drafted edit for an existing food. The original
+  /// food stays untouched until an admin approves the suggestion via
+  /// the admin dashboard.
+  Future<void> submitFoodSuggestion({
+    required String foodId,
+    required String name,
+    String? brand,
+    String? category,
+    double? servingSizeG,
+    String? barcode,
+    String? notes,
+    required List<({String code, double amountPer100G})> nutrients,
+  }) async {
+    await _api.post(
+      ApiEndpoints.foodSuggest(foodId),
+      data: {
+        'name': name,
+        if (brand != null && brand.isNotEmpty) 'brand': brand,
+        if (category != null && category.isNotEmpty) 'category': category,
+        if (servingSizeG != null) 'serving_size_g': servingSizeG,
+        if (barcode != null && barcode.isNotEmpty) 'barcode': barcode,
+        if (notes != null && notes.isNotEmpty) 'notes': notes,
+        'nutrients': nutrients
+            .map((n) => {'code': n.code, 'amount_per_100g': n.amountPer100G})
+            .toList(),
+      },
+    );
+  }
+
   Future<FoodDetail> updateUserMeal({
     required String id,
     String? name,

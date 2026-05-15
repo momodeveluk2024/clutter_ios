@@ -13,11 +13,14 @@ import '../screens/profile_setup.dart';
 import '../screens/search.dart';
 import '../screens/barcode_scan.dart';
 import '../screens/barcode_contribute.dart';
+import '../screens/barcode_not_found.dart';
+import '../screens/suggest_food_edit.dart';
+import 'models/food.dart';
 import '../screens/daily_goals.dart';
 import '../screens/sign_in.dart';
 import '../screens/sign_up.dart';
 import '../screens/splash.dart';
-import '../screens/intro_video.dart';
+import '../screens/splash_art.dart';
 import '../screens/my_meal_edit.dart';
 import '../screens/verify_email.dart';
 import '../screens/vitamin_detail.dart';
@@ -89,7 +92,7 @@ GoRouter buildRouter(AuthProvider auth) {
       );
     },
     routes: [
-      GoRoute(path: '/', builder: (context, state) => const IntroVideoScreen()),
+      GoRoute(path: '/', builder: (context, state) => const SplashArtScreen()),
       GoRoute(
         path: '/welcome',
         builder: (context, state) => const SplashScreen(),
@@ -155,6 +158,13 @@ GoRouter buildRouter(AuthProvider auth) {
         },
       ),
       GoRoute(
+        path: '/app/barcode-scan/not-found',
+        builder: (context, state) {
+          final barcode = state.extra as String?;
+          return BarcodeNotFoundScreen(barcode: barcode ?? '');
+        },
+      ),
+      GoRoute(
         path: '/app/explore',
         builder: (context, state) => const AppShell(initialTab: 1),
       ),
@@ -198,6 +208,21 @@ GoRouter buildRouter(AuthProvider auth) {
         path: '/app/food/:id',
         builder: (context, state) =>
             FoodDetailScreen(foodId: state.pathParameters['id']!),
+      ),
+      GoRoute(
+        path: '/app/food/:id/suggest',
+        builder: (context, state) {
+          final food = state.extra;
+          if (food is! FoodDetail) {
+            return Scaffold(
+              appBar: AppBar(title: const Text('Suggest a fix')),
+              body: const Center(
+                child: Text('Missing food data, open from the food page.'),
+              ),
+            );
+          }
+          return SuggestFoodEditScreen(food: food);
+        },
       ),
       GoRoute(
         path: '/app/vitamin/:code',

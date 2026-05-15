@@ -481,6 +481,8 @@ class _FoodDetailBody extends StatelessWidget {
               ),
               const SizedBox(height: 10),
               _SaveToMyMealsButton(food: food),
+              const SizedBox(height: 12),
+              _SuggestEditLink(food: food),
               const SizedBox(height: 8),
             ],
           ),
@@ -1756,6 +1758,39 @@ class _DrinkChip extends StatelessWidget {
 //  they can edit nutrients (especially useful for OFF/FatSecret
 //  barcode-resolved foods which have no owner).
 // ═══════════════════════════════════════════════════════════════
+
+/// Compact secondary link letting the user flag the catalog entry as
+/// wrong (e.g. barcode reader picked up the wrong digits, name is
+/// off). Routes to a form that submits a draft edit for admin review.
+class _SuggestEditLink extends StatelessWidget {
+  const _SuggestEditLink({required this.food});
+  final FoodDetail food;
+
+  @override
+  Widget build(BuildContext context) {
+    final c = NVColors.of(context);
+    return Center(
+      child: TextButton.icon(
+        onPressed: () {
+          HapticFeedback.selectionClick();
+          context.push('/app/food/${food.id}/suggest', extra: food);
+        },
+        icon: Icon(Icons.flag_outlined, size: 16, color: c.textMuted),
+        label: Text(
+          'Something looks wrong? Suggest a fix',
+          style: TextStyle(
+            fontSize: 13,
+            fontWeight: FontWeight.w600,
+            color: c.textMuted,
+            decoration: TextDecoration.underline,
+            decorationColor: c.textMuted,
+            decorationThickness: 0.8,
+          ),
+        ),
+      ),
+    );
+  }
+}
 
 class _SaveToMyMealsButton extends StatefulWidget {
   const _SaveToMyMealsButton({required this.food});

@@ -53,23 +53,10 @@ class _BarcodeScanScreenState extends State<BarcodeScanScreen> {
       context.push('/app/food/${detail.id}');
     } on BarcodeNotFoundException catch (e) {
       if (!mounted) return;
-      context.push('/app/barcode-scan/contribute', extra: e.barcode);
+      context.push('/app/barcode-scan/not-found', extra: e.barcode);
     } catch (_) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('No food found for barcode: $raw'),
-          action: SnackBarAction(
-            label: 'Retry',
-            onPressed: () {
-              setState(() {
-                _lastScanned = null;
-                _resolving = false;
-              });
-            },
-          ),
-        ),
-      );
+      context.push('/app/barcode-scan/not-found', extra: raw);
       setState(() => _resolving = false);
     }
   }
