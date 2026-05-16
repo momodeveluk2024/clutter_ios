@@ -222,8 +222,14 @@ class AuthProvider extends ChangeNotifier {
       _setLoading(false);
       rethrow;
     }
-    // Mirror logout(): drop Firebase + Google sessions and clear tokens. Best
-    // effort — if one of these fails we still want the user signed out.
+    // Delete the Firebase Auth user so re-registration with the same email
+    // won't get "email already in use". Must happen before signOut() which
+    // clears the currentUser reference. Best-effort: if the Firebase delete
+    // fails (e.g. stale credential), the backend soft-delete still took
+    // effect and the user is signed out.
+    try {
+      await _firebaseCurrentUser?.delete();
+    } catch (_) {}
     try {
       await Future.wait([
         _googleSignIn.signOut(),
